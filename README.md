@@ -1,10 +1,8 @@
 # Foofus.net ~ Medusa
 
-=======================================================
-Medusa Parallel Network Login Auditor
-=======================================================
+**Medusa Parallel Network Login Auditor**
 
-Copyright (C) 2015 Joe Mondloch
+Copyright (C) 2015 Joe Mondloch<br />
 JoMo-Kun / jmk@foofus.net
 
 Medusa is a speedy, parallel, and modular, login brute-forcer. The goal is to support as many services which allow remote authentication as possible. The author considers following items as some of the key features of this application:
@@ -18,5 +16,5 @@ Modular design. Each service module exists as an independent .mod file. This mea
 Multiple protocols supported. Many services are currently supported (e.g. SMB, HTTP, MS-SQL, POP3, RDP, SSHv2, among others).
 
 See doc/medusa.html for Medusa documentation. For additional information:
-- http://h.foofus.net/?page_id=51
+- http://foofus.net/?page_id=51
 - http://foofus.net/goons/jmk/medusa/medusa.html
