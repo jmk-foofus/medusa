@@ -1,0 +1,30 @@
+JoMo-Kun <jmk@foofus.net>
+---------------------------------------
+*Medusa core design/implementation
+*Modules: SMBNT, MS-SQL, SSH2, MySQL, VNC, Wrapper, CVS,
+          NCP, PostgreSQL, SMTP/VRFY, SNMP, SVN, VmAuthd,
+          HTTP (NTLM), PcAnywhere, POP3, RDP
+
+fizzgig <fizzgig@foofus.net>
+---------------------------------------
+*Networking code
+*Implementation of loadable module code
+*Modules: TELNET, HTTP
+
+pMonkey <pmonkey@foofus.net>
+---------------------------------------
+*Modules: AFP, FTP, IMAP, MySQL, REXEC, RLOGIN, RSH, 
+          SMTP-AUTH
+
+Foofus <foofus@foofus.net>
+---------------------------------------
+*Design of loadable modules
+
+Bokojan <bokojan@foofus.net>
+---------------------------------------
+*Testing scripts
+
+Luciano Bello <luciano@linux.org.ar>
+---------------------------------------
+*Modules: WEB-FORM
+

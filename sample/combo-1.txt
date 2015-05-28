@@ -1,0 +1,9 @@
+192.168.0.1:user1:pass1
+192.168.0.1:user1:pass2
+192.168.0.1:user2:pass2
+192.168.0.1:user3:pass3-1
+192.168.0.1:user3:pass3-2
+192.168.0.3:user4:pass1
+192.168.0.10:user5:pass1
+192.168.0.10:user6:pass1
+192.168.0.10:user5:pass3

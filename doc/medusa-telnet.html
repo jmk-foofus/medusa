@@ -1,0 +1,26 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::TELNET</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: TELNET</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The TELNET module tests accounts against the TELNET service. This module supports
+both telnet (23) and telnets (992).
+
+<P>
+The module currently has a single option, MODE. MODE can either be NORMAL (default)
+or AS400. The AS400 mode supports basic AS/400 tn5250 connections. This approach
+allows for more descriptive error messages than FTP when testing against an AS/400.
+However, POP3, if available on the AS/400, is still a better brute-force option.
+
+<P>
+The Telnet module will output to the log file hosts that were found to only have
+a password prompt. This may be useful when scanning for use, or lack of, AAA.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

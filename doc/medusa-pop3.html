@@ -1,0 +1,35 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::POP3</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: POP3</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The POP3 module tests accounts against the POP3 service.
+
+<P>
+The module has a single option, MODE. If left unset, the default behavior
+is to check for either "+" or "-" in the server's response to see if the 
+attempt was successful. 
+
+<P>
+If the server being tested in an AS/400, the module should be executed 
+using the option <CODE>-m MODE:AS400</CODE>. This will result in the -ERR
+message being returned to be parsed for addition information. This is 
+based on information gathered from the following document: 
+<A HREF="http://www.venera.com/downloads/Enumeration_of_AS400_users_via_pop3.pdf">
+Enumeration_of_AS400_users_via_pop3.pdf</A>
+
+<P>
+The module supports both POP3 (110/tcp) and POP3S (POP3 protocol over TLS/SSL) 
+(995/tcp). In addition, it supports the POP3 STARTTLS extention, as defined
+in <A HREF="http://www.faqs.org/rfcs/rfc2595.html">http://www.faqs.org/rfcs/rfc2595.html</A>.
+Medusa will submit a "STLS" command to the target server. If a positive response
+is returned, a TLS session will be initiated.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

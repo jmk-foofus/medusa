@@ -1,0 +1,42 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::PcAnywhere</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: PcAnywhere</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The PcAnywhere module tests accounts against the Symantec PcAnywhere service.
+
+<P>
+NOTE: PcAnywhere allows only one connection at a time. Running multiple threads per target
+may not work well.
+
+<P>
+Module based on packet captures from Server Version 10.5.1 and Client 10.0.2.<BR>
+
+<P>
+PCA Authentication Methods:<BR>
+&nbsp&nbsp ADS (Active Directory Services) [1]<BR>
+&nbsp&nbsp FTP                             [2]<BR>
+&nbsp&nbsp HTTP                            [2]<BR>
+&nbsp&nbsp HTTPS                           [2]<BR>
+&nbsp&nbsp Microsoft LDAP                  [2]<BR>
+&nbsp&nbsp Netscape LDAP                   [2]<BR>
+&nbsp&nbsp Novell LDAP                     [2]<BR>
+&nbsp&nbsp NT                              [1]<BR>
+&nbsp&nbsp pcAnywhere                      [1]<BR>
+&nbsp&nbsp Windows                         [3]<BR>
+
+<BR>
+[1] Verified working<BR>
+[2] Untested<BR>
+[3] Verified to work when PcAnywhere host authenticates against domain accounts.<BR>
+    Authentication fails for local accounts with both the module and the PcAnywhere<BR>
+    client. Not sure what's going on...<BR>
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

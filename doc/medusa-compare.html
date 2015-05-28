@@ -1,0 +1,561 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: Feature Comparison</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<I>Note: Information contained on this page for Hydra and Ncrack is based on each tool's own documentation. No confirmation of supported services has been performed.</I>
+
+<BR><BR>
+
+<P>
+<TABLE BORDER=1 CELLPADDING=2 WIDTH=90%>
+<TR>
+  <TD><B>Area</B>
+  <TD><B>Feature</B>
+  <TD><B>Medusa 2.2</B>
+  <TD><B>Hydra 7.1</B>
+  <TD><B>Ncrack 0.4ALPHA</B>
+</TR>
+<TR>
+  <TD>*</TD>
+  <TD>License</TD>
+  <TD>GPL-2</TD>
+  <TD>GPL-3</TD>
+  <TD>GPL-2</TD>
+</TR>
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>Core</TD>
+  <TD>Parallel Method</TD>
+  <TD>pthread</TD>
+  <TD>fork()</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Service Design</TD>
+  <TD>Modular</TD>
+  <TD>Built-in</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Speed (several comparisons are included below)</TD>
+  <TD>?</TD>
+  <TD>?</TD>
+  <TD>?</TD>
+</TR>
+
+<TR>
+  <TD>Generic Wrapper Module</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>AFP</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>CVS</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>FTP</TD>
+  <TD>FTP</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>Explicit FTPS (AUTH TLS Mode as defined in RFC 4217)</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>Implicit FTPS (FTP over SSL (990/tcp)</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>HTTP</TD>
+  <TD>Basic Auth</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>NTLM Auth (Windows Integrated)</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Digest Authentication</TD>
+  <TD>MD5, MD5-sess</TD>
+  <TD>MD5</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>HTTP Proxy</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>ICQ</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=4>IMAP</TD>
+  <TD>Method LOGIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-PLAIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-NTLM Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>SSL Support</TD>
+  <TD>IMAPS, STARTTLS</TD>
+  <TD>IMAPS, STARTTLS</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>LDAP</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=2>Microsoft SQL</TD>
+  <TD>Port Auto-Detection</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>MS-SQL</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>MySQL</TD>
+  <TD>Pre-4.1 Authentication</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Pre-4.1 Hash Passing</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>4.1+ Authentication</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>NCP (NetWare)</TD>
+  <TD></TD>
+  <TD>&#8730; (ncpfs)</TD>
+  <TD>&#8730; (ncpfs)</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>NNTP</TD>
+  <TD></TD>
+  <TD>&#8730; (Original AUTHINFO)</TD>
+  <TD>&#8730; (Original AUTHINFO)</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>Oracle</TD>
+  <TD>Database</TD>
+  <TD>&#8730; (via Wrapper script)</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Listener</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>SID</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=2>PcAnywhere</TD>
+  <TD>Supported Encryption Level</TD>
+  <TD>None</TD>
+  <TD>None</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Supported Authenication Mode(s)</TD>
+  <TD>Native PCA, ADS, NT, Windows</TD>
+  <TD>Native PCA</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>PCNFS</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=5>POP3</TD>
+  <TD>Method AUTH-USER Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>Method AUTH-LOGIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-PLAIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-NTLM Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+</TR>
+<TR>
+  <TD>SSL Support</TD>
+  <TD>POP3S, STARTTLS</TD>
+  <TD>POP3S</TD>
+  <TD>POP3S, STARTTLS</TD>
+</TR>
+
+<TR>
+  <TD>PostgreSQL</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=2>RDP (Terminal Server)</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>Pass the Hash Support</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>REXEC</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=2>RLOGIN</TD>
+  <TD>.rhost Support</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Password Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>RSH</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>SAPR3</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>SIP</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>SMB (Microsoft Windows/Samba)</TD>
+  <TD>Authentication Modes</TD>
+  <TD>clear-text, LMv1, NTLMv1, LMv2, NTLMv2</TD>
+  <TD>clear-text, LMv1, NTLMv1, LMv2, NTLMv2</TD>
+  <TD>Unknown</TD>
+</TR>
+<TR>
+  <TD>Hash Passing</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Access Detection (ADMIN$)</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=7>SMTP</TD>
+  <TD>Method AUTH-LOGIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-PLAIN Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Method AUTH-NTLM Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>SSL Support</TD>
+  <TD>STARTTLS</TD>
+  <TD>STARTTLS</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>VRFY</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>EXPN</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>RCPT TO</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>SNMP</TD>
+  <TD></TD>
+  <TD>&#8730; (significantly faster design)</TD>
+  <TD>&#8730; (overwrites sysName with "HYDRA")</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>SOCKS5</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>SSHv2</TD>
+  <TD></TD>
+  <TD>&#8730; (libssh2)</TD>
+  <TD>&#8730; (libssh)</TD>
+  <TD>&#8730;</TD>
+</TR>
+
+<TR>
+  <TD>SVN</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>TeamSpeak</TD>
+  <TD></TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=4>Telnet</TD>
+  <TD>Generic Telnet</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+<TR>
+  <TD>Cisco (AAA/non-AAA)</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+</TR>
+<TR>
+  <TD>Cisco enable password</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>AS/400 (TN5250) Support</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=3>VNC</TD>
+  <TD>Password-less/Password-only Support</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Anti-Brute Force Slowdown Support</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>Username/Password Support</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD VALIGN=TOP ROWSPAN=2>VmWare Authentication Daemon</TD>
+  <TD>Non-SSL Authentication</TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+<TR>
+  <TD>SSL Authentication</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+  <TD></TD>
+</TR>
+
+<TR>
+  <TD>Web Form Module</TD>
+  <TD></TD>
+  <TD>&#8730;</TD>
+  <TD>&#8730;</TD>
+  <TD></TD>
+</TR>
+
+</TABLE>
+
+<PRE>
+Speed comparison: password list of 20 entries (valid entry at #20)
+FTP / Ubuntu 11.10 vsftp 2.3.2
+        [1 task]    [4 tasks]    [16 tasks] 
+Medusa  1:03.53     15.727         7.658     (e.g., -t 16)
+Hydra     57.527    16.545         8.013     (e.g., -t 16)
+Ncrack  1:00.01     24.017        15.009     (e.g., -g cl=16,CL=16)
+
+Speed comparison: password list of 1003 entries (valid entry at #1000)
+HTTP / Windows 2008 IIS 7.0
+        [1 task]    [4 tasks]    [16 tasks] 
+Medusa  1.390       0.803        0.626       (e.g., -v 4 -t 16)
+Hydra   1.443       0.855        0.790       (e.g., -t 16)
+Ncrack  3.108       3.016        3.013       (e.g., -g cl=16,CL=16)
+
+Speed comparison: password list of 1003 entries (valid entry at #986)
+SMB / Windows 2008 
+        [1 task]    [4 tasks]    [16 tasks] 
+Medusa  6.859       0.919        0.500       (e.g., -v 4 -t 16)
+Hydra   8.216                                (doesn't handle parallel connections)
+Ncrack                                       (failed to auth to test server) 
+
+Speed comparison: password list of 10 entries (valid entry at #10)
+SSH Ubuntu 11.10 OpenSSH 5.8p1
+        [1 task]    [4 tasks]    [16 tasks] 
+Medusa  38.039      11.943       8.067       (e.g., -v 4 -t 16)
+Hydra   32.122      12.208       8.457       (e.g., -t 16)
+Ncrack  30.023      27.012       24.013      (e.g., -g cl=16,CL=16)
+</PRE>
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

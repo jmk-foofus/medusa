@@ -1,0 +1,32 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::SMTP-VRFY</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: SMTP-VRFY</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The SMTP-VRFY module can be used to enumerate which accounts are valid on a mail
+server. The module sends the following:
+
+<BR><BR>
+<CODE>
+EHLO some_name<BR>
+VRFY account@domain<BR>
+</CODE>
+
+<P>
+The module expects the accounts to be checked to be supplied via the user options
+(-u/-U/-C). The domain should be supplied as if it were a password. The value sent
+via the EHLO command can be set using the <CODE>-m EHLO:</CODE> module option. The
+default is to send MEDUSA.
+
+<P>
+This module was written while testing a single mis-configured SMTP SPAM filter. Other
+devices probably behave differently. Some tweaking of the module may be required.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

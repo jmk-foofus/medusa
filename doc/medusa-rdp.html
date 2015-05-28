@@ -1,0 +1,38 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::RDP</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: RDP</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The RDP module tests accounts against the Microsoft Remote Desktop Protocol 
+(RDP) / Terminal Service. It should be noted that will only work with
+target systems running Microsoft 2008 and later. Tests against Microsoft
+XP/2003/etc, will always report that the logon was successful.
+
+<P>
+This module requires <A HREF="http://www.freerdp.com/">FreeRDP</A>. The
+pass-the-hash option is also only available if FreeRDP version 1.2 or 
+greater is installed.
+
+<P>
+The following examples demonstrate several uses of the RDP module:
+
+<UL>
+<LI>Logon attempt using pass-the-hash (NTLM):
+<PRE><CODE>
+medusa -M rdp -m PASS:HASH -h 10.10.10.10 -u Administrator -p 31D78236327B9619B14ED8EC9AB454C1
+</CODE></PRE>
+
+<LI>Logon attempt supplying domain name (default behavior is a local logon):
+<PRE><CODE>
+medusa -M rdp -m DOMAIN:CORPNAME -h 10.10.10.10 -u Administrator -p Password1 
+</CODE></PRE>
+</UL>
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

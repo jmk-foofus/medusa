@@ -1,0 +1,29 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::VNC</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: VNC</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The VNC module tests accounts against the VNC service.
+
+<P>
+This module was developed using both RealVNC and UltraVNC, which support
+rudimentary anti-brute force functionality. RealVNC, for example, allows 5 
+failed attempts and then enforces a 10 second delay. For each subsequent 
+attempt that delay is doubled. UltraVNC appears to allow 6 invalid attempts 
+and then forces a 10 second delay between each following attempt. This module 
+attempts to identify these situations and react appropriately by invoking 
+sleep(). The user can set a sleep limit when brute forcing RealVNC using the 
+MAXSLEEP parameter. Once this value has been reached, the module will exit.
+
+<P>
+This module supports password-less and password-only authentication as well as
+UltraVNC MS-Logon (local/domain Windows credentials) username/password credentials.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

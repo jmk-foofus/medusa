@@ -1,0 +1,62 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::SSH</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: SSH</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The SSH module tests accounts against SSH service using SSH version 2. The module
+currently supports brute-forcing SSH Keyboard-interactive and Password authentication 
+modes. 
+
+<P>
+This module requires <A HREF="http://www.libssh2.org">libssh2 (www.libssh2.org)</A>. 
+This is NOT the same as <A HREF="http://0xbadc0de.be">libssh (0xbadc0de.be)</A>. It 
+should be noted that the libssh2 library, and therefor, the Medusa SSH module only 
+supports brute-forcing servers which can talk SSH version 2. Libssh2 does not have 
+support for v1 and it looks likely that it never will.
+
+<P>
+The module has a single option, BANNER. If it's not obvious, this allows you to set
+the client banner sent during an authentication test. The default value is "SSH-2.0-MEDUSA".
+
+<P>
+<I>Some notes regarding libssh2...</I> Using the stock libssh2 library, it is likely
+that the user will encounter hung module threads when running Medusa. This problem is
+due to libssh2's libssh2_session_startup() not always returning. The cause of this hang
+within libssh2, I believe, stems from the SSH servers being tested getting pissed and not 
+sending back a banner. The default behavior for OpenSSH is to allow only 10 unauthenticated 
+connections and ignore everything else. While we weren't always running 10 threads in our tests, 
+our threads may have been hitting it faster than it could clean up the previous connections...
+
+<P>
+This issue has been dealt with in two ways:
+
+<UL>
+  <LI>libssh2 waits forever for the ssh server to respond with a banner. This causes
+      our threads to wait forever, which kinda blows. I've added a patch to libssh2
+      in the /misc directory which causes it to count to 1000 and then stop waiting.
+      This minor patch has been submitted to the libssh2 folks and a fix will hopefully
+      be included in a future release.
+
+  <LI>We now loop around the libssh2_session_startup() call. This function will fail
+      if libssh2 was unable to negotiate a SSH session. We give it 5 shots to pass
+      and sleep a user configurable time between each. If we fail after 5 attempts,
+      we display that this happened and identify the host/user/pass combination that
+      was not tested.
+</UL>
+
+<P>
+<I>** As of libssh2 0.18 (devel), this issue appears to be resolved. **</I>
+
+<P>
+It should be noted that while you can run many threads of SSH, more is not always
+better. As you increase past 10, you will notice the module having to retry the
+startup() function.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

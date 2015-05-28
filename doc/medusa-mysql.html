@@ -1,0 +1,24 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::MySQL</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: MySQL</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The MySQL module tests accounts against the MySQL service.
+
+<P>
+In addition to normal password brute force attempts, this module supports
+"pass-the-hash" abilities for older MySQL (pre-4.1) hashes. The older MySQL 
+pre-4.1 authentication scheme is vulnerable to a pass-the-hash authentication 
+attack. Utilizing the old-style hashes gathered from a MySQL database, a user 
+can use Medusa to verify their validity on other servers. A modified MySQL 
+client can also be use to connect to located services directly utilizing a 
+valid hash.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

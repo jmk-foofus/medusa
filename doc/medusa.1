@@ -1,0 +1,219 @@
+.TH MEDUSA 1
+.SH NAME
+MEDUSA \- Parallel Network Login Auditor
+.SH SYNOPSIS
+.B medusa
+[-h host|-H file] [-u username|-U file] [-p password|-P file] [-C file] -M module [OPTIONS]
+.SH DESCRIPTION
+
+.I Medusa
+is intended to be a speedy, massively parallel, modular, login brute-forcer.
+The goal is to support as many services which allow remote authentication as
+possible. The author considers following items to some of the key features of this
+application:
+
+*Thread-based parallel testing. Brute-force testing can be performed against multiple
+hosts, users or passwords concurrently.
+
+*Flexible user input. Target information (host/user/password) can be specified in
+a variety of ways. For example, each item can be either a single entry or a file
+containing multiple entries. Additionally, a combination file format allows the user
+to refine their target listing.
+
+*Modular design. Each service module exists as an independent .mod file. This means
+that no modifications are necessary to the core application in order to extend the
+supported list of services for brute-forcing.
+
+.SH OPTIONS
+.TP
+.B \-h [TARGET]
+Target hostname or IP address.
+
+.TP
+.B \-H [FILE]
+Reads target specifications from the file specified rather than from the command line. 
+The file should contain a list separated by newlines. 
+
+.TP
+.B \-u [TARGET]
+Target username.
+
+.TP
+.B \-U [FILE]
+Reads target usernames from the file specified rather than from the command line. 
+The file should contain a list separated by newlines. 
+
+.TP
+.B \-p [TARGET]
+Target password.
+
+.TP
+.B \-P [FILE]
+Reads target passwords from the file specified rather than from the command line. 
+The file should contain a list separated by newlines. 
+
+.TP
+.B \-C [FILE]
+File containing combo entries. Combo files are colon separated and in the following 
+format: host:user:password. If any of the three fields are left empty, the 
+respective information should be provided either as a single global value or as a 
+list in a file.
+
+The following combinations are possible in the combo file:
+1.) foo:bar:fud
+2.) foo:bar:
+3.) foo::
+4.) :bar:fud
+5.) :bar:
+6.) ::fud
+7.) foo::fud
+
+Medusa also supports using PwDump files as a combo file. The format of these
+files should be user:id:lm:ntlm:::. We look for ':::' at the end of the first line
+to determine if the file contains PwDump output.
+
+.TP
+.B \-O [FILE]
+File to append log information to. Medusa will log all accounts credentials found
+to be valid or cause an unknown error. It will also log the start and stop times 
+of an audit, along with the calling parameters. 
+
+.TP
+.B \-e [n/s/ns]
+Additional password checks ([n] No Password, [s] Password = Username). If both
+options are being used, they should be specified together ("-e ns"). If only a 
+single option is being called use either "-e n" or "-e s". 
+
+.TP
+.B \-M [TEXT]
+Name of the module to execute (without the .mod extension).
+
+.TP
+.B \-m [TEXT]
+Parameter to pass to the module. This can be passed multiple times with a
+different parameter each time and they will all be sent to the module (i.e.
+-m Param1 -m Param2, etc.)
+
+.TP
+.B \-d
+Dump all known modules.
+
+.TP
+.B \-n [NUM]
+Use for non-default TCP port number.
+
+.TP
+.B \-s
+Enable SSL.
+
+.TP
+.B \-g [NUM]
+Give up after trying to connect for NUM seconds (default 3).
+
+.TP
+.B \-r [NUM]
+Sleep NUM seconds between retry attempts (default 3).
+
+.TP
+.B \-R [NUM]
+Attempt NUM retries before giving up. The total number of attempts will be NUM + 1.
+
+.TP
+.B \-c [NUM]
+Set the number of usec that are waited during a test of the established network
+socket. Some services (e.g. FTP, IMAP, POP3, and SMTP) may be configured to drop
+connections after an arbitrary number of failed logon attempts. We try to reuse 
+the established connection to send authentication attempts until this disconnect
+occurs, at which point the connection is reestablished. To accomplish this, we
+check the socket to see if it's still alive before authenticating within select
+modules. The default is perform a 1 usec check. It may be necessary to specify
+much larger values. For example, a 1000 usec was needed against our test vsftp
+server to avoid issues with its built-in anti-bruteforce mechanisms.
+
+.TP
+.B \-t [NUM]
+Total number of logins to be tested concurrently. It should be noted that rougly 
+t x T threads could be running at any one time. 381 appears to be the limit on
+my fairly boring Gentoo Linux host.
+
+.TP
+.B \-T [NUM]
+Total number of hosts to be tested concurrently.
+
+.TP
+.B \-L
+Parallelize logins using one username per thread. The default is to process
+the entire username before proceeding.
+
+.TP
+.B \-f
+Stop scanning host after first valid username/password found.
+
+.TP
+.B \-F
+Stop audit after first valid username/password found on any host.
+
+.TP
+.B \-b
+Suppress startup banner
+
+.TP
+.B \-q
+Display module's usage information. This should be used in conjunction with the
+"-M" option. For example, "medusa -M smbnt -q".
+
+.TP
+.B \-v [NUM]
+Verbose level [0 - 6 (more)]. All messages at or below the specified level will
+be displayed. The default level is 5.
+
+The following is the breakdown of the verbose levels: 
+0)   EXIT APPLICATION
+1)   MESSAGE WITHOUT TAG
+2)   LOG MESSAGE WITHOUT TAG
+3)   IMPORTANT MESSAGE
+4)   ACCOUNT FOUND
+5)   ACCOUNT CHECK
+6)   GENERAL MESSAGE
+
+.TP
+.B \-w [NUM]
+Error debug level [0 - 10 (more)]. All messages at or below the specified level
+will be displayed. The default level is 5.
+
+The following is the breakdown of the error levels:
+0)   FATAL
+1)   ALERT
+2)   CRITICAL
+3)   ERROR
+4)   WARNING
+5)   NOTICE
+6)   INFO
+7)   DEBUG
+8)   DEBUG - AUDIT
+9)   DEBUG - SERVER
+10)  DEBUG - MODULE
+
+.TP
+.B \-V
+Display version
+
+.TP
+.B \-Z [TEXT]
+Allows basic resuming of a previous scan. The supplied parameter describes which
+hosts were completed, which were partially tested and which had not been started.
+When Medusa receives a SIGINT, it will calculate and display a "resume map". This
+map can then be supplied to the next run. For example, "medusa [OPTIONS PREVIOUSLY 
+USED] -Z h6u1u2h8.". In this particular example, hosts 1-5 were completed,
+host 6 was partially done (user 1 was partially completed and user 2 and beyond had 
+not been started), host 7 was completed and host 8 and beyond had not been started. 
+Medusa will parse this map and skip hosts and users accordingly. It should be noted
+that only host and user-level, not password-level, resuming is supported. If a user 
+had been previously started, but was not completed, it will be tested from the 
+start of its respective password list.  
+
+.SH AUTHOR
+JoMo-Kun <jmk@foofus.net>
+fizzgig <fizzgig@foofus.net>
+.SH BUGS
+Found a bug? Feel free to send in a patch.

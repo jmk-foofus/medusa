@@ -1,0 +1,501 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<UL>
+  <LI><A HREF="#what">What?</A>
+  <LI><A HREF="#why">Why?</A>
+  <LI><A HREF="#how">How?</A>
+  <LI><A HREF="#where">Where?</A>
+  <LI><A HREF="#who">Who?</A>
+  <LI><A HREF="#huh">Huh?</A>
+</UL>
+
+<H2><A NAME="what">What?</A></H2>
+
+<P>
+Medusa is intended to be a speedy, massively parallel, modular, login brute-forcer.
+The goal is to support as many services which allow remote authentication as
+possible. The author considers following items as some of the key features of this
+application:
+
+<UL>
+  <LI><B>Thread-based parallel testing.</B> Brute-force testing can be performed against multiple
+hosts, users or passwords concurrently.
+
+  <LI><B>Flexible user input.</B> Target information (host/user/password) can be specified in
+a variety of ways. For example, each item can be either a single entry or a file 
+containing multiple entries. Additionally, a combination file format allows the user 
+to refine their target listing.
+
+  <LI><B>Modular design.</B> Each service module exists as an independent .mod file. This means
+that no modifications are necessary to the core application in order to extend the supported list 
+of services for brute-forcing.
+</UL>
+
+<H2><A NAME="why">Why?</A></H2>
+
+<P>
+Why create Medusa? Isn't this the same thing as <A HREF="http://www.thc.org/thc-hydra">THC-Hydra</A>? Here are some
+of the reasons for this application:
+
+<UL>
+  <LI><B>Application stability.</B> Maybe I'm just lame, but Hydra frequently crashed on me. I
+was no longer confident that Hydra was actually doing what it claimed to be. Rather
+than fix Hydra, I decided to create my own buggy application which could crash in
+new and exciting ways.
+
+  <LI><B>Code organization.</B> A while back I added several features to Hydra (parallel host
+scanning, SMBNT module). Retro-fitting the parallel host code to Hydra was a serious
+pain. This was mainly due to my coding ignorance, but was probably also due to
+Hydra not being designed from the ground-up to support this. Medusa was designed from
+the start to support parallel testing of hosts, users and passwords.
+
+  <LI><B>Speed.</B> Hydra accomplishes its parallel testing by forking off a new process for
+each host and instance of the service being tested. When testing many hosts/users at once this 
+creates a large amount of overhead as user/password lists must be duplicated for each forked 
+process. Medusa is pthread-based and does not unnecessarily duplicate information.
+
+  <LI><B>Education.</B> I am not an experienced C programmer, nor do I consider myself an
+expert in multi-threaded programming. Writing this application was a training
+exercise for me. Hopefully, the results of it will be useful for others.
+</UL>
+
+<BR>
+For a quick comparison of Medusa, Ncrack, and THC-Hydra see: <A HREF="medusa-compare.html">medusa-compare.html</A><BR>
+
+<H2><A NAME="how">How?</A></H2>
+
+<P>
+How do I use this thing? Simply running "medusa" without any options will dump
+all the parameters it accepts along with their respective description. Here are
+several example uses:
+
+<UL>
+<LI><I>Display all modules currently installed:</I><BR>
+<CODE><PRE>
+% medusa -d
+ 
+Medusa v1.0-rc1 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks
+
+  Available modules in "." :
+  Available modules in "/usr/local/lib/medusa/modules" :
+    + mssql.mod :
+      Brute force module for M$-SQL sessions : version 0.1.0
+    + http.mod :
+      Brute force module for HTTP : version 0.1.1
+    + ssh.mod :
+      Brute force module for SSH v2 sessions : version 0.1.1
+    + smbnt.mod :
+      Brute force module for SMB/NTLMv1 sessions : version 0.1.1
+    + telnet.mod :
+      Brute force module for telnet sessions : version 0.1.4
+</PRE></CODE>
+
+<LI><I>Display specific options for a given module:</I><BR>
+<CODE><PRE>
+% medusa -M smbnt -q 
+Medusa v1.0-rc1 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks
+
+smbnt.mod (0.1.1) JoMo-Kun :: Brute force module for SMB/NTLMv1 sessions
+
+Available module options:
+  GROUP:? (DOMAIN, LOCAL*, BOTH)
+    Option sets NetBIOS workgroup field.
+    DOMAIN: Check credentials against this hosts primary domain controller via this host.
+    LOCAL:  Check local account.
+    BOTH:   Check both. This leaves the workgroup field set blank and then attempts to check
+            the credentials against the host. If the account does not exist locally on the
+            host being tested, that host then queries its domain controller.
+  GROUP_OTHER:?
+    Option allows manual setting of domain to check against. Use instead of GROUP.
+  PASS:?  (PASSWORD*, HASH, MACHINE)
+    PASSWORD: Use normal password.
+    HASH:     Use a NTLM hash rather than a password.
+    MACHINE:  Use the machine's NetBIOS name as the password.
+  NETBIOS
+    Force NetBIOS Mode (Disable Native Win2000 Mode). Win2000 mode is the default.
+    Default mode is to test TCP/445 using Native Win2000. If this fails, module will
+    fall back to TCP/139 using NetBIOS mode. To test only TCP/139, use the following:
+    medusa -M smbnt -m NETBIOS -n 139
+
+(*) Default value
+Usage example: "-M smbnt -m GROUP:DOMAIN -m PASS:HASH"
+</PRE></CODE>
+
+<LI><I>The following command instructs Medusa to test all passwords listed in passwords.txt
+against a single user (administrator) on the host 192.168.0.20 via the SMB service. 
+The "-e ns" instructs Medusa to additionally check if the administrator account has 
+either a blank password or has its password set to match its username 
+(administrator).</I><BR>
+
+<PRE><CODE>
+% medusa -h 192.168.0.20 -u administrator -P passwords.txt -e ns -M smbnt
+
+Medusa v1.0-rc1 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks
+
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password:  (1/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: administrator (2/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: password (3/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: pass1 (4/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: pass2 (5/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: pass3 (6/7)
+ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password: pass4 (7/7)
+</PRE></CODE>
+
+<LI><I>The below command-line demonstrates how to execute some of the parallel features 
+of Medusa. Here at least 20 hosts and 10 users are tested concurrently. The "-L"
+options instructs Medusa to parallelize by user. This means each of the 10 threads
+targeting a host checks a unique user.</I><BR>
+
+<PRE><CODE>
+% medusa -H hosts.txt -U users.txt -P passwords.txt -T 20 -t 10 -L -F -M smbnt
+</PRE></CODE>
+
+<LI><I>Medusa allows host/username/password data to also be set using a "combo" file. The
+combo file can be specified using the "-C" option. The file should contain one entry per
+line and have the values colon separated in the format host:user:password. If any of the
+three fields are left empty, the respective information should be provided either as a 
+global value or as a list in a file. Medusa will perform a basic parameter check based on
+the contents of the first line in the file.
+</I>
+
+<P>
+<I>The following combinations are possible in the combo file:</I>
+<UL>
+  <LI>host:username:password
+  <LI>host:username:
+  <LI>host::
+  <LI>:username:password
+  <LI>:username:
+  <LI>::password
+  <LI>host::password
+</UL>
+
+<P>
+<I>The following example will check each entry in the file combo.txt</I><BR>
+
+<CODE>
+% medusa -M smbnt -C combo.txt<BR>
+</CODE>
+
+<BR>
+<I>The combo.txt file:</I><BR>
+<CODE>
+192.168.0.20:administrator:password<BR>
+192.168.0.20:testuser:pass<BR>
+192.168.0.30:administrator:blah<BR>
+192.168.0.40:user1:foopass<BR>
+</CODE>
+
+<P>
+<I>The following example will check each entry in the file combo.txt against the targets
+listed in hosts.txt</I><BR>
+
+<CODE>
+% medusa -M smbnt -C combo.txt -H hosts.txt<BR>
+</CODE>
+
+<BR>
+<I>The combo.txt file:</I><BR>
+<CODE>
+:administrator:password<BR>
+:testuser:pass<BR>
+:administrator:blah<BR>
+:user1:foopass<BR>
+</CODE>
+
+<P>
+<I>Medusa also supports using PwDump files as a combo file. The format of these files should 
+be user:id:lm:ntlm:::. We look for ':::' at the end of the first line to determine if the file 
+contains PwDump output.</I>
+
+<LI><I>Resume a Medusa scan. Medusa has the ability to resume a scan which was interrupted with a
+SIGINT signal (e.g. CTRL-C). For example:</I>
+
+<P>
+<I>Test interrupted with SIGINT</I><BR>
+<CODE>
+% ../medusa -M ssh -H host.txt -U users.txt -p password<BR>
+Medusa v2.0 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks <jmk@foofus.net><BR>
+<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.1 (1 of 11, 0 complete) User: foo (1 of 4, 0 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.1 (1 of 11, 0 complete) User: administrator (2 of 4, 1 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.1 (1 of 11, 0 complete) User: jmk (3 of 4, 2 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.1 (1 of 11, 0 complete) User: bar (4 of 4, 3 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.11 (2 of 11, 1 complete) User: foo (1 of 4, 0 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.11 (2 of 11, 1 complete) User: administrator (2 of 4, 1 complete) Password: password (1 of 1 complete)<BR>
+ALERT: Medusa received SIGINT - Sending notification to login threads that we are are aborting.<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.11 (2 of 11, 1 complete) User: jmk (3 of 4, 2 complete) Password: password (1 of 1 complete)<BR>
+ALERT: To resume scan, add the following to your original command: "-Z h2u3u4h3."<BR>
+</CODE>
+
+<P>
+<I>Interrupted scan being resumed</I><BR>
+<CODE>
+% ../medusa -M ssh -H host.txt -U users.txt -p password -Z h2u3u4h3.<BR>
+Medusa v2.0 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks <jmk@foofus.net><BR>
+<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.11 (2 of 11, 0 complete) User: jmk (3 of 4, 0 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.11 (2 of 11, 0 complete) User: bar (4 of 4, 1 complete) Password: password (1 of 1 complete)<BR>
+ACCOUNT CHECK: [ssh] Host: 192.168.0.15 (3 of 11, 1 complete) User: foo (1 of 4, 0 complete) Password: password (1 of 1 complete)<BR>
+</CODE>
+
+<P>
+<I>The following is a brief discription of the resume map:</I><BR>
+<PRE>
+h2u3u4h3.
++--------- First host which was not 100% completed
+  +------- First user for host which was not 100% completed
+    +----- First user for host which was not started
+      +--- First host which was not started
+        +- Map ending mark
+</PRE>
+</UL>
+
+<H3>Module specific details:</H3>
+<UL>
+  <LI><A HREF="medusa-afp.html">AFP</A>
+  <LI><A HREF="medusa-cvs.html">CVS</A>
+  <LI><A HREF="medusa-ftp.html">FTP</A>
+  <LI><A HREF="medusa-http.html">HTTP</A>
+  <LI><A HREF="medusa-imap.html">IMAP</A>
+  <LI><A HREF="medusa-mssql.html">MS-SQL</A>
+  <LI><A HREF="medusa-mysql.html">MySQL</A>
+  <LI><A HREF="medusa-ncp.html">NetWare NCP</A>
+  <LI><A HREF="medusa-nntp.html">NNTP</A>
+  <LI><A HREF="medusa-pcanywhere.html">PcAnywhere</A>
+  <LI><A HREF="medusa-pop3.html">POP3</A>
+  <LI><A HREF="medusa-postgres.html">PostgreSQL</A>
+  <LI><A HREF="medusa-rexec.html">REXEC</A>
+  <LI><A HREF="medusa-rdp.html">RDP</A>
+  <LI><A HREF="medusa-rlogin.html">RLOGIN</A>
+  <LI><A HREF="medusa-rsh.html">RSH</A>
+  <LI><A HREF="medusa-smbnt.html">SMBNT</A>
+  <LI><A HREF="medusa-smtp.html">SMTP-AUTH</A>
+  <LI><A HREF="medusa-smtp-vrfy.html">SMTP-VRFY</A>
+  <LI><A HREF="medusa-snmp.html">SNMP</A>
+  <LI><A HREF="medusa-ssh.html">SSHv2</A>
+  <LI><A HREF="medusa-svn.html">Subversion (SVN)</A>
+  <LI><A HREF="medusa-telnet.html">Telnet</A>
+  <LI><A HREF="medusa-vmauthd.html">VMware Authentication Daemon (vmauthd)</A>
+  <LI><A HREF="medusa-vnc.html">VNC</A>
+  <LI><A HREF="medusa-wrapper.html">Generic Wrapper</A>
+  <LI><A HREF="medusa-web-form.html">Web Form</A>
+</UL>
+
+<H2><A NAME="where">Where?</A></H2>
+
+<A HREF="http://www.foofus.net/jmk/tools/medusa-2.2.tar.gz">medusa-2.2.tar.gz</A><BR>
+<A HREF="https://github.com/Tak31337/medusa-gui">Medusa-gui</A> (Java-based GUI developed by tak and bigmoneyhat)<BR>
+
+<H3>Install Instructions:</H3>
+
+<H4>General</H4>
+
+<P>
+The majority of Medusa was written and tested on Linux/Gentoo-based systems. While it has been 
+known to work on variety of operating systems, it is quite possible there may be issues that
+crop up only on non-Gentoo devices. Of course, there are issues that will probably also show
+up on Gentoo that have so far been missed... 
+
+<P>
+Medusa should be fairly straight-forward to build: "./configure; make; make install". However,
+this may result in a somewhat limited installation. To take full advantage of all the brute-forcing 
+goodness that Medusa has to offer, several dependencies must be satisfied. The following table 
+lists out the modules which have additional dependencies. In order for the modules to function, 
+the appropriate header files must be installed on the system when the modules themselves are 
+compiled. Additional module specific information is included within the documentation for each 
+module.
+
+<BR><BR>
+
+<TABLE BORDER=1 CELLPADDING=2>
+  <TR>
+    <TD><B>Dependency</B></TD>
+    <TD><B>Homepage</B></TD>
+    <TD><B>Module</B></TD>
+    <TD><B>Notes</B></TD>
+  </TR>
+  <TR>
+    <TD>OpenSSL</TD>
+    <TD><A HREf="http://www.openssl.org/">http://www.openssl.org</A></TD>
+    <TD>HTTP, MSSQL, SMBNT, SSL-based connections</TD>
+    <TD></TD>
+  </TR>
+  <TR>
+    <TD>LibSSH2</TD>
+    <TD><A HREF="http://www.libssh2.org">http://www.libssh2.org</A></TD>
+    <TD>SSH</TD>
+    <TD>LibSSH2 patch provided to address timing issue. Issue appears to be addressed in 0.18.</TD>
+  </TR>
+  <TR>
+    <TD>NCPFS</TD>
+    <TD><A HREF="ftp://platan.vc.cvut.cz/pub/linux/ncpfs/">ftp://platan.vc.cvut.cz/pub/linux/ncpfs</A></TD>
+    <TD>NCP</TD>
+    <TD>Use "make install-dev" to install header files.</TD>
+  </TR>
+  <TR>
+    <TD>LibPQ</TD>
+    <TD><A HREF="http://www.postgresql.org/">http://www.postgresql.org</A></TD>
+    <TD>PostgreSQL</TD>
+    <TD></TD>
+  </TR>
+  <TR>
+    <TD>Subversion</TD>
+    <TD><A HREF="http://subversion.tigris.org/">http://subversion.tigris.org</A></TD>
+    <TD>SVN</TD>
+    <TD></TD>
+  </TR>
+  <TR>
+    <TD>afpfs-ng</TD>
+    <TD><A HREF="http://alexthepuffin.googlepages.com/home">http://alexthepuffin.googlepages.com/home</A></TD>
+    <TD>AFP</TD>
+    <TD>Header files may need to be manually installed. Autoconf currently assumes install base of /usr (e.g. /usr/include/afpfs-ng)</TD>
+  </TR>
+</TABLE>
+
+<P>
+It should also be noted that, by default, not all of the modules are built. Incomplete modules or modules
+which have not been sufficiently tested may be disabled. The "configure" output should identify which
+modules it will attempt to build. To enable non-default modules, use the "--enable-module-MODULE_NAME"
+configure option. 
+
+<H4>Linux/Gentoo</H4>
+
+<P>
+At this time Medusa is not available within Portage. An ebuild for Medusa has been submitted to
+<A HREF="http://bugs.gentoo.org">bugs.gentoo.org</A>, but has not yet made its way into Portage. In 
+the meantime, all of the ebuilds can be used via Portage Overlay. For example, Medusa can be installed 
+via the Gentoo "pentoo" overlay located at <A HREF="http://trac.pentoo.ch/">trac.pentoo.ch</A>. Additionally,
+the ebuilds have been included and can also be manually installed.
+
+<P>
+The following ebuilds have been included within this distribution:
+<UL>
+  <LI>/misc/net-analyzer/medusa-2.1.ebuild
+</UL>
+
+<P>
+Some basic Portage Overlay instructions:<BR>
+<UL>
+  <LI>Modify /etc/make.conf<BR>
+    <CODE>
+    PORTDIR_OVERLAY="/some/directory/"
+    </CODE>
+  <LI>Create the following within the PORTDIR_OVERLAY directory:<BR>
+    <CODE>
+    net-analyzer/medusa
+    </CODE>
+  <LI>Place each ebuild and any accompanying files in its respective PORTDIR_OVERLAY directory.<BR>
+      cd into each directory and execute:<BR>
+    <CODE>
+    ebuild name_of_ebuild.ebuild digest
+    </CODE>
+  <LI>Modify /etc/portage/package.keywords<BR>
+    <CODE>
+    net-analyzer/medusa ~x86<BR>
+    </CODE>
+</UL>
+
+<H4>Other Systems</H4>
+
+<P>
+Medusa has been built and basic tests performed on a variety of default system installations. 
+The following tables includes some notes from these tests.
+
+<BR><BR>
+
+<TABLE BORDER=1 CELLPADDING=2>
+  <TR>
+    <TD><B>Operating System</B></TD>
+    <TD><B>Distro/Version</B></TD>
+    <TD><B>Notes</B></TD>
+  </TR>
+  <TR>
+    <TD>CentOS 7.1 (64-bit)</TD>
+    <TD>Installed: "Development Tools", openssl-devel, libssh2-devel, postgresql-devel, subversion-devel, freerdp-devel</TD>
+  </TR>
+  <TR>
+    <TD>Debian 8.0.0 (64-bit)</TD>
+    <TD>Installed: build-essential, libssl-dev, libpq5, libpq-dev, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp, libfreerdp-dev</TD>
+    libncp-dev libncp
+  </TR>
+  <TR>
+    <TD>Fedora 21</TD>
+    <TD>Installed: "Development Tools", afpfs-ng-devel, openssl-devel, libssh2-devel, postgresql-devel, subversion-devel, freerdp-devel</TD>
+  <TR>
+    <TD>Kali 1.1.0 (32-bit)</TD>
+    <TD>Installed: libafpclient0, libafpclient-dev, libncp, libncp-dev, libpq-dev, libssh2-1-dev, libgcrypt11-dev, libgnutls-dev, libsvn-dev, freerdp-x11, libfreerdp-dev</TD>
+  </TR>
+  <TR>
+    <TD>Mint 17</TD>
+    <TD>Installed: build-essential, libssl-dev, libpq5, libpq-dev, libssh2-1, libssh2-1-dev, libgcrypt11-dev, libgnutls-dev, libsvn-dev, freerdp, libfreerdp-dev</TD>
+  </TR>
+  </TR>
+    <TD>openSUSE 11.2</TD>
+    <TD>Installed: patterns-openSUSE-devel_C_C++, ncpfs-devel, libssh2-devel, postgresql-devel, subversion-devel</TD>
+  </TR>
+  <TR>
+    <TD>Ubuntu 14.04</TD>
+    <TD>Installed: build-essential, libssl-dev, libpq5, libpq-dev, libssh2-1, libssh2-1-dev, libgcrypt11-dev, libgnutls-dev, libsvn-dev, freerdp, libfreerdp-dev</TD>
+  </TR>
+  <TR>
+    <TD>SunOS</TD>
+    <TD>Solaris 11 x86</TD>
+    <TD>Installed: developer-gnu</TD>
+  </TR>
+  <TR>
+    <TD ROWSPAN=3 VALIGN=TOP>BSD</TD>
+    <TD>FreeBSD 7.2</TD>
+    <TD>Installed: afpfs-ng, ncpfs, libssh2, postgresql, libpq, libsvn</TD>
+  </TR>
+  <TR>
+    <TD ROWSPAN=1 VALIGN=TOP>Mac OS X</TD>
+    <TD>OS X 10.10 (Yosemite)</TD>
+    <TD>Installed: Homebrew, XCode, "brew install freerdp --HEAD" </TD>
+  </TR>
+  <TR>
+    <TD>Microsoft Windows</TD>
+    <TD>Cygwin</TD>
+    <TD>I have been unable to build the modules under Cygwin. If anyone can figure this out,
+        I'll buy you a beer at the next DefCon.</TD>
+  </TR>
+</TABLE>
+
+<H2><A NAME="who">Who?</A></H2>
+
+<P>
+This fine piece of buggy software was brought to you by the geeks at 
+<A HREF="http://www.foofus.net">Foofus.net</A>. JoMo-Kun was the chief
+goon and wrote the core of Medusa along with several of the modules.
+Foofus created the initial design for the loadable modules. Fizzgig 
+provided the networking code, several modules, the loadable module
+implementation along with also fixing a bunch JoMo-Kun's crappy stuff. 
+pMonkey was a crazy module coding fiend. Last, but certainly not least, 
+Heidi provided the tool's name.
+
+<H2><A NAME="huh">Huh?</A></H2>
+
+<P>
+If you have questions regarding this application, feel free to contact us. Either 
+send me email directly or join our mailing list <A HREF="http://lists.foofus.net/listinfo.cgi/foofus-tools-foofus.net">foofus-tools</A>.
+If it breaks, please send a detailed bug report. Even better, send in a patch. I make no
+claims that this program will do what you want it to. I've been using it during
+our assessments for years now successfully. Hopefully, others will have similar
+luck. If you find Medusa useful and want to give something back, please submit 
+new modules, code improvements or just buy any of the <A HREF="http://www.foofus.net">
+Foofus.net</A> goons a beer at the next DefCon.
+
+<P>
+Joe
+
+<BR><BR>
+<FONT SIZE=1><B>&copy Copyright 2015, Foofus Advanced Security Services</B></FONT><BR>
+<FONT SIZE=1><I>any time. any fucknut.</I></FONT><BR>
+</BODY>
+<HTML>

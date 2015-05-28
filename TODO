@@ -1,0 +1,9 @@
+Future Plans:
+
+*Account lockout
+
+Microsoft SMB services can often be queried for the account lockout
+policy or how many attempts are remaining on an account before it 
+is locked. Medusa should be able to auto-detect these values and 
+tested up to the lockout threshold.
+

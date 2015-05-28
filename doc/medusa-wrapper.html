@@ -1,0 +1,45 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::Wrapper</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: Wrapper</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The purpose of the wrapper module is to allow the user to execute arbitrary
+scripts while taking advantage of Medusa managing hosts/users/passwords.
+Two sample scripts have been included in the wrapper directory.
+
+<P>
+This is a work in progress... The module currently uses fork() which isn't 
+ideal. Not sure if I can kick off a thread and redirect STDIN/STDOUT for 
+just that thread... 
+
+<P>
+The initial goal for this module was to test RDP servers using rdesktop. 
+A patch to rdesktop 1.4.1 has been included in the /misc/rdesktop directory.
+This extends the dictionary patch from cqure.net to work with the Medusa
+wrapper STDIN method. It should be noted that rdesktop doesn't appear to be 
+able to use command-line passwords when connecting to Windows 2000 hosts. 
+Windows 2003 and XP worked fine during testing.
+
+<P>
+The following example shows one way to use rdesktop with the wrapper module:
+
+<BR><BR>
+<CODE>
+medusa -M wrapper -m TYPE:STDIN -m PROG:rdesktop -m ARGS:"-u %U -p - %H" -H hosts.txt -U users.txt -P passwords.txt
+</CODE>
+
+<BR><BR>
+One possible method for hiding the graphical output from rdesktop:<BR>
+<CODE>
+% Xvfb :97 -ac -nolisten tcp &<BR>
+% export DISPLAY=:97<BR>
+</CODE>
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

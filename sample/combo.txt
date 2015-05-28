@@ -1,0 +1,7 @@
+foo:bar:fud
+foo:bar:
+foo::
+:bar:fud
+:bar:
+::fud
+foo::fud

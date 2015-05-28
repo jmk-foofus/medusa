@@ -1,0 +1,28 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::MSSQL</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: MSSQL</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The MSSQL module tests accounts against Microsoft MS-SQL service. 
+
+<P>
+It should be noted that MS-SQL Developer Edition and/or MSDE's concurrent 
+workload governor limits you to no more than five concurrent connections 
+to the server at any one time.
+
+<P>
+The MSSQL module will auto-detect the TCP ports used by the SQL server
+instances on the remote host. This is accomplished via a "SQL Ping" UDP
+request. If multiple instances are present on the host, only the first
+will be tested. Any additional instances will be reported and their
+respective TCP port will be noted. The auto-detection can be over-ridden
+by specifying a port via the Medusa "-n" option.
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

@@ -1,0 +1,390 @@
+================================================================
+Version 2.2
+================================================================
+
+Medusa Core Updates:
+  - General code clean-up and compiler warning squashing 
+
+Module Updates:
+
+HTTP 
+  - NTLM2 session response support
+  - Report domain name provided in NTLM challenge (verbose output)
+  - Allow inclusion of custom headers
+
+RDP
+  - Initial release of RDP module (FreeRDP-based)
+  - Support for pass-the-hash authentication
+
+SMB
+  - Report account access (admin vs user-level) through ADMIN$ connection
+
+SMTP-VRFY 
+  - Added EXPN/RCPT support
+
+SSH
+  - Fix OS X multi-thread issues
+
+================================================================
+Version 2.1.1
+================================================================
+
+Minor release updates:
+  - GCC 4.7 compile issue ("-module" removed)
+  - SMBNT: fix infinite loop issue when testing against OS X
+  - SNMP: remove socket flushing that caused us to miss passwords
+  - IMAP: less restrictive regex to better match OK responses
+  - POP3: restart connection after each attempt to deal with shunning
+
+================================================================
+Version 2.1
+================================================================
+
+Medusa Core Updates:
+
+  - Combo format now accepts "host:user:lm hash:ntlm hash"
+  - Autoconf updates and fixes
+  - Removed PCRE library dependency (using stock glibc regex support)
+
+Module Updates:
+
+  - Numerous bug-fixes across modules (e.g., SSH2 thread-safety)
+  - Support for UltraVNC MS-Logon (local/domain Windows credentials)
+
+Additional Updates:
+  - Third-party GUI released: 
+    http://wiki.taksmind.org/index.php?title=Medusa-gui
+
+================================================================
+Version 2.0
+================================================================
+
+Medusa Core Updates:
+  -Pool-based thread handling
+
+  Previous version destroyed threads following the completion of a host
+  or user test. The use of a thread pool should decrease the overall
+  application overhead by limiting the frequency of thread destruction
+  and creation. The original code ran into issues in several specific
+  situations (e.g. testing over a thousand users with only a single 
+  password). Such cases resulted in a large number of threads being
+  created and destroyed in short order, frequently resulting in an
+  application crash. The thread pool should eliminate this particular
+  problem.
+
+  -Modules now request next credential set (username + password)
+
+  Modules previously called getNextPass(), which returned a valid password
+  until the password list for the user being tested was exhausted. At that
+  point, the module exited and the login thread was destroyed. A new thread
+  and module instance would be created for the next user to test. We now
+  use getNextCredetialSet(), which returns a valid user and password. This
+  allows the module to get the next user to test and decide whether the
+  connection needs to be completely torn down or not.
+
+  -Secondary user credential queue added for missed login tests.
+
+  In certain situations we need to scale back the number of concurrent
+  login threads targetting a specific service. For example, MSDE's workload
+  governor limits the service to no more than 5 concurrent connections. If
+  the user kicked-off 10 parallel login threads, 5 of those are going to
+  fail and terminate. The challenge is that each of those threads was 
+  already assigned a credential set to test.
+
+  The previous version simply printed the username and password combinations
+  which were not tested and moved on. We now push these missed credentials
+  into a host specific queue. Once the login threads have finished their
+  normal checks, they move on to this queue and retry the previously missed
+  credentials. In some cases, say it's the last thread that pushed something
+  into the queue before exiting, we kick-off a clean-up thread to walk through
+  any remaining items.
+
+  -Host and User-level Resume
+
+  Support for host and user-level resuming of a scan. When Medusa receives a 
+  SIGINT, it will calculate and display a "resume map". This map can then be
+  supplied to the next run. For example, "medusa [OPTIONS PREVIOUSLY USED] 
+  -Z h6u1u2h8.". This map describes which hosts were completed and which 
+  systems had not been touched. If a host was partially completed, it 
+  describes which users had been tested for that specific system. It should 
+  be noted that password-level resuming is not supported. If a user's 
+  password list was only partially completed, testing of the user will be 
+  restarted on resume.
+
+Module Updates:
+  FTP
+    -Misc. fixes
+
+  IMAP
+    -Domain module option for BASIC/NTLM authentication types
+    -Allow auth type to be specified
+    -Misc. fixes (NTLM base64 length, restart HTTP connection after each request) 
+
+  IMAP
+    -Domain module option for LOGIN/NTLM authentication types
+    -Regex-based server response matching for better handling of slow targets
+    -Misc. fixes (handle dropped connections, force TLSv1, base64 length)
+
+  MSSQL
+    -Auto SQL port identification via "SQL Ping" technique
+ 
+  NCP
+    -Misc. fixes (connection retry code)
+ 
+  POP3
+    -Domain module option for NTLM authentication type
+    -Regex-based server response matching for better handling of slow targets
+    -Misc. fixes (base64 length)
+    
+  SMTP
+    -Regex-based server response matching for better handling of slow targets
+
+  SMTP-VRFY
+    -Misc. fixes (don't include "@" if no domain specified)
+
+  SSH
+    -Detect and warn if being built on Debian/Ubuntu system (broken libssh2)
+
+  VMAUTHD
+    -Regex-based server response matching for better handling of slow targets
+
+  Web-Form
+    -Misc. fixes
+
+  WRAPPER
+    -Misc. fixes (fix handling of short usernames/passwords)
+
+================================================================
+Version 1.5
+================================================================
+
+Medusa Core Updates:
+  -Provides additional information about current account check (e.g. 172.22.110.58 (60 of 104, 51 complete))
+  -Support for simple resume by host. 
+  -Bug fix for "-e" option
+  -Bug fix for displaying hostname vs. IP
+  -Added function for printing a specified length of binary data in hex
+
+Module Updates:
+  AFP
+  -Added new module for Apple Filing Protocol from pmonkey
+
+  HTTP
+  -NTLM auth bug fix
+  -Digest authentication support (MD5 and MD5-sess)
+
+  IMAP
+  -STARTTLS extension support
+  -NTLM support
+
+  MYSQL
+  -Misc. bug fixes
+
+  POP3
+  -STARTTLS extension support
+  -Better handling of connections dropped by remote server
+  -Support user-supplied domain names
+  -LOGIN, PLAIN, and NTLM support
+
+  SMBNT
+  -Created framework for different authentication levels (e.g. LM, NTLM, etc).
+  -Support for basic LM authentication to allow for case insensitive bruting
+  -NTLMv2/LMv2 support (Vista bruting)
+  -Fix for guest user check
+  -Support for "DOMAIN\USER" and "DOMAIN\\USER" style names
+
+  SMTP
+  -Renamed SMTP-AUTH to SMTP
+  -NTLM support
+
+  SMTP-VRFY
+  -Misc. bug fixes
+
+  SSH
+  -Honor number of user specified retries
+  -Restart connection when server fails to respond with auth modes after several attempts
+
+  TELNET
+  -Basic AS/400 Telnet / TN5250 support
+  -Log hosts supplying only a password prompt (non-AAA)
+
+  VMAUTHD
+  -Misc. bug fixes
+
+  WEB-FORM
+  -Misc. bug fixes for user-supplied FORM-DATA value
+
+Misc. Updates:
+  -Added ZSH Functions file
+  -Updated Medusa ebuild version and added new module dependencies.
+
+================================================================
+Version 1.4
+================================================================
+
+Medusa Core Updates:
+  -Major re-working of the autoconf setup. Modules can now be enabled/disabled 
+   individually. Also, modules for which the base dependencies are not 
+   satisfied are simply not built. In the past they were compiled, but left in 
+   a non-functional state. The default is to build all "stable" modules.
+  -APR version detection
+  -Misc bug fix in networking code
+  -SSL socket rework. Fixes issue with concurrent mixed SSL and non-SSL 
+   connections (FTPS).
+
+Module Updates:
+  FTP
+  -Added support for explicit and implicit SFTP
+  -Better handling of FTP banners
+
+  HTTP
+  -Now leaves user specified value intact within Host: header
+  -Minor code cleanup
+
+  IMAP
+  -LOGIN AUTH support
+  -Added TAG module parameter 
+  -No longer restarts connection after each attempt
+
+  NNTP
+  -Added module with AUTHINFO support
+
+  POP3
+  -No longer restarts connection after each attempt
+
+  MySQL
+  -Misc bug fixes / error handling
+  -Added MySQL pre-4.1 pass-the-hash support
+
+  NCP
+  -Misc bug fixes
+  
+  SMBNT
+  -Misc bug fixes
+  
+  SMTP-AUTH
+  -AUTH PLAIN support
+  -AUTH LOGIN (e.g. Exchange) support
+
+  SSH
+  -Handles new libssh2 error messages
+  -Libssh2 (0.18) should no longer cause Medusa to hang on SSHv1 hosts or when
+   the target refuses to send its banner. 
+  -Added banner parameter verification (Luciano Bello)
+
+  VNC
+  -Misc bug fixes
+
+  WEB-FORM
+  -Added new module from Luciano Bello
+
+  WRAPPER
+  -Better handling of failed attempts within oracle.pl script
+
+================================================================
+Version 1.3
+================================================================
+
+Medusa Core Updates:
+  -Module listing fix for OpenBSD/AMD64
+  -Autoconf tweaks for NCP & SVN checks
+  -Autoconf tweaks for Solaris/OpenBSD
+  -Removed unnecessary IP address checks
+  -Other minor bug fixes
+
+================================================================
+Version 1.2
+================================================================
+
+Moved following modules to stable:
+  NCP, VNC, PostgreSQL, SVN, CVS, VmAuthd, SNMP
+
+Medusa Core Updates:
+  -Compile on x86_64, Mac OS X.
+  -Minor bug fixes.
+  -Modified license with OpenSSL GPL exemption.
+
+Module Updates:
+  SMBNT
+  -Added AS/400 target support.
+  -Global "-e" option now works with module "PASS:HASH".
+
+  FTP
+  -Modified response parsing code to support AS/400 brute-forcing.
+
+  REXEC
+  -Modified response parsing code.
+
+  Wrapper
+  -Added oracle script.
+  -Added SMB NULL session script.
+
+================================================================
+Version 1.1
+================================================================
+
+Added following modules (unstable): 
+  CVS, NCP, PostgreSQL, SMTP/VRFY, SNMP, SVN, VmAuthd, VNC
+
+Moved following modules to stable:
+  PcAnywhere, FTP, IMAP, RSH, REXEC, RLOGIN, and generic wrapper
+
+Medusa Core Updates:
+  -Display module list sorted alphabetically
+  -Compiles on OpenBSD
+  -Added delayed receive functions which allow the modules to specify the timeout
+   for both the initial socket read and the second "is any more data there?" check.
+  -Modified SSL connect function. The function now takes an already existing socket 
+   and switches it over to SSL. This is needed for modules like VMAUTHD.
+  -Major rework of network receive function. Original code was copied from Hydra and
+   seemed to have some issues.
+  
+Module Updates:
+  HTTP
+  -Added check for 301 error code (success)
+  -NTLM authentication support
+
+  IMAP
+  -Minor code cleanup
+
+  MySQL
+  -Added support for testing accounts without password
+
+  PcAnywhere
+  -Added sleep to deal with servers freaking out when attempts arrive too quickly
+
+  POP3
+  -Added AS/400 mode. Examines error codes to give us better information about 
+   account status.
+
+  SMBNT
+  -Added check to detect non-existent accounts when auditing an XP client
+
+  Telnet
+  -Moved receive functions to new delayed receive functions. This is slower, but
+   we should actually be able to brute devices with long logon banners now.
+
+  Wrapper
+  -Added support for scripts to pass error messages back to Medusa.
+
+Misc. Updates:
+  Rdesktop
+  -Added better success/failure detection
+  -Added support to detect various error messages
+  -Added basic W2K support
+  -Added basic OS detection
+  
+  Ebuilds
+  -Updated libssh2 ebuild based on bugs.gentoo.org feedback.
+  -Updated Medusa ebuild based on bugs.gentoo.org feedback.
+  -Updated Medusa version and added new module dependencies.
+  -Modified ncpfs ebuild for "install-dev" option.
+
+================================================================
+Version 1.0
+================================================================
+
+Initial release
+Modules (stable): HTTP, MS-SQL, SMBNT, SSHv2, Telnet, POP3 and MySQL
+Modules (unstable): RSH, RLOGIN, REXEC, FTP, IMAP, PcAnywhere, and generic wrapper
+

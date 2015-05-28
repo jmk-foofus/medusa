@@ -1,0 +1,62 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::NCP</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: NCP</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The NCP module tests accounts against the NetWare NCP service. This module was developed
+using a NetWare 5.1 host as the target.
+
+<P>
+This module requires <A HREF="ftp://platan.vc.cvut.cz/pub/linux/ncpfs/">ncpfs</A>. The 
+ncpfs package must also be installed using the "install-dev" option. This installs both 
+the ncpfs header files and the static libncp library. A modified Gentoo ebuild has been
+included in the /misc/net-fs/ncpfs directory which includes a USE flag for this option.
+
+<P>
+The module has a single option, CONTEXT. It should be noted that libncp does not by 
+default automatically specific a user context. If it fails to resolve the name provided 
+it appends the server's context to the username and attempts to resolve that value. It is 
+advised that users specify a context for each account being tested. A global context can 
+be specified using the CONTEXT option. A per-user context can be defined as part of the 
+account name within a file containing usernames or the username passed via the command-line.
+
+<P>
+The following examples demonstrate several uses of the NCP module:
+
+<UL>
+<LI>Specify a context for all accounts in users.txt:
+
+<PRE><CODE>
+% medusa -h 192.168.0.20 -U users.txt -p bar -M ncp -m CONTEXT:.OU=administrators.O=foofus
+
+</CODE></PRE>
+
+<LI>Pass the full user context via the "-u" parameter:
+
+<PRE><CODE>
+% medusa -h 192.168.0.20 -u username.OU=administrators.O=foofus -p bar -M ncp
+
+</CODE></PRE>
+</UL>
+
+<P>
+Libncp, by default, also uses both the NDS and BIND authenticators. Unfortunately, the only
+error message returned to the module is that of the BIND authenticator. These messages are not
+as descriptive as NDS and only seem to report success or failure. In order to have more useful
+messages (account disabled/max logons exceeded/etc.), create a ~/.nwclient or /etc/ncpfs.conf
+file with the following text:
+
+<P>
+<CODE>
+  [Requester]<BR>
+  NetWare Protocol = NDS
+</CODE>
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

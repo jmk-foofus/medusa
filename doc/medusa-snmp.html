@@ -1,0 +1,35 @@
+<HTML>
+<TITLE>Foofus Networking Services - Medusa::SNMP</TITLE>
+<BODY BGCOLOR="#999999">
+
+<H1>Medusa Parallel Network Login Auditor :: SNMP</H1>
+<I>JoMo-Kun / jmk "AT" foofus "DOT" net</I><BR>
+<HR>
+
+<P>
+The SNMP module tests community strings against the Simple Network Management Protocol (SNMP) service.
+
+<P>
+The module has several options: TIMEOUT, VERSION and ACCESS. The default values are
+2 seconds, version 1 and READ access. It should be noted that when testing for WRITE 
+capability, the module will read the current value of sysLocation and then write that
+same value back to the system.
+
+<P>
+Since SNMP is a UDP-based protocol, there is no handshaking between sending and
+receiving transport-layer entities. Due to this connectionless communication, about
+the only time we know a SNMP service exists, is if we send the correct community
+string and the server sends a response. All other queries result in no response
+whatsoever. The approach we use here is to initially just send all of our SNMP GET
+requests. After that completes, we wait TIMEOUT seconds for any responses. If we
+get any responses back, we examine them to see which community strings were successful.
+If ACCESS:WRITE was specified, we check for write access on each of the previously
+successful values. This techique should allow for quick brute forcing. However, one
+should take care with the TIMEOUT and SEND_DELAY values as to avoid causing issues
+with the target service or missing response data.
+
+
+<BR><BR>
+<A HREF="medusa.html">Medusa Documentation</A><BR>
+</BODY>
+<HTML>

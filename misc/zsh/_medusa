@@ -1,0 +1,64 @@
+#compdef medusa
+
+# Copy this file to your global zsh site-functions directory
+# ex: /usr/local/share/zsh/site-functions
+
+# Written by Bismark (bismark@foofus.net)
+# Date: 09/22/2008
+#
+# Modified by Bismark (bismark@foofus.net)
+# Date: 01/24/2010
+# Changes:
+#	Removed completion prompts for options that do not have a value
+# 	Added option removal for conflicting options.
+#
+# Modified by Bismark (bismark@foofus.net)
+# Date: 05/12/2015
+# Changes:
+#   Fixed -C combo option to properly search for a file
+
+typeset -A opt_args
+
+_select_module() {
+	local modules
+	modules=( $(medusa -d | grep + | awk '/.mod/ {print $2}' | cut -d"." -f 1) )
+	_wanted select-module expl 'Module' compadd "$@" -a - modules
+}
+
+_medusa()
+{
+	local expl context state line ret=1
+	local -A opt_args
+
+	_arguments \
+	'-b[Suppress startup banner]' \
+	'-O[File to append log information to.]:Log file:_files' \
+	'-M[Name of the module to execute (without the .mod extension)]:Module:_select_module' \
+	'*-m[Parameter to pass to the module.]:Module Parameters' \
+	'-d[Dump all known modules.]:Dump Modules' \
+	'-n[Use for non-default TCP port number.]:tcp port' \
+	'-s[Enable SSL.]' \
+	'-g[Give up after trying to connect for NUM seconds (default 3).]:Retry seconds' \
+	'-r[Sleep number of seconds between retry attempts (default 3).]:Sleep seconds' \
+	'-R[Attempted retries before giving up. The total number of attempts will be retries + 1.]:Retries' \
+	'-t[Total number of logins to be tested concurrently]:Concurrent Logins' \
+	'-T[Total number of hosts to be tested concurrently.]:Concurrent Hosts' \
+	'-L[Parallelize logins using one username per thread.]' \
+	'-f[Stop scanning host after first valid username/password found.]' \
+	'-F[Stop audit after first valid username/password found on any host.]' \
+	'-q[Display module’s usage information.]' \
+	'-v[Verbose level (0 - 6)]:Verbosity:(0 1 2 3 4 5 6)' \
+	'-w[Error debug level (0 - 10)]:Debug:(0 1 2 3 4 5 6 7 8 9 10)' \
+	'-V[Display version]' \
+	"-e[Additional password checks]:Additional password checks:_values 'Additional password checks' 'n[No Password]' 's[Password = Username]' 'ns[No Password & Password = Username]'":'(n s ns)' \
+	'(-H -C)-h[Target hostname or IP address.]:Hostname or IP Address' \
+	'(-h -C)-H[Read Targets from a file.]:Hosts file:_files' \
+	'(-U -u -P -p)-C[File containing combo entries. (see man page)]:Combo file:_files' \
+	'(-U -C)-u[Username.]:Username' \
+	'(-P -C)-p[Password.]:Password' \
+	'(-u -C)-U[Read Usernames from a file.]:Username file:_files' \
+	'(-P -C)-P[Read Passwords from a file.]:Password file:_files' && return 0
+
+	return 1
+}
+_medusa "$@"
