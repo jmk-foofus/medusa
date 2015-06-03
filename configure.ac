@@ -427,6 +427,7 @@ case "$target" in
   *)
     ;;
 esac
+MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
 module_rdp_headers="false"
@@ -444,12 +445,18 @@ AC_CHECK_HEADER([freerdp/freerdp.h], [module_rdp_headers="true"],
 )
 
 if test x"$module_rdp_headers" = "xtrue"; then
+  AC_MSG_NOTICE([ *** Checking for FreeRDP libraries. *** ])
+  AC_CHECK_LIB(freerdp-channels, main, [], [])
+  AC_CHECK_LIB(freerdp-client, main, [], [])
+  AC_CHECK_LIB(freerdp-core, main, [], [])
+  AC_CHECK_LIB(freerdp-gdi, main, [], [])
+
   AS_MESSAGE([checking for FreeRDP library version 1.2...])
   AC_SEARCH_LIBS(WLog_CallbackAppender_SetCallbacks, winpr,
     [
       AC_DEFINE(HAVE_LIBFREERDP12, 1, [Found FreeRDP Library (version >= 1.2)])
-      MODULE_LIBS="$MODULE_LIBS -lfreerdp-client $RDP_LIBS" check_module_rdp="true"
       AC_MSG_NOTICE([ *** Detected FreeRDP library version 1.2. *** ])
+      check_module_rdp="true"
     ],
     [],
     [$MODULE_LIBS $RDP_LIBS]
@@ -460,8 +467,8 @@ if test x"$module_rdp_headers" = "xtrue"; then
     AC_SEARCH_LIBS(nego_set_restricted_admin_mode_required, freerdp-client,
       [
         AC_DEFINE(HAVE_LIBFREERDP11PTH, 1, [Found FreeRDP Library (version 1.1 PTH)])
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-client -lfreerdp-gdi $RDP_LIBS" check_module_rdp="true"
         AC_MSG_NOTICE([ *** Detected FreeRDP library version 1.1 (with pass-the-hash). *** ])
+        check_module_rdp="true"
       ],
       [],
       [$MODULE_LIBS $RDP_LIBS]
@@ -473,7 +480,6 @@ if test x"$module_rdp_headers" = "xtrue"; then
     AC_CHECK_LIB(freerdp-client, main,
       [
         AC_DEFINE(HAVE_LIBFREERDP11, 1, [Found FreeRDP Library (version 1.1)])
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-client -lfreerdp-gdi $RDP_LIBS" check_module_rdp="true"
         AC_MSG_WARN([ *** Detected FreeRDP library version 1.1. *** 
        
             FreeRDP introduced pass-the-hash support with version 1.2. The version
@@ -481,6 +487,7 @@ if test x"$module_rdp_headers" = "xtrue"; then
             function, but the pass-the-hash option will be disabled.
 
         ])
+        check_module_rdp="true"
       ],
       []
     )
@@ -491,7 +498,6 @@ if test x"$module_rdp_headers" = "xtrue"; then
     AC_CHECK_LIB(freerdp-core, main,
       [
         AC_DEFINE(HAVE_LIBFREERDP10, 1, [Found FreeRDP Library (version 1.0)])
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-core -lfreerdp-gdi -lfreerdp-channels $RDP_LIBS" check_module_rdp="true"
         AC_MSG_WARN([ *** Detected FreeRDP library version 1.0. *** 
        
             FreeRDP introduced pass-the-hash support with version 1.2. The version
@@ -503,6 +509,7 @@ if test x"$module_rdp_headers" = "xtrue"; then
             extraneous information being displayed.
 
         ])
+        check_module_rdp="true"
       ],
       [
         AC_MSG_WARN([ *** FreeRDP library required for RDP module. *** 

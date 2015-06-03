@@ -684,7 +684,8 @@ int MySQLSessionInit(int hSocket, char** szSessionSalt)
 
 int tryLogin(int hSocket, sLogin** psLogin, _MYSQL_DATA* _psSessionData, char* szLogin, char* szPassword)
 {
-  int iRet, iReturnCode;
+  int iRet;
+  int iReturnCode = MSTATE_EXITING;
   unsigned char* bufReceive = NULL;
   char* szSessionSalt = NULL;
   unsigned char* szResponse = NULL;

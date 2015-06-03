@@ -693,7 +693,8 @@ int receiveRequest(int hSocket, _SNMP_DATA* _psSessionData, int* nPassCount, cha
   unsigned char *bufReceive = NULL;
   unsigned char *bufReceiveTmp = NULL;
   int i, nReceiveBufferSize, nReceiveBufferSizeTmp;
-  int nResponse, nSNMPLength;
+  int nResponse = FAILURE;
+  int nSNMPLength;
 
   nReceiveBufferSize = 0;
   bufReceive = medusaReceiveRawDelay(hSocket, &nReceiveBufferSize, _psSessionData->nReadTimeout, _psSessionData->nReadTimeout);

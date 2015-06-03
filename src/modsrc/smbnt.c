@@ -1429,7 +1429,8 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   unsigned char *bufReceive = NULL;
   int nReceiveBufferSize = 0;
   int ret;
-  int iByteCount, iOffset;
+  int iByteCount;
+  int iOffset = 0;
   unsigned char szPath[256];
   unsigned long SMBSessionRet;
   

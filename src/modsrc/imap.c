@@ -708,7 +708,7 @@ int sendAuthNTLM(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char*
 
 int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** psLogin, char* szLogin, char* szPassword)
 {
-  int nRet;
+  int nRet = FAILURE;
   unsigned char* bufReceive = NULL;
   int nReceiveBufferSize = 0;
 

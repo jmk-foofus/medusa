@@ -309,8 +309,8 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
 
         /* Set request parameters */
         if (!_psSessionData->szDir) {
-          _psSessionData->szDir = malloc(1);
-          memset(_psSessionData->szDir, 0, 1);
+          _psSessionData->szDir = malloc(2);
+          memset(_psSessionData->szDir, 0, 2);
           sprintf(_psSessionData->szDir, "/");
         }
 
@@ -543,7 +543,8 @@ int sendGet(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char* szPa
 int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* szLogin, char* szPassword)
 {
   unsigned char* pReceiveBuffer = NULL;
-  int nReceiveBufferSize, nRet;
+  int nReceiveBufferSize;
+  int nRet = FAILURE;
   char* pTemp = NULL;
   char* szPasswordEncoded = NULL;
   

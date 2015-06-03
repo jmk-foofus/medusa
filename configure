@@ -5819,6 +5819,7 @@ case "$target" in
   *)
     ;;
 esac
+MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeRDP Library and Header files..." >&5
 $as_echo "$as_me: checking for FreeRDP Library and Header files..." >&6;}
@@ -5850,6 +5851,165 @@ fi
 
 
 if test x"$module_rdp_headers" = "xtrue"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Checking for FreeRDP libraries. *** " >&5
+$as_echo "$as_me:  *** Checking for FreeRDP libraries. *** " >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp-channels" >&5
+$as_echo_n "checking for main in -lfreerdp-channels... " >&6; }
+if ${ac_cv_lib_freerdp_channels_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfreerdp-channels  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_freerdp_channels_main=yes
+else
+  ac_cv_lib_freerdp_channels_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_freerdp_channels_main" >&5
+$as_echo "$ac_cv_lib_freerdp_channels_main" >&6; }
+if test "x$ac_cv_lib_freerdp_channels_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFREERDP_CHANNELS 1
+_ACEOF
+
+  LIBS="-lfreerdp-channels $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp-client" >&5
+$as_echo_n "checking for main in -lfreerdp-client... " >&6; }
+if ${ac_cv_lib_freerdp_client_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfreerdp-client  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_freerdp_client_main=yes
+else
+  ac_cv_lib_freerdp_client_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_freerdp_client_main" >&5
+$as_echo "$ac_cv_lib_freerdp_client_main" >&6; }
+if test "x$ac_cv_lib_freerdp_client_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFREERDP_CLIENT 1
+_ACEOF
+
+  LIBS="-lfreerdp-client $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp-core" >&5
+$as_echo_n "checking for main in -lfreerdp-core... " >&6; }
+if ${ac_cv_lib_freerdp_core_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfreerdp-core  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_freerdp_core_main=yes
+else
+  ac_cv_lib_freerdp_core_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_freerdp_core_main" >&5
+$as_echo "$ac_cv_lib_freerdp_core_main" >&6; }
+if test "x$ac_cv_lib_freerdp_core_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFREERDP_CORE 1
+_ACEOF
+
+  LIBS="-lfreerdp-core $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp-gdi" >&5
+$as_echo_n "checking for main in -lfreerdp-gdi... " >&6; }
+if ${ac_cv_lib_freerdp_gdi_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfreerdp-gdi  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_freerdp_gdi_main=yes
+else
+  ac_cv_lib_freerdp_gdi_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_freerdp_gdi_main" >&5
+$as_echo "$ac_cv_lib_freerdp_gdi_main" >&6; }
+if test "x$ac_cv_lib_freerdp_gdi_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFREERDP_GDI 1
+_ACEOF
+
+  LIBS="-lfreerdp-gdi $LIBS"
+
+fi
+
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeRDP library version 1.2..." >&5
 $as_echo "$as_me: checking for FreeRDP library version 1.2..." >&6;}
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing WLog_CallbackAppender_SetCallbacks" >&5
@@ -5910,9 +6070,9 @@ if test "$ac_res" != no; then :
 
 $as_echo "#define HAVE_LIBFREERDP12 1" >>confdefs.h
 
-      MODULE_LIBS="$MODULE_LIBS -lfreerdp-client $RDP_LIBS" check_module_rdp="true"
       { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Detected FreeRDP library version 1.2. *** " >&5
 $as_echo "$as_me:  *** Detected FreeRDP library version 1.2. *** " >&6;}
+      check_module_rdp="true"
 
 fi
 
@@ -5978,9 +6138,9 @@ if test "$ac_res" != no; then :
 
 $as_echo "#define HAVE_LIBFREERDP11PTH 1" >>confdefs.h
 
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-client -lfreerdp-gdi $RDP_LIBS" check_module_rdp="true"
         { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Detected FreeRDP library version 1.1 (with pass-the-hash). *** " >&5
 $as_echo "$as_me:  *** Detected FreeRDP library version 1.1 (with pass-the-hash). *** " >&6;}
+        check_module_rdp="true"
 
 fi
 
@@ -6024,7 +6184,6 @@ if test "x$ac_cv_lib_freerdp_client_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBFREERDP11 1" >>confdefs.h
 
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-client -lfreerdp-gdi $RDP_LIBS" check_module_rdp="true"
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** Detected FreeRDP library version 1.1. ***
 
             FreeRDP introduced pass-the-hash support with version 1.2. The version
@@ -6039,6 +6198,7 @@ $as_echo "$as_me: WARNING:  *** Detected FreeRDP library version 1.1. ***
             function, but the pass-the-hash option will be disabled.
 
         " >&2;}
+        check_module_rdp="true"
 
 fi
 
@@ -6082,7 +6242,6 @@ if test "x$ac_cv_lib_freerdp_core_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBFREERDP10 1" >>confdefs.h
 
-        MODULE_LIBS="$MODULE_LIBS -lfreerdp-core -lfreerdp-gdi -lfreerdp-channels $RDP_LIBS" check_module_rdp="true"
         { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** Detected FreeRDP library version 1.0. ***
 
             FreeRDP introduced pass-the-hash support with version 1.2. The version
@@ -6105,6 +6264,7 @@ $as_echo "$as_me: WARNING:  *** Detected FreeRDP library version 1.0. ***
             extraneous information being displayed.
 
         " >&2;}
+        check_module_rdp="true"
 
 else
 

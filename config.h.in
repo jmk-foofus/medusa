@@ -39,6 +39,19 @@
 /* Found FreeRDP Library (version >= 1.2) */
 #undef HAVE_LIBFREERDP12
 
+/* Define to 1 if you have the `freerdp-channels' library
+   (-lfreerdp-channels). */
+#undef HAVE_LIBFREERDP_CHANNELS
+
+/* Define to 1 if you have the `freerdp-client' library (-lfreerdp-client). */
+#undef HAVE_LIBFREERDP_CLIENT
+
+/* Define to 1 if you have the `freerdp-core' library (-lfreerdp-core). */
+#undef HAVE_LIBFREERDP_CORE
+
+/* Define to 1 if you have the `freerdp-gdi' library (-lfreerdp-gdi). */
+#undef HAVE_LIBFREERDP_GDI
+
 /* Found Libgcrypt Library */
 #undef HAVE_LIBGCRYPT
 

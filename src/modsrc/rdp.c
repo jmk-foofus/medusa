@@ -204,10 +204,7 @@ int go(sLogin* logins, int argc, char *argv[])
 int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 {
   enum MODULE_STATE nState = MSTATE_NEW;
-  int i = 0;
   sCredentialSet *psCredSet = NULL;
-  char *pErrorMsg;
-  int iErrorMsg;
 	freerdp* instance;
 
   /* Retrieve next available credential set to test */
@@ -489,10 +486,7 @@ int tf_pre_connect(freerdp* instance)
 
 int tf_post_connect(freerdp* instance)
 {
-	rdpGdi* gdi;
-
 	gdi_init(instance, CLRCONV_ALPHA | CLRCONV_INVERT | CLRBUF_16BPP | CLRBUF_32BPP, NULL);
-	gdi = instance->context->gdi;
 
 	instance->update->BeginPaint = tf_begin_paint;
 	instance->update->EndPaint = tf_end_paint;
