@@ -419,6 +419,12 @@ dnl ********** RDP Medusa Module **********
 check_module_rdp="false"
 module_rdp_headers="false"
 
+dnl https://ci.freerdp.com - Nightly FreeRDP master builds 
+if test -d "/opt/freerdp-nightly"; then
+  CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
+  LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
+fi
+
 case "$target" in
   *apple-darwin*)
     LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
@@ -446,6 +452,8 @@ AC_CHECK_HEADER([freerdp/freerdp.h], [module_rdp_headers="true"],
 
 if test x"$module_rdp_headers" = "xtrue"; then
   AC_MSG_NOTICE([ *** Checking for FreeRDP libraries. *** ])
+  AC_CHECK_LIB(winpr, main, [], [])
+  AC_CHECK_LIB(freerdp, main, [], [])
   AC_CHECK_LIB(freerdp-channels, main, [], [])
   AC_CHECK_LIB(freerdp-client, main, [], [])
   AC_CHECK_LIB(freerdp-core, main, [], [])

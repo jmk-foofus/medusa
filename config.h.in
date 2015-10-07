@@ -27,6 +27,9 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
+/* Define to 1 if you have the `freerdp' library (-lfreerdp). */
+#undef HAVE_LIBFREERDP
+
 /* Found FreeRDP Library (version 1.0) */
 #undef HAVE_LIBFREERDP10
 
@@ -72,6 +75,9 @@
 
 /* Found SVN Library */
 #undef HAVE_LIBSVN_CLIENT_1
+
+/* Define to 1 if you have the `winpr' library (-lwinpr). */
+#undef HAVE_LIBWINPR
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

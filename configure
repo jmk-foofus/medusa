@@ -2780,8 +2780,8 @@ test "$program_suffix" != NONE &&
 ac_script='s/[\\$]/&&/g;s/;s,x,x,$//'
 program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
 
-# expand $ac_aux_dir to an absolute path
-am_aux_dir=`cd $ac_aux_dir && pwd`
+# Expand $ac_aux_dir to an absolute path.
+am_aux_dir=`cd "$ac_aux_dir" && pwd`
 
 if test x"${MISSING+set}" != xset; then
   case $am_aux_dir in
@@ -3186,6 +3186,7 @@ END
     as_fn_error $? "Your 'rm' program is bad, sorry." "$LINENO" 5
   fi
 fi
+
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -5811,6 +5812,11 @@ fi
 check_module_rdp="false"
 module_rdp_headers="false"
 
+if test -d "/opt/freerdp-nightly"; then
+  CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
+  LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
+fi
+
 case "$target" in
   *apple-darwin*)
     LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
@@ -5853,6 +5859,84 @@ fi
 if test x"$module_rdp_headers" = "xtrue"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}:  *** Checking for FreeRDP libraries. *** " >&5
 $as_echo "$as_me:  *** Checking for FreeRDP libraries. *** " >&6;}
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lwinpr" >&5
+$as_echo_n "checking for main in -lwinpr... " >&6; }
+if ${ac_cv_lib_winpr_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lwinpr  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_winpr_main=yes
+else
+  ac_cv_lib_winpr_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_winpr_main" >&5
+$as_echo "$ac_cv_lib_winpr_main" >&6; }
+if test "x$ac_cv_lib_winpr_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBWINPR 1
+_ACEOF
+
+  LIBS="-lwinpr $LIBS"
+
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp" >&5
+$as_echo_n "checking for main in -lfreerdp... " >&6; }
+if ${ac_cv_lib_freerdp_main+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lfreerdp  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+return main ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_freerdp_main=yes
+else
+  ac_cv_lib_freerdp_main=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_freerdp_main" >&5
+$as_echo "$ac_cv_lib_freerdp_main" >&6; }
+if test "x$ac_cv_lib_freerdp_main" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBFREERDP 1
+_ACEOF
+
+  LIBS="-lfreerdp $LIBS"
+
+fi
+
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lfreerdp-channels" >&5
 $as_echo_n "checking for main in -lfreerdp-channels... " >&6; }
 if ${ac_cv_lib_freerdp_channels_main+:} false; then :
