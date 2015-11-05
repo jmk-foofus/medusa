@@ -26,6 +26,14 @@ during its build process, it should have built against it over any other install
 version of FreeRDP.
 
 <P>
+For example, the following worked for Kali 2.0 on 2015/11/04:<BR>
+- Visit: <A HREF="https://ci.freerdp.com/job/freerdp-nightly-binaries/architecture=amd64,distribution=jessie,label=pkg-deb/">https://ci.freerdp.com/job/freerdp-nightly-binaries/architecture=amd64,distribution=jessie,label=pkg-deb/</A><BR>
+- Download: freerdp-nightly_1.2.1+0~20151104024829.185~1.gbpb83356_amd64.deb<BR>
+- Download: freerdp-nightly-dev_1.2.1+0~20151104024829.185~1.gbpb83356_amd64.deb<BR>
+- Install: dpkg -i freerdp-nightly*<BR>
+- Build Medusa: ./configure;make
+
+<P>
 The following examples demonstrate several uses of the RDP module:
 
 <UL>
