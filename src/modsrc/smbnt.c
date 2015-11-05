@@ -352,7 +352,11 @@ int go(sLogin* logins, int argc, char *argv[])
         else if (strcmp(pOpt, "LMv2") == 0)
           psSessionData->authLevel = AUTH_LMv2;
         else if (strcmp(pOpt, "NTLMv2") == 0)
+        {
           psSessionData->authLevel = AUTH_NTLMv2;
+          /* NTLMv2 authentication is returning a STATUS_INVALID_PARAMETER response with 2012R2 servers. This issue pre-dates the AndX modification. */
+          writeError(ERR_FATAL, "NTLMv2 support currently disabled. The default authentication mode of LMv2 should work in all cases that NTLMv2 is required.");
+        }
         else
           writeError(ERR_WARNING, "Invalid value for method AUTH.");
       }
