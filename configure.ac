@@ -1,4 +1,4 @@
-AC_INIT([medusa], [2.2_rc2])
+AC_INIT([medusa], [2.2_rc3])
 AC_CONFIG_SRCDIR([src/medusa.c])
 AM_CONFIG_HEADER(config.h)
 
