@@ -2,7 +2,7 @@
 
 **Medusa Parallel Network Login Auditor**
 
-Copyright (C) 2015 Joe Mondloch<br />
+Copyright (C) 2016 Joe Mondloch<br />
 JoMo-Kun / jmk@foofus.net
 
 Medusa is a speedy, parallel, and modular, login brute-forcer. The goal is to support as many services which allow remote authentication as possible. The author considers following items as some of the key features of this application:
