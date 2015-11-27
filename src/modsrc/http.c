@@ -59,6 +59,7 @@
 typedef struct __MODULE_DATA {
   char *szDomain;
   char *szDir;
+  char *szMethod;
   char *szHostHeader;
   char *szUserAgent;
   char *szCustomHeader;
@@ -111,6 +112,7 @@ void showUsage()
   writeVerbose(VB_NONE, "Available module options:");
   writeVerbose(VB_NONE, "  USER-AGENT:? (User-Agent. Default: Mozilla/1.22 (compatible; MSIE 10.0; Windows 3.1))");
   writeVerbose(VB_NONE, "  DIR:? (Target directory. Default \"/\")");
+  writeVerbose(VB_NONE, "  METHOD:? (Method (GET/POST/etc). Default: GET");
   writeVerbose(VB_NONE, "  AUTH:? (Authentication Type (BASIC/DIGEST/NTLM). Default: automatic)");
   writeVerbose(VB_NONE, "  DOMAIN:? [optional]");
   writeVerbose(VB_NONE, "  CUSTOM-HEADER:?    Additional HTTP header.");
@@ -166,6 +168,20 @@ int go(sLogin* logins, int argc, char *argv[])
         }
         else
           writeError(ERR_WARNING, "Method DIR requires value to be set.");
+      }
+      else if (strcmp(pOpt, "METHOD") == 0)
+      {
+        pOpt = strtok_r(NULL, "\0", &strtok_ptr);
+        writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
+
+        if ( pOpt )
+        {
+          psSessionData->szMethod = malloc(strlen(pOpt) + 1);
+          memset(psSessionData->szMethod, 0, strlen(pOpt) + 1);
+          strncpy(psSessionData->szMethod, pOpt, strlen(pOpt) + 1);
+        }
+        else
+          writeError(ERR_WARNING, "Method METHOD requires value to be set.");
       }
       else if (strcmp(pOpt, "USER-AGENT") == 0)
       {
@@ -243,6 +259,7 @@ int go(sLogin* logins, int argc, char *argv[])
   }
 
   FREE(psSessionData->szDir);
+  FREE(psSessionData->szMethod);
   FREE(psSessionData->szUserAgent);
   FREE(psSessionData->szDomain);
   FREE(psSessionData->szCustomHeader);
@@ -292,6 +309,13 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
     memset(_psSessionData->szDir, 0, 1);
   }
 
+  if (!_psSessionData->szMethod)
+  {
+      _psSessionData->szMethod = malloc(15);
+      memset(_psSessionData->szMethod, 0, 15);
+      sprintf(_psSessionData->szMethod, "GET");
+  }
+
   if (!_psSessionData->szHostHeader)
   {
     nBufLength = strlen(_psLogin->psServer->psHost->pHost) + 1 + log(params.nPort) + 1;
@@ -306,7 +330,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
     memset(_psSessionData->szUserAgent, 0, 50);
     sprintf(_psSessionData->szUserAgent, "Mozilla/1.22 (compatible; MSIE 10.0; Windows 3.1)");
   }
-      
+
   if (!_psSessionData->szCustomHeader) {
     _psSessionData->szCustomHeader = malloc(1);
     memset(_psSessionData->szCustomHeader, 0, 1);
@@ -403,14 +427,16 @@ int getAuthType(int hSocket, _MODULE_DATA* _psSessionData)
   int nReceiveBufferSize = 0;
   int nSendBufferSize = 0;
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 2 + strlen(_psSessionData->szCustomHeader) + 2; 
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 2 +
+                    strlen(_psSessionData->szCustomHeader) + 2;
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent,
+          _psSessionData->szCustomHeader);
 
   writeError(ERR_DEBUG_MODULE, "[%s] Sending initial non-authentication request: %s", MODULE_NAME, bufSend);
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
@@ -484,15 +510,16 @@ int sendAuthBasic(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char
   if (_psSessionData->szDomain)
     FREE(szLoginDomain);
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 23 + strlen(szEncodedAuth) + 
-                    2 + strlen(_psSessionData->szCustomHeader) + 2;
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 23 +
+                    strlen(szEncodedAuth) + 2 + strlen(_psSessionData->szCustomHeader) + 2;
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic %s\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szEncodedAuth, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: Basic %s\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szEncodedAuth,
+          _psSessionData->szCustomHeader);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
@@ -529,15 +556,16 @@ int sendAuthNTLM(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char*
   base64_encode((char *)&sTmpReq, SmbLength(&sTmpReq), szTmpBuf64);
   writeError(ERR_DEBUG_MODULE, "[%s] Sending initial challenge (B64 Encoded): %s", MODULE_NAME, szTmpBuf64);
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 22 + strlen(szTmpBuf64) + 26 +
-                    strlen(_psSessionData->szCustomHeader) + 2;
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 22 +
+                    strlen(szTmpBuf64) + 26 + strlen(_psSessionData->szCustomHeader) + 2;
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: NTLM %s\r\nConnection: keep-alive\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szTmpBuf64, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: NTLM %s\r\nConnection: keep-alive\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szTmpBuf64,
+          _psSessionData->szCustomHeader);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
@@ -592,15 +620,16 @@ int sendAuthNTLM(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char*
   base64_encode((char *)&sTmpResp, SmbLength(&sTmpResp), szTmpBuf64);
   writeError(ERR_DEBUG_MODULE, "[%s] NTLM Response (B64 Encoded): %s", MODULE_NAME, szTmpBuf64);
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 22 + strlen(szTmpBuf64) + 21 + 
-                    strlen(_psSessionData->szCustomHeader) + 2;
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 22 +
+                    strlen(szTmpBuf64) + 21 + strlen(_psSessionData->szCustomHeader) + 2;
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: NTLM %s\r\nConnection: close\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szTmpBuf64, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: NTLM %s\r\nConnection: close\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szTmpBuf64,
+          _psSessionData->szCustomHeader);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
@@ -631,7 +660,6 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   char *szRealm = NULL; 
   char *szAlg = NULL;
   char  szNonceCount[9] = "00000001";
-  char *szMethod = "GET";
   char *szQop = NULL;
   char *szURI = NULL;
   char *szOpaque = NULL;
@@ -657,14 +685,17 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   /* Send initial request */
   writeError(ERR_DEBUG_MODULE, "[%s] Sending initial request for digest authentication.", MODULE_NAME);
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 26 + strlen(_psSessionData->szCustomHeader) + 2;
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 26 +
+                    strlen(_psSessionData->szCustomHeader) + 2;
+
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nConnection: keep-alive\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nConnection: keep-alive\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent,
+          _psSessionData->szCustomHeader);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
@@ -831,11 +862,11 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   writeError(ERR_DEBUG_MODULE, "[%s] szNonceCount: %s", MODULE_NAME, szNonceCount);
   writeError(ERR_DEBUG_MODULE, "[%s] szQop: %s", MODULE_NAME, szQop);
   writeError(ERR_DEBUG_MODULE, "[%s] szOpaque: %s", MODULE_NAME, szOpaque);
-  writeError(ERR_DEBUG_MODULE, "[%s] szMethod: %s", MODULE_NAME, szMethod);
+  writeError(ERR_DEBUG_MODULE, "[%s] szMethod: %s", MODULE_NAME, _psSessionData->szMethod);
   writeError(ERR_DEBUG_MODULE, "[%s] szURI: %s", MODULE_NAME, szURI);
 
   DigestCalcHA1(szAlg, szLogin, szRealm, szPassword, szNonce, szCNonce, HA1);
-  DigestCalcResponse(HA1, szNonce, szNonceCount, szCNonce, szQop, szMethod, szURI, HA2, Response);
+  DigestCalcResponse(HA1, szNonce, szNonceCount, szCNonce, szQop, _psSessionData->szMethod, szURI, HA2, Response);
   writeError(ERR_DEBUG_MODULE, "[%s] Calculated Digest Response: %s", MODULE_NAME, Response);
 
   /*
@@ -886,15 +917,16 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   FREE(szOpaque);
   FREE(szURI);
 
-  nSendBufferSize = 5 + strlen(_psSessionData->szDir) + 17 + strlen(_psSessionData->szHostHeader) +
-                    14 + strlen(_psSessionData->szUserAgent) + 17 + strlen(szAuthorization) + 26 +
-                    strlen(_psSessionData->szCustomHeader) + 2;
+  nSendBufferSize = strlen(_psSessionData->szMethod) + 2 + strlen(_psSessionData->szDir) + 17 +
+                    strlen(_psSessionData->szHostHeader) + 14 + strlen(_psSessionData->szUserAgent) + 17 +
+                    strlen(szAuthorization) + 26 + strlen(_psSessionData->szCustomHeader) + 2;
 
   bufSend = malloc(nSendBufferSize + 1);
   memset(bufSend, 0, nSendBufferSize + 1);
 
-  sprintf((char*)bufSend, "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: %s\r\nConnection: keep-alive\r\n%s\r\n", 
-          _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szAuthorization, _psSessionData->szCustomHeader);
+  sprintf((char*)bufSend, "%s /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nAuthorization: %s\r\nConnection: keep-alive\r\n%s\r\n",
+          _psSessionData->szMethod, _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, szAuthorization,
+          _psSessionData->szCustomHeader);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
