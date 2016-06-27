@@ -701,19 +701,16 @@ AC_CHECK_LIB(ssh2, main,
 dnl Test whether libssh2 was built with libgcrypt
 if test x"$check_module_ssh" = "xtrue"; then
   check_libgcrypt="false"
-  
-  if test -f "/usr/lib/libssh2.so"; then
-    LIBSSH2_PATH="/usr/lib/libssh2.so"
-  elif test -f "/usr/local/lib/libssh2.so"; then
-    LIBSSH2_PATH="/usr/local/lib/libssh2.so"
-  elif test -f "/usr/lib/x86_64-linux-gnu/libssh2.so"; then
-    LIBSSH2_PATH="/usr/lib/x86_64-linux-gnu/libssh2.so"
-  elif test -f "/opt/local/lib/libssh2.dylib"; then
-    LIBSSH2_PATH="/opt/local/lib/libssh2.dylib"
-  elif test -f "/usr/local/lib/libssh2.dylib"; then
-    LIBSSH2_PATH="/usr/local/lib/libssh2.dylib"
-  else
+ 
+  for _dir in `ld --verbose | grep SEARCH_DIR | sed -e 's/\"); */\n/g' | cut -d= -f2`
+  do
+    if test -f "$_dir/libssh2.so"; then
+      LIBSSH2_PATH="$_dir/libssh2.so"
+    fi
+  done
+  if test -z "$LIBSSH2_PATH"; then 
     AC_MSG_WARN([ LIBSSH2 path not found. Assuming it was... ])
+    check_libgcrypt="true"
   fi  
 
   dnl Use otool on Mac OS X

@@ -586,7 +586,7 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
   pTemp = (char*)index((char *)pReceiveBuffer, ' ');
   if ( !pTemp || strncmp(pTemp + 1, "200 OK", 6) != 0 )
   {
-    writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted: error code %.4s", pTemp);
+    writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying %s %s: error code %.4s", szLogin, szPassword, pTemp);
     (*login)->iResult = LOGIN_RESULT_UNKNOWN;
     setPassResult(*login, szPassword);
     return MSTATE_EXITING;
