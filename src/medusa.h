@@ -44,6 +44,10 @@
   #include <config.h>
 #endif
 
+#ifdef HAVE_LIBSSL
+  #include <openssl/crypto.h>
+#endif
+
 #define PROGRAM   "Medusa"
 #ifndef VERSION
   #define VERSION   "1.0"

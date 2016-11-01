@@ -13,7 +13,11 @@
 
 #include "medusa.h"
 
-#ifdef HAVE_LIBSSL
+/* In OpenSSL <= 1.0.2, an application had to set locking callbacks to use
+   OpenSSL in a multi-threaded environment. OpenSSL 1.1.0 now finds pthreads
+   or Windows threads, so nothing special is necessary.
+*/
+#if defined(HAVE_LIBSSL) && (OPENSSL_VERSION_NUMBER < 0x10100005L) 
 static pthread_mutex_t *lockarray;
 
 #include <openssl/crypto.h>
@@ -79,7 +83,7 @@ void init_locks_gnutls(void)
 
 void init_crypto_locks(void)
 {
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL) && (OPENSSL_VERSION_NUMBER < 0x10100005L) 
   init_locks_openssl();
 #endif
 
@@ -90,7 +94,7 @@ void init_crypto_locks(void)
 
 void kill_crypto_locks(void)
 {
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL) && (OPENSSL_VERSION_NUMBER < 0x10100005L) 
   kill_locks_openssl();
 #endif
 }

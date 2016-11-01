@@ -327,7 +327,9 @@ RSA *sslTempRSACallback(SSL * ssl __attribute__((unused)), int export __attribut
   RSA *rsa = NULL;
 
   if (rsa == NULL)
-    rsa = RSA_generate_key(512, RSA_F4, NULL, NULL);
+    /* https://openssl.org/docs/manmaster/crypto/RSA_generate_key.html */
+    RSA_generate_key_ex(rsa, 512, (BIGNUM*) RSA_F4, NULL);
+
   return rsa;
 }
 
@@ -347,12 +349,12 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
      the server demands. The module can override this by setting nSSLVersion. */
 
   /* Debian's OpenSSL has SSLv2 support disabled. */
-#ifndef OPENSSL_NO_SSL2
+#if !defined(OPENSSL_NO_SSL2) && (OPENSSL_VERSION_NUMBER < 0x10100005L)
   if (pParams->nSSLVersion == 2)
     sslContext = SSL_CTX_new(SSLv2_client_method());
   else
 #endif
-#ifndef OPENSSL_NO_SSL3
+#if !defined(OPENSSL_NO_SSL3) && (OPENSSL_VERSION_NUMBER < 0x10100005L)
   if (pParams->nSSLVersion == 3)
     sslContext = SSL_CTX_new(SSLv3_client_method());
   else
@@ -378,7 +380,6 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
 
   // we set the default verifiers and dont care for the results
   SSL_CTX_set_default_verify_paths(sslContext);
-  SSL_CTX_set_tmp_rsa_callback(sslContext, sslTempRSACallback);
   SSL_CTX_set_verify(sslContext, SSL_VERIFY_NONE, NULL);
 
   if ((hSocket < 0) && ((hSocket = medusaConnect(pParams)) < 0))

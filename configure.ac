@@ -94,7 +94,7 @@ AC_ARG_WITH(ssl, AS_HELP_STRING([--with-ssl=prefix],[Prefix for OpenSSL librarie
 )
 
 AC_CHECK_LIB(crypto, CRYPTO_lock, [], [AC_MSG_WARN([ *** LibCrypto may be required for *BSD ***])])
-AC_CHECK_HEADER([openssl/ssl.h], 
+AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h, 
   [AC_CHECK_LIB(ssl, main,
     [AC_DEFINE(HAVE_LIBSSL, 1, [Found OpenSSL Library]) LIBS="$LIBS -lssl -lcrypto" check_libssl="true"],
     [AC_MSG_WARN([ *** OpenSSL library required for SSL support. ***

@@ -811,7 +811,10 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
 
   /* create and populate DH structure */ 
   dh_struct = DH_new();
- 
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
+  DH_set0_pqg(dh_struct, (BIGNUM*) &p, (BIGNUM*) &client_priv, (BIGNUM*) &g);
+#else 
   dh_struct->g = BN_new();
   BN_set_word(dh_struct->g, g);
   
@@ -820,11 +823,10 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
   
   dh_struct->priv_key = BN_new();
   BN_set_word(dh_struct->priv_key, client_priv);
+#endif
 
   if (DH_generate_key(dh_struct) == 0)
     writeError(ERR_ERROR, "[%s] Failed to generate key", MODULE_NAME);
-  
-  writeError(ERR_DEBUG_MODULE, "[%s] Client DH private key: %s public key: %s", MODULE_NAME, BN_bn2hex(dh_struct->priv_key), BN_bn2hex(dh_struct->pub_key));
   
   DH_check(dh_struct, &dh_error);
   if (dh_error & DH_CHECK_P_NOT_SAFE_PRIME)
@@ -835,7 +837,11 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
     writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_UNABLE_TO_CHECK_GENERATOR", MODULE_NAME);
 
   /* convert client public key into proper format for sending */
+#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
+  DH_set0_key(dh_struct, (BIGNUM*) &client_pub, (BIGNUM*) &client_priv);
+#else
   int64ToBytes(BN_get_word(dh_struct->pub_key), client_pub);
+#endif
 
   /* generate shared secret using private DH key and server's public key */
   server_pub = BN_new();
