@@ -425,14 +425,14 @@ if test -d "/opt/freerdp-nightly"; then
   LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
 fi
 
-case "$target" in
-  *apple-darwin*)
-    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
-    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
-    ;;
-  *)
-    ;;
-esac
+#case "$target" in
+#  *apple-darwin*)
+#    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
+#    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
+#    ;;
+#  *)
+#    ;;
+#esac
 MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
@@ -701,17 +701,30 @@ AC_CHECK_LIB(ssh2, main,
 dnl Test whether libssh2 was built with libgcrypt
 if test x"$check_module_ssh" = "xtrue"; then
   check_libgcrypt="false"
- 
-  for _dir in `ld --verbose | grep SEARCH_DIR | sed -e 's/\"); */\n/g' | cut -d= -f2`
-  do
-    if test -f "$_dir/libssh2.so"; then
-      LIBSSH2_PATH="$_dir/libssh2.so"
-    fi
-  done
-  if test -z "$LIBSSH2_PATH"; then 
+
+  case "$target" in
+    *apple-darwin*)
+      for _dir in `gcc -Xlinker -v 2>&1 | grep "\/" | grep -v executable | cut -f2`
+      do
+        if test -f "$_dir/libssh2.dylib"; then
+          LIBSSH2_PATH="$_dir/libssh2.dylib"
+        fi
+      done
+      ;;
+    *)
+      for _dir in `ld --verbose | grep SEARCH_DIR | sed -e 's/\"); */\n/g' | cut -d= -f2`
+      do
+        if test -f "$_dir/libssh2.so"; then
+          LIBSSH2_PATH="$_dir/libssh2.so"
+        fi
+      done
+      ;;
+  esac
+
+  if test -z "$LIBSSH2_PATH"; then
     AC_MSG_WARN([ LIBSSH2 path not found. Assuming it was... ])
     check_libgcrypt="true"
-  fi  
+  fi
 
   dnl Use otool on Mac OS X
   if test -f "`which ldd`"; then
