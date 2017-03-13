@@ -129,23 +129,23 @@ void writeError(int iLevel, char *pMsg, ...) {
   char bufOut[16384];
   char temp[6];
   unsigned char cTemp;
-  unsigned int i = 0;
+  unsigned int i = 0, len;
  
   if (pMsg == NULL) {
     fprintf(stderr, "CRITICAL: writeError() called with NULL message.\n");
   }
   else if (iLevel <= iErrorLevel) {
     va_start(ap, pMsg);
-    memset(bufOut, 0, 16384);
-    memset(buf, 0, 4096);
-    vsnprintf(buf, sizeof(buf), pMsg, ap);
+    memset(bufOut, 0, sizeof(bufOut));
+    memset(buf, 0, sizeof(buf));
+    len = vsnprintf(buf, sizeof(buf), pMsg, ap);
  
     // Convert any chars less than 32d or greater than 126d to hex
-    for (i = 0; i < sizeof(buf); i++)
+    for (i = 0; i < len; i++)
     {
       memset(temp, 0, 6);
       cTemp = (unsigned char)buf[i];
-      if ((cTemp < 32 && cTemp > 0) || cTemp > 126)
+      if ((cTemp < 32 && cTemp >= 0) || cTemp > 126)
       {
         snprintf(temp, 6, "[%02X]", cTemp);        
       }
