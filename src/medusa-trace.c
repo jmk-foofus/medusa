@@ -40,6 +40,10 @@ void writeVerbose(int iLevel, char *pMsg, ...) {
   unsigned char cTemp;
   unsigned int i = 0;
 
+  struct tm *tm_ptr;
+  time_t the_time;
+  char time_buf[256];
+
   if (pMsg == NULL) {
     fprintf(stderr, "CRITICAL: writeDebug() called with NULL message.\n");
   }
@@ -68,14 +72,18 @@ void writeVerbose(int iLevel, char *pMsg, ...) {
       strncat(bufOut, temp, 6);
     }
 
+    (void) time(&the_time);
+    tm_ptr = localtime(&the_time);
+    strftime(time_buf, 256, "%Y-%m-%d %H:%M:%S", tm_ptr); 
+
     switch (iLevel)
     {
       case VB_FOUND:
-        fprintf(stdout, "ACCOUNT FOUND: %s\n", bufOut);
+        fprintf(stdout, "%s ACCOUNT FOUND: %s\n", time_buf, bufOut);
         
         if (pOutputFile != NULL) {
           pthread_mutex_lock(&ptmFileMutex);
-          fprintf(pOutputFile, "ACCOUNT FOUND: %s\n", buf);
+          fprintf(pOutputFile, "%s ACCOUNT FOUND: %s\n", time_buf, buf);
           fflush(pOutputFile);
           pthread_mutex_unlock(&ptmFileMutex);
         }
@@ -83,7 +91,7 @@ void writeVerbose(int iLevel, char *pMsg, ...) {
         va_end(ap);
         break;
       case VB_CHECK:
-        fprintf(stdout, "ACCOUNT CHECK: %s\n", bufOut);
+        fprintf(stdout, "%s ACCOUNT CHECK: %s\n", time_buf, bufOut);
         va_end(ap);
         break;
       case VB_IMPORTANT:
