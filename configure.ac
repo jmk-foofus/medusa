@@ -419,118 +419,45 @@ dnl ********** RDP Medusa Module **********
 check_module_rdp="false"
 module_rdp_headers="false"
 
+PKG_CHECK_MODULES(FREERDP2, freerdp2)
+CPPFLAGS="$CPPFLAGS $FREERDP2_CFLAGS"
+
 dnl https://ci.freerdp.com - Nightly FreeRDP master builds 
 if test -d "/opt/freerdp-nightly"; then
   CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
   LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
 fi
 
-#case "$target" in
-#  *apple-darwin*)
-#    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
-#    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
-#    ;;
-#  *)
-#    ;;
-#esac
+case "$target" in
+  *apple-darwin*)
+    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
+    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
+    ;;
+  *)
+    ;;
+esac
 MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
-module_rdp_headers="false"
+AC_CHECK_HEADER([freerdp/freerdp.h],
+  [AC_CHECK_LIB(freerdp2, main,
+    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS $FREERDP_LIBS" check_module_rdp="true"],
+    [AC_MSG_WARN([ *** FreeRDP2 library required for RDP module. ***
 
-AC_CHECK_HEADER([freerdp/freerdp.h], [module_rdp_headers="true"],
-  [
-    AC_MSG_WARN([ *** FreeRDP header files required for RDP module. ***
+      The FreeRDP package must be installed for RDP module to function. This
+      includes both the library and header files. Your distribution may offer
+      packages such as freerdp2-dev, which will provide these files.
 
-        The FreeRDP package must be installed for RDP module to function. This
-        includes both the library and header files. Your distribution may offer
-        packages such as freerdp and libfreerdp-dev, which will provide these files.
+    ])]
+  )],
+  [AC_MSG_WARN([ *** FreeRDP2 header files required for RDP module. ***
 
-    ])
-  ]
+    The FreeRDP package must be installed for RDP module to function. This
+    includes both the library and header files. Your distribution may offer
+    packages such as freerdp2-dev, which will provide these files.
+
+  ])]
 )
-
-if test x"$module_rdp_headers" = "xtrue"; then
-  AC_MSG_NOTICE([ *** Checking for FreeRDP libraries. *** ])
-  AC_CHECK_LIB(winpr, main, [], [])
-  AC_CHECK_LIB(freerdp, main, [], [])
-  AC_CHECK_LIB(freerdp-channels, main, [], [])
-  AC_CHECK_LIB(freerdp-client, main, [], [])
-  AC_CHECK_LIB(freerdp-core, main, [], [])
-  AC_CHECK_LIB(freerdp-gdi, main, [], [])
-
-  AS_MESSAGE([checking for FreeRDP library version 1.2...])
-  AC_SEARCH_LIBS(WLog_CallbackAppender_SetCallbacks, winpr,
-    [
-      AC_DEFINE(HAVE_LIBFREERDP12, 1, [Found FreeRDP Library (version >= 1.2)])
-      AC_MSG_NOTICE([ *** Detected FreeRDP library version 1.2. *** ])
-      check_module_rdp="true"
-    ],
-    [],
-    [$MODULE_LIBS $RDP_LIBS]
-  )
-
-  if test x"$check_module_rdp" = "xfalse"; then
-    AS_MESSAGE([checking for FreeRDP library version 1.1 (with pass-the-hash)...])
-    AC_SEARCH_LIBS(nego_set_restricted_admin_mode_required, freerdp-client,
-      [
-        AC_DEFINE(HAVE_LIBFREERDP11PTH, 1, [Found FreeRDP Library (version 1.1 PTH)])
-        AC_MSG_NOTICE([ *** Detected FreeRDP library version 1.1 (with pass-the-hash). *** ])
-        check_module_rdp="true"
-      ],
-      [],
-      [$MODULE_LIBS $RDP_LIBS]
-    )
-  fi
-
-  if test x"$check_module_rdp" = "xfalse"; then
-    AS_MESSAGE([checking for FreeRDP library version 1.1...])
-    AC_CHECK_LIB(freerdp-client, main,
-      [
-        AC_DEFINE(HAVE_LIBFREERDP11, 1, [Found FreeRDP Library (version 1.1)])
-        AC_MSG_WARN([ *** Detected FreeRDP library version 1.1. *** 
-       
-            FreeRDP introduced pass-the-hash support with version 1.2. The version
-            detected on this system is prior to that release. The RDP module will
-            function, but the pass-the-hash option will be disabled.
-
-        ])
-        check_module_rdp="true"
-      ],
-      []
-    )
-  fi
-
-  if test x"$check_module_rdp" = "xfalse"; then
-    AS_MESSAGE([checking for FreeRDP library version 1.0...])
-    AC_CHECK_LIB(freerdp-core, main,
-      [
-        AC_DEFINE(HAVE_LIBFREERDP10, 1, [Found FreeRDP Library (version 1.0)])
-        AC_MSG_WARN([ *** Detected FreeRDP library version 1.0. *** 
-       
-            FreeRDP introduced pass-the-hash support with version 1.2. The version
-            detected on this system is prior to that release. The RDP module will
-            function, but the pass-the-hash option will be disabled.
-
-            It should also be noted that FreeRDP 1.0 prints all error messages
-            to stdout. Medusa is unable to suppress these, which can lead to 
-            extraneous information being displayed.
-
-        ])
-        check_module_rdp="true"
-      ],
-      [
-        AC_MSG_WARN([ *** FreeRDP library required for RDP module. *** 
-
-            The FreeRDP package must be installed for the RDP module to function. This
-            includes both the library and header files. Your distribution may offer 
-            packages such as freerdp and libfreerdp-dev, which will provide these files.
-
-        ])
-      ]
-    )
-  fi
-fi
 
 case "$target" in
   *apple-darwin*)
@@ -701,30 +628,17 @@ AC_CHECK_LIB(ssh2, main,
 dnl Test whether libssh2 was built with libgcrypt
 if test x"$check_module_ssh" = "xtrue"; then
   check_libgcrypt="false"
-
-  case "$target" in
-    *apple-darwin*)
-      for _dir in `gcc -Xlinker -v 2>&1 | grep "\/" | grep -v executable | cut -f2`
-      do
-        if test -f "$_dir/libssh2.dylib"; then
-          LIBSSH2_PATH="$_dir/libssh2.dylib"
-        fi
-      done
-      ;;
-    *)
-      for _dir in `ld --verbose | grep SEARCH_DIR | sed -e 's/\"); */\n/g' | cut -d= -f2`
-      do
-        if test -f "$_dir/libssh2.so"; then
-          LIBSSH2_PATH="$_dir/libssh2.so"
-        fi
-      done
-      ;;
-  esac
-
-  if test -z "$LIBSSH2_PATH"; then
+ 
+  for _dir in `ld --verbose | grep SEARCH_DIR | sed -e 's/\"); */\n/g' | cut -d= -f2`
+  do
+    if test -f "$_dir/libssh2.so"; then
+      LIBSSH2_PATH="$_dir/libssh2.so"
+    fi
+  done
+  if test -z "$LIBSSH2_PATH"; then 
     AC_MSG_WARN([ LIBSSH2 path not found. Assuming it was... ])
     check_libgcrypt="true"
-  fi
+  fi  
 
   dnl Use otool on Mac OS X
   if test -f "`which ldd`"; then
