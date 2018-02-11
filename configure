@@ -6438,6 +6438,14 @@ if test x"$check_module_ssh" = "xtrue"; then
       LIBSSH2_PATH="$_dir/libssh2.so"
     fi
   done
+
+  for _dir in "/usr/lib" "/usr/local/lib"
+  do
+    if test -f "$_dir/libssh2.dylib"; then
+      LIBSSH2_PATH="$_dir/libssh2.dylib"
+    fi
+  done
+
   if test -z "$LIBSSH2_PATH"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  LIBSSH2 path not found. Assuming it was... " >&5
 $as_echo "$as_me: WARNING:  LIBSSH2 path not found. Assuming it was... " >&2;}

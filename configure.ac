@@ -618,6 +618,14 @@ if test x"$check_module_ssh" = "xtrue"; then
       LIBSSH2_PATH="$_dir/libssh2.so"
     fi
   done
+
+  for _dir in "/usr/lib" "/usr/local/lib"
+  do
+    if test -f "$_dir/libssh2.dylib"; then
+      LIBSSH2_PATH="$_dir/libssh2.dylib"
+    fi
+  done
+
   if test -z "$LIBSSH2_PATH"; then 
     AC_MSG_WARN([ LIBSSH2 path not found. Assuming it was... ])
     check_libgcrypt="true"
