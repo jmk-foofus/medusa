@@ -228,8 +228,8 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
     {
       case MSTATE_NEW:
         instance = freerdp_new();
-        instance->PreConnect = tf_pre_connect;
-        instance->PostConnect = tf_post_connect;
+        instance->PreConnect = (signed char (*)(struct rdp_freerdp *))tf_pre_connect;
+        instance->PostConnect = (signed char (*)(struct rdp_freerdp *))tf_post_connect;
         instance->ContextSize = sizeof(tfContext);
         instance->ContextNew = tf_context_new;
         instance->ContextFree = tf_context_free;
@@ -363,7 +363,7 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
 {
   int SMBerr;
   char *pErrorMsg = NULL;
-  char ErrorCode[10];
+  char ErrorCode[12];
   int nRet;
   unsigned int i;
   int old_stderr;
@@ -394,7 +394,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     0x00050001,         /* AS400_STATUS_LOGON_FAILURE */
     0x00000064,         /* The machine you are logging onto is protected by an authentication firewall. */
     0xC0000022,         /* STATUS_ACCESS_DENIED */
-    0xC00000CC          /* STATUS_BAD_NETWORK_NAME */
+    0xC00000CC,         /* STATUS_BAD_NETWORK_NAME */
+    0x0002000D          /* ERRCONNECT_CONNECT_TRANSPORT_FAILED */
   };
 
   char *smbErrorMsg[] = {
@@ -421,7 +422,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     "AS400_STATUS_LOGON_FAILURE",
     "AUTHENTICATION_FIREWALL_PROTECTION",
     "STATUS_ACCESS_DENIED",
-    "STATUS_BAD_NETWORK_NAME"
+    "STATUS_BAD_NETWORK_NAME",
+    "ERRCONNECT_CONNECT_TRANSPORT_FAILED"
   };
 
   instance->settings->Username = szLogin;
@@ -491,6 +493,7 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
 
     switch(SMBerr)
     {
+      case 0x00020014:  /* ERRCONNECT_LOGON_FAILURE */
       case 0xC000006A:  /* STATUS_WRONG_PASSWORD */
       case 0xC000006D:  /* STATUS_LOGON_FAILURE */
         (*psLogin)->iResult = LOGIN_RESULT_FAIL;
@@ -505,8 +508,9 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
       case 0xC0000234:  /* STATUS_ACCOUNT_LOCKED_OUT  */
       case 0xC0000193:  /* STATUS_ACCOUNT_EXPIRED */
       case 0xC000015B:  /* STATUS_LOGON_TYPE_NOT_GRANTED */
+      case 0x0002000D:  /* ERRCONNECT_CONNECT_TRANSPORT_FAILED */
         (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
-        sprintf(ErrorCode, "0x%08lX:", SMBerr);
+        sprintf(ErrorCode, "0x%8.8X:", SMBerr);
         (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
@@ -515,7 +519,7 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
         break;
 
       default:
-        sprintf(ErrorCode, "0x%08lX:", SMBerr);
+        sprintf(ErrorCode, "0x%8.8X:", SMBerr);
         (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));

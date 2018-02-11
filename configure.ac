@@ -428,20 +428,10 @@ if test -d "/opt/freerdp-nightly"; then
   LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
 fi
 
-case "$target" in
-  *apple-darwin*)
-    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
-    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
-    ;;
-  *)
-    ;;
-esac
-MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
-
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
 AC_CHECK_HEADER([freerdp/freerdp.h],
   [AC_CHECK_LIB(freerdp2, main,
-    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS $FREERDP_LIBS" check_module_rdp="true"],
+    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS $FREERDP2_LIBS" check_module_rdp="true"],
     [AC_MSG_WARN([ *** FreeRDP2 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
@@ -458,13 +448,6 @@ AC_CHECK_HEADER([freerdp/freerdp.h],
 
   ])]
 )
-
-case "$target" in
-  *apple-darwin*)
-    AS_MESSAGE([RDP module is currently broken on OS X and disabled by default.])
-    check_module_rdp="false"
-    ;;
-esac
 
 AC_MSG_CHECKING(whether to enable RDP module)
 AC_ARG_ENABLE(module-rdp, 

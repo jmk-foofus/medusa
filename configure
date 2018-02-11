@@ -764,7 +764,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -874,7 +873,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1127,15 +1125,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1273,7 +1262,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1426,7 +1415,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -5972,8 +5960,8 @@ $as_echo "no" >&6; }
 fi
 
 pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for FREERDP2" >&5
-$as_echo_n "checking for FREERDP2... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for freerdp2" >&5
+$as_echo_n "checking for freerdp2... " >&6; }
 
 if test -n "$FREERDP2_CFLAGS"; then
     pkg_cv_FREERDP2_CFLAGS="$FREERDP2_CFLAGS"
@@ -6013,7 +6001,7 @@ fi
 
 
 if test $pkg_failed = yes; then
-   	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 
 if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
@@ -6040,7 +6028,7 @@ Alternatively, you may set the environment variables FREERDP2_CFLAGS
 and FREERDP2_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
-     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -6067,16 +6055,6 @@ if test -d "/opt/freerdp-nightly"; then
   CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
   LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
 fi
-
-case "$target" in
-  *apple-darwin*)
-    LDFLAGS="$LDFLAGS -L/usr/local/lib/freerdp"
-    RDP_LIBS="-lfreerdp -lwinpr -lfreerdp-client -laudin-client -ldisp-client -lecho-client -lrdpei-client -lrdpgfx-client -ltsmf-client -lcliprdr-client -ldrdynvc-client -lencomsp-client -lrail-client -lrdpdr-client -lrdpsnd-client -lremdesk-client -ldrive-client -lparallel-client -lserial-client -lsmartcard-client"
-    ;;
-  *)
-    ;;
-esac
-MODULE_LIBS="$MODULE_LIBS $RDP_LIBS"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeRDP Library and Header files..." >&5
 $as_echo "$as_me: checking for FreeRDP Library and Header files..." >&6;}
@@ -6115,7 +6093,7 @@ $as_echo "$ac_cv_lib_freerdp2_main" >&6; }
 if test "x$ac_cv_lib_freerdp2_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBFREERDP2 1" >>confdefs.h
- MODULE_LIBS="$MODULE_LIBS $FREERDP_LIBS" check_module_rdp="true"
+ MODULE_LIBS="$MODULE_LIBS $FREERDP2_LIBS" check_module_rdp="true"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** FreeRDP2 library required for RDP module. ***
 
@@ -6153,14 +6131,6 @@ $as_echo "$as_me: WARNING:  *** FreeRDP2 header files required for RDP module. *
 fi
 
 
-
-case "$target" in
-  *apple-darwin*)
-    { $as_echo "$as_me:${as_lineno-$LINENO}: RDP module is currently broken on OS X and disabled by default." >&5
-$as_echo "$as_me: RDP module is currently broken on OS X and disabled by default." >&6;}
-    check_module_rdp="false"
-    ;;
-esac
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable RDP module" >&5
 $as_echo_n "checking whether to enable RDP module... " >&6; }
