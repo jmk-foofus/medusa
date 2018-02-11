@@ -27,33 +27,8 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
-/* Define to 1 if you have the `freerdp' library (-lfreerdp). */
-#undef HAVE_LIBFREERDP
-
-/* Found FreeRDP Library (version 1.0) */
-#undef HAVE_LIBFREERDP10
-
-/* Found FreeRDP Library (version 1.1) */
-#undef HAVE_LIBFREERDP11
-
-/* Found FreeRDP Library (version 1.1 PTH) */
-#undef HAVE_LIBFREERDP11PTH
-
-/* Found FreeRDP Library (version >= 1.2) */
-#undef HAVE_LIBFREERDP12
-
-/* Define to 1 if you have the `freerdp-channels' library
-   (-lfreerdp-channels). */
-#undef HAVE_LIBFREERDP_CHANNELS
-
-/* Define to 1 if you have the `freerdp-client' library (-lfreerdp-client). */
-#undef HAVE_LIBFREERDP_CLIENT
-
-/* Define to 1 if you have the `freerdp-core' library (-lfreerdp-core). */
-#undef HAVE_LIBFREERDP_CORE
-
-/* Define to 1 if you have the `freerdp-gdi' library (-lfreerdp-gdi). */
-#undef HAVE_LIBFREERDP_GDI
+/* Found FreeRDP2 Library */
+#undef HAVE_LIBFREERDP2
 
 /* Found Libgcrypt Library */
 #undef HAVE_LIBGCRYPT
@@ -75,9 +50,6 @@
 
 /* Found SVN Library */
 #undef HAVE_LIBSVN_CLIENT_1
-
-/* Define to 1 if you have the `winpr' library (-lwinpr). */
-#undef HAVE_LIBWINPR
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

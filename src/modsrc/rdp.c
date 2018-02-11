@@ -39,14 +39,10 @@
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/channels/channels.h>
 
-#ifndef HAVE_LIBFREERDP10
-#include <freerdp/client/cmdline.h>
-#endif
-
 #define MODULE_NAME    "rdp.mod"
 #define MODULE_AUTHOR  "JoMo-Kun <jmk@foofus.net>"
 #define MODULE_SUMMARY_USAGE  "Brute force module for RDP (Microsoft Terminal Server) sessions"
-#define MODULE_VERSION    "0.1"
+#define MODULE_VERSION    "0.2"
 #define MODULE_VERSION_SVN "$Id: ssh.c 1403 2010-09-01 21:41:00Z jmk $"
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
 
@@ -72,13 +68,19 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** login, freerdp* instance, ch
 int initModule(sLogin* login, _MODULE_DATA *_psSessionData);
 
 void initWLog();
-void tf_context_new(freerdp* instance, rdpContext* context);
-void tf_context_free(freerdp* instance, rdpContext* context);
-void tf_begin_paint(rdpContext* context);
-void tf_end_paint(rdpContext* context);
-int tf_receive_channel_data(freerdp* instance, int channelId, unsigned char* data, int size, int flags, int total_size);
+static BOOL tf_context_new(freerdp* instance, rdpContext* context);
+static void tf_context_free(freerdp* instance, rdpContext* context);
+static BOOL tf_begin_paint(rdpContext* context);
+static BOOL tf_end_paint(rdpContext* context);
 int tf_pre_connect(freerdp* instance);
 int tf_post_connect(freerdp* instance);
+
+struct tf_context
+{
+  rdpContext _p;
+};
+
+typedef struct tf_context tfContext;
 
 extern FREERDP_API int freerdp_channels_global_init(void);
 extern FREERDP_API int freerdp_channels_global_uninit(void);
@@ -101,8 +103,8 @@ void summaryUsage(char **ppszSummary)
     *ppszSummary = (char*)malloc(iLength);
     memset(*ppszSummary, 0, iLength);
     snprintf(*ppszSummary, iLength, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION);
-  } 
-  else 
+  }
+  else
   {
     writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
   }
@@ -114,18 +116,14 @@ void showUsage()
   writeVerbose(VB_NONE, "%s (%s) %s :: %s\n", MODULE_NAME, MODULE_VERSION, MODULE_AUTHOR, MODULE_SUMMARY_USAGE);
   writeVerbose(VB_NONE, "Available module options:");
   writeVerbose(VB_NONE, "  DOMAIN:? [optional]");
-#if defined(HAVE_LIBFREERDP12) || defined(HAVE_LIBFREERDP11PTH)
   writeVerbose(VB_NONE, "  PASS:?  (PASSWORD*, HASH)");
   writeVerbose(VB_NONE, "    PASSWORD: Use normal password.");
   writeVerbose(VB_NONE, "    HASH:     Use a NTLM hash rather than a password.");
-#endif
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Usage example: \"-M rdp\"");
-#if defined(HAVE_LIBFREERDP12) || defined(HAVE_LIBFREERDP11PTH)
   writeVerbose(VB_NONE, "Usage example: \"-M rdp -m PASS:HASH -u Administrator -p 31D78236327B9619B14ED8EC9AB454C1");
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Note: This module does NOT work against Microsoft Windows 2003/XP and earlier.");
-#endif
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "*** There appears to be thread-safety issues within the FreeRDP library and/or this module. ***");
   writeVerbose(VB_NONE, "*** It is recommended that you avoid using concurrent hosts/users (i.e., -T/-t).");
@@ -147,7 +145,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_ERROR, "%s: Incorrect number of parameters passed to module (%d). Use \"-q\" option to display module usage.", MODULE_NAME, argc);
     return FAILURE;
   }
-  else 
+  else
   {
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
@@ -173,7 +171,6 @@ int go(sLogin* logins, int argc, char *argv[])
         else
           writeError(ERR_WARNING, "Method DOMAIN requires value to be set.");
       }
-#if defined(HAVE_LIBFREERDP12) || defined(HAVE_LIBFREERDP11PTH)
       else if (strcmp(pOpt, "PASS") == 0) {
         pOpt = strtok_r(NULL, "\0", &strtok_ptr);
         writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
@@ -187,15 +184,14 @@ int go(sLogin* logins, int argc, char *argv[])
         else
           writeError(ERR_WARNING, "Invalid value for method PASS.");
       }
-#endif
       else
          writeError(ERR_WARNING, "Invalid method: %s.", pOpt);
- 
+
       free(pOptTmp);
     }
 
     initModule(logins, psSessionData);
-  }  
+  }
 
   FREE(psSessionData);
   return SUCCESS;
@@ -205,7 +201,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 {
   enum MODULE_STATE nState = MSTATE_NEW;
   sCredentialSet *psCredSet = NULL;
-	freerdp* instance;
+  freerdp* instance;
 
   /* Retrieve next available credential set to test */
   psCredSet = malloc( sizeof(sCredentialSet) );
@@ -225,50 +221,29 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
     writeError(ERR_DEBUG_MODULE, "[%s] module started for host: %s - no more available users to test.", MODULE_NAME, psLogin->psServer->pHostIP);
     nState = MSTATE_COMPLETE;
   }
-        
+
   while (nState != MSTATE_COMPLETE)
-  {  
+  {
     switch (nState)
     {
       case MSTATE_NEW:
-    
-#ifdef HAVE_LIBFREERDP12
-        initWLog();
-#else
-        freerdp_channels_global_init();
-#endif
+        instance = freerdp_new();
+        instance->PreConnect = tf_pre_connect;
+        instance->PostConnect = tf_post_connect;
+        instance->ContextSize = sizeof(tfContext);
+        instance->ContextNew = tf_context_new;
+        instance->ContextFree = tf_context_free;
 
-	      instance = freerdp_new();
-	      instance->PreConnect = tf_pre_connect;
-	      instance->PostConnect = tf_post_connect;
-	      instance->ReceiveChannelData = tf_receive_channel_data;
+        freerdp_context_new(instance);
 
-	      instance->ContextNew = (pContextNew)tf_context_new;
-	      instance->ContextFree = tf_context_free;
-	      freerdp_context_new(instance);
-
-#ifdef HAVE_LIBFREERDP10
-        instance->settings->ignore_certificate = TRUE;
-        instance->settings->authentication_only = TRUE;
-        instance->settings->hostname = psLogin->psServer->pHostIP;
-#else
         instance->settings->IgnoreCertificate = TRUE;
         instance->settings->AuthenticationOnly = TRUE;
         instance->settings->ServerHostname = psLogin->psServer->pHostIP;
-#endif       
- 
+
         if (psLogin->psServer->psAudit->iPortOverride > 0)
-#ifdef HAVE_LIBFREERDP10
-          instance->settings->port = psLogin->psServer->psAudit->iPortOverride;
-#else
           instance->settings->ServerPort = psLogin->psServer->psAudit->iPortOverride;
-#endif
         else
-#ifdef HAVE_LIBFREERDP10
-          instance->settings->port = PORT_RDP;
-#else
           instance->settings->ServerPort = PORT_RDP;
-#endif
 
         writeError(ERR_DEBUG_MODULE, "Id: %d initialized FreeRDP instance.", psLogin->iId);
         nState = MSTATE_RUNNING;
@@ -299,25 +274,17 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
         break;
       case MSTATE_EXITING:
-#ifdef HAVE_LIBFREERDP12
         freerdp_free(instance);
-#else
-        freerdp_channels_global_uninit();
-#endif
         nState = MSTATE_COMPLETE;
         break;
       default:
         writeError(ERR_CRITICAL, "Unknown %s module state %d", MODULE_NAME, nState);
 
-#ifdef HAVE_LIBFREERDP12
         freerdp_free(instance);
-#else
-        freerdp_channels_global_uninit();
-#endif
         psLogin->iResult = LOGIN_RESULT_UNKNOWN;
 
         return FAILURE;
-    }  
+    }
   }
 
   FREE(psCredSet);
@@ -325,198 +292,145 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 }
 
 /* Module Specific Functions */
-#ifdef HAVE_LIBFREERDP12
-void CallbackAppenderMessage(const wLogMessage *msg)
+
+static BOOL tf_context_new(freerdp* instance, rdpContext* context)
 {
-  writeError(ERR_DEBUG_MODULE, "[%s] FreeRDP: %s", MODULE_NAME, msg->TextString);
+  return TRUE;
 }
 
-void CallbackAppenderData(const wLogMessage *msg)
+static void tf_context_free(freerdp* instance, rdpContext* context)
 {
-  writeError(ERR_DEBUG_MODULE, "[%s] FreeRDP CallbackAppenderData()", MODULE_NAME);
 }
 
-void CallbackAppenderImage(const wLogMessage *msg)
+static BOOL tf_begin_paint(rdpContext* context)
 {
-  writeError(ERR_DEBUG_MODULE, "[%s] FreeRDP CallbackAppenderImage()", MODULE_NAME);
+  rdpGdi* gdi = context->gdi;
+  gdi->primary->hdc->hwnd->invalid->null = TRUE;
+  return TRUE;
 }
 
-void CallbackAppenderPackage(const wLogMessage *msg)
+static BOOL tf_end_paint(rdpContext* context)
 {
-  writeError(ERR_DEBUG_MODULE, "[%s] FreeRDP CallbackAppenderPackage()", MODULE_NAME);
-}
+  rdpGdi* gdi = context->gdi;
 
-void initWLog()
-{
-  wLog* root;
-  wLogLayout* layout;
-  wLogAppender* appender;
+  if (gdi->primary->hdc->hwnd->invalid->null)
+    return TRUE;
 
-  WLog_Init();
-
-  writeError(ERR_DEBUG_MODULE, "[%s] Initializing FreeRDP WLog", MODULE_NAME);
-
-  root = WLog_GetRoot();
-
-  WLog_SetLogAppenderType(root, WLOG_APPENDER_CALLBACK);
-
-  appender = WLog_GetLogAppender(root);
-
-  WLog_CallbackAppender_SetCallbacks(root, (wLogCallbackAppender*) appender,
-    CallbackAppenderMessage, CallbackAppenderImage, CallbackAppenderPackage,
-    CallbackAppenderData);
-
-  layout = WLog_GetLogLayout(root);
-  WLog_Layout_SetPrefixFormat(root, layout, "%mn");
-
-  WLog_OpenAppender(root);
-}
-#endif
-
-struct tf_info
-{
-	void* data;
-};
-typedef struct tf_info tfInfo;
-
-struct tf_context
-{
-	rdpContext _p;
-
-	tfInfo* tfi;
-};
-typedef struct tf_context tfContext;
-
-void tf_context_new(freerdp* instance, rdpContext* context)
-{
-	context->channels = freerdp_channels_new();
-}
-
-void tf_context_free(freerdp* instance, rdpContext* context)
-{
-
-}
-
-void tf_begin_paint(rdpContext* context)
-{
-	rdpGdi* gdi = context->gdi;
-	gdi->primary->hdc->hwnd->invalid->null = 1;
-}
-
-void tf_end_paint(rdpContext* context)
-{
-	rdpGdi* gdi = context->gdi;
-
-	if (gdi->primary->hdc->hwnd->invalid->null)
-		return;
-}
-
-int tf_receive_channel_data(freerdp* instance, int channelId, unsigned char* data, int size, int flags, int total_size)
-{
-	return freerdp_channels_data(instance, channelId, data, size, flags, total_size);
+  return TRUE;
 }
 
 int tf_pre_connect(freerdp* instance)
 {
-	tfInfo* tfi;
-	tfContext* context;
-	rdpSettings* settings;
-
-	context = (tfContext*) instance->context;
-
-	tfi = (tfInfo*) malloc(sizeof(tfInfo));
-	memset(tfi, 0, sizeof(tfInfo));
-
-	context->tfi = tfi;
-
-	settings = instance->settings;
-
-#ifdef HAVE_LIBFREERDP10
-  settings->order_support[NEG_DSTBLT_INDEX] = TRUE;
-  settings->order_support[NEG_PATBLT_INDEX] = TRUE;
-  settings->order_support[NEG_SCRBLT_INDEX] = TRUE;
-  settings->order_support[NEG_OPAQUE_RECT_INDEX] = TRUE;
-  settings->order_support[NEG_DRAWNINEGRID_INDEX] = TRUE;
-  settings->order_support[NEG_MULTIDSTBLT_INDEX] = TRUE;
-  settings->order_support[NEG_MULTIPATBLT_INDEX] = TRUE;
-  settings->order_support[NEG_MULTISCRBLT_INDEX] = TRUE;
-  settings->order_support[NEG_MULTIOPAQUERECT_INDEX] = TRUE;
-  settings->order_support[NEG_MULTI_DRAWNINEGRID_INDEX] = TRUE;
-  settings->order_support[NEG_LINETO_INDEX] = TRUE;
-  settings->order_support[NEG_POLYLINE_INDEX] = TRUE;
-  settings->order_support[NEG_MEMBLT_INDEX] = TRUE;
-  settings->order_support[NEG_MEM3BLT_INDEX] = TRUE;
-  settings->order_support[NEG_SAVEBITMAP_INDEX] = TRUE;
-  settings->order_support[NEG_GLYPH_INDEX_INDEX] = TRUE;
-  settings->order_support[NEG_FAST_INDEX_INDEX] = TRUE;
-  settings->order_support[NEG_FAST_GLYPH_INDEX] = TRUE;
-  settings->order_support[NEG_POLYGON_SC_INDEX] = TRUE;
-  settings->order_support[NEG_POLYGON_CB_INDEX] = TRUE;
-  settings->order_support[NEG_ELLIPSE_SC_INDEX] = TRUE;
-  settings->order_support[NEG_ELLIPSE_CB_INDEX] = TRUE;
-#else
-	settings->OrderSupport[NEG_DSTBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_PATBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_SCRBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_OPAQUE_RECT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_DRAWNINEGRID_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MULTIDSTBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MULTIPATBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MULTISCRBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MULTIOPAQUERECT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MULTI_DRAWNINEGRID_INDEX] = TRUE;
-	settings->OrderSupport[NEG_LINETO_INDEX] = TRUE;
-	settings->OrderSupport[NEG_POLYLINE_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MEMBLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_MEM3BLT_INDEX] = TRUE;
-	settings->OrderSupport[NEG_SAVEBITMAP_INDEX] = TRUE;
-	settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = TRUE;
-	settings->OrderSupport[NEG_FAST_INDEX_INDEX] = TRUE;
-	settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = TRUE;
-	settings->OrderSupport[NEG_POLYGON_SC_INDEX] = TRUE;
-	settings->OrderSupport[NEG_POLYGON_CB_INDEX] = TRUE;
-	settings->OrderSupport[NEG_ELLIPSE_SC_INDEX] = TRUE;
-	settings->OrderSupport[NEG_ELLIPSE_CB_INDEX] = TRUE;
-#endif
-
-	freerdp_channels_pre_connect(instance->context->channels, instance);
-
-	return TRUE;
+  rdpSettings* settings;
+  settings = instance->settings;
+  settings->OrderSupport[NEG_DSTBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_PATBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_SCRBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_OPAQUE_RECT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_DRAWNINEGRID_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MULTIDSTBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MULTIPATBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MULTISCRBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MULTIOPAQUERECT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MULTI_DRAWNINEGRID_INDEX] = TRUE;
+  settings->OrderSupport[NEG_LINETO_INDEX] = TRUE;
+  settings->OrderSupport[NEG_POLYLINE_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MEMBLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_MEM3BLT_INDEX] = TRUE;
+  settings->OrderSupport[NEG_SAVEBITMAP_INDEX] = TRUE;
+  settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = TRUE;
+  settings->OrderSupport[NEG_FAST_INDEX_INDEX] = TRUE;
+  settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = TRUE;
+  settings->OrderSupport[NEG_POLYGON_SC_INDEX] = TRUE;
+  settings->OrderSupport[NEG_POLYGON_CB_INDEX] = TRUE;
+  settings->OrderSupport[NEG_ELLIPSE_SC_INDEX] = TRUE;
+  settings->OrderSupport[NEG_ELLIPSE_CB_INDEX] = TRUE;
+  return TRUE;
 }
 
 int tf_post_connect(freerdp* instance)
 {
-	gdi_init(instance, CLRCONV_ALPHA | CLRCONV_INVERT | CLRBUF_16BPP | CLRBUF_32BPP, NULL);
+  if (!gdi_init(instance, PIXEL_FORMAT_XRGB32))
+    return FALSE;
 
-	instance->update->BeginPaint = tf_begin_paint;
-	instance->update->EndPaint = tf_end_paint;
+  instance->update->BeginPaint = tf_begin_paint;
+  instance->update->EndPaint = tf_end_paint;
 
-	freerdp_channels_post_connect(instance->context->channels, instance);
-
-	return TRUE;
+  return TRUE;
 }
 
 int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, char* szLogin, char* szPassword)
 {
+  int SMBerr;
+  char *pErrorMsg = NULL;
+  char ErrorCode[10];
   int nRet;
+  unsigned int i;
   int old_stderr;
 
-#ifdef HAVE_LIBFREERDP10
-  instance->settings->username = szLogin;
-#else
+  /* Nessus Plugins: smb_header.inc */
+  /* Note: we are currently only examining the lower 2 bytes of data */
+  int smbErrorCode[] = {
+    0xFFFFFFFF,         /* UNKNOWN_ERROR_CODE */
+    0x00000000,         /* STATUS_SUCCESS */
+    0xC000000D,         /* STATUS_INVALID_PARAMETER */
+    0xC000005E,         /* STATUS_NO_LOGON_SERVERS */
+    0xC000006D,         /* STATUS_LOGON_FAILURE */
+    0xC000006E,         /* STATUS_ACCOUNT_RESTRICTION */
+    0xC000006F,         /* STATUS_INVALID_LOGON_HOURS */
+    0x00C10002,         /* STATUS_INVALID_LOGON_HOURS (LM Authentication) */
+    0xC0000070,         /* STATUS_INVALID_WORKSTATION */
+    0x00C00002,         /* STATUS_INVALID_WORKSTATION (LM Authentication) */
+    0xC0000071,         /* STATUS_PASSWORD_EXPIRED */
+    0xC0000072,         /* STATUS_ACCOUNT_DISABLED */
+    0xC000015B,         /* STATUS_LOGON_TYPE_NOT_GRANTED */
+    0xC000018D,         /* STATUS_TRUSTED_RELATIONSHIP_FAILURE */
+    0xC0000193,         /* STATUS_ACCOUNT_EXPIRED */
+    0xC0000199,         /* STATUS_NOLOGON_WORKSTATION_TRUST_ACCOUNT */
+    0x00BF0002,         /* STATUS_ACCOUNT_EXPIRED_OR_DISABLED (LM Authentication) */
+    0xC0000224,         /* STATUS_PASSWORD_MUST_CHANGE */
+    0x00C20002,         /* STATUS_PASSWORD_MUST_CHANGE (LM Authentication) */
+    0xC0000234,         /* STATUS_ACCOUNT_LOCKED_OUT (No LM Authentication Code) */
+    0x00050001,         /* AS400_STATUS_LOGON_FAILURE */
+    0x00000064,         /* The machine you are logging onto is protected by an authentication firewall. */
+    0xC0000022,         /* STATUS_ACCESS_DENIED */
+    0xC00000CC          /* STATUS_BAD_NETWORK_NAME */
+  };
+
+  char *smbErrorMsg[] = {
+    "UNKNOWN_ERROR_CODE",
+    "STATUS_SUCCESS",
+    "STATUS_INVALID_PARAMETER",
+    "STATUS_NO_LOGON_SERVERS",
+    "STATUS_LOGON_FAILURE",
+    "STATUS_ACCOUNT_RESTRICTION",
+    "STATUS_INVALID_LOGON_HOURS",
+    "STATUS_INVALID_LOGON_HOURS (LM)",
+    "STATUS_INVALID_WORKSTATION",
+    "STATUS_INVALID_WORKSTATION (LM)",
+    "STATUS_PASSWORD_EXPIRED",
+    "STATUS_ACCOUNT_DISABLED",
+    "STATUS_LOGON_TYPE_NOT_GRANTED",
+    "STATUS_TRUSTED_RELATIONSHIP_FAILURE",
+    "STATUS_ACCOUNT_EXPIRED",
+    "STATUS_NOLOGON_WORKSTATION_TRUST_ACCOUNT",
+    "STATUS_ACCOUNT_EXPIRED_OR_DISABLED (LM)",
+    "STATUS_PASSWORD_MUST_CHANGE",
+    "STATUS_PASSWORD_MUST_CHANGE (LM)",
+    "STATUS_ACCOUNT_LOCKED_OUT",
+    "AS400_STATUS_LOGON_FAILURE",
+    "AUTHENTICATION_FIREWALL_PROTECTION",
+    "STATUS_ACCESS_DENIED",
+    "STATUS_BAD_NETWORK_NAME"
+  };
+
   instance->settings->Username = szLogin;
-#endif
 
   /* If the domain is not defined, local accounts are targeted */
   if (_psSessionData->szDomain)
-#ifdef HAVE_LIBFREERDP10
-    instance->settings->domain = _psSessionData->szDomain;
-#else
     instance->settings->Domain = _psSessionData->szDomain;
-#endif
 
   /* Pass-the-hash support added to FreeRDP 1.2.x development tree */
-#if defined(HAVE_LIBFREERDP12) || defined(HAVE_LIBFREERDP11PTH)
   if (_psSessionData->isPassTheHash)
   {
     instance->settings->ConsoleSession = TRUE;
@@ -525,46 +439,27 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   }
   else
     instance->settings->Password = szPassword;
-#elif HAVE_LIBFREERDP11
-    instance->settings->Password = szPassword;
-#else
-    instance->settings->password = szPassword;
-#endif
 
-  /* Blank password support 
-
+  /* Blank password support
      FreeRDP does not support blank passwords. It attempts to pull credentials from a local
      SAM file if a password of length 0 is supplied. We're using pass-the-hash to get
      around this issue.
   */
   if (strlen(szPassword) == 0)
   {
-#if defined(HAVE_LIBFREERDP12) || defined(HAVE_LIBFREERDP11PTH)
     writeError(ERR_DEBUG_MODULE, "[%s] Using pass-the-hash to test blank password.", MODULE_NAME);
     instance->settings->ConsoleSession = TRUE;
     instance->settings->RestrictedAdminModeRequired = TRUE;
     instance->settings->PasswordHash = NTLM_HASH_BLANK;
-#else
-    writeError(ERR_WARNING, "[%s] FreeRDP (version < 1.2) does not support blank passwords.", MODULE_NAME);
-    (*psLogin)->iResult = LOGIN_RESULT_UNKNOWN;
-    nRet = MSTATE_RUNNING;
-    setPassResult((*psLogin), szPassword);
-    return(nRet);
-#endif
   }
 
-#ifndef HAVE_LIBFREERDP10
-	freerdp_client_load_addins(instance->context->channels, instance->settings);
-#endif 
- 
-#ifndef HAVE_LIBFREERDP12
-  /* Suppress library FreeRDP pre-version 1.2 output */
+  /* Suppress FreeRDP library FreeRDP output */
   if ((iVerboseLevel <= 5) && (iErrorLevel <= 5))
   {
     pthread_mutex_lock(&(*psLogin)->psServer->psAudit->ptmMutex);
     old_stderr = dup(1);
     (void)(freopen("/dev/null", "w", stderr) + 1); /* ignore return code */
-    
+
     nRet = freerdp_connect(instance);
 
     fclose(stderr);
@@ -572,11 +467,10 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     pthread_mutex_unlock(&(*psLogin)->psServer->psAudit->ptmMutex);
   }
   else
-#endif
     nRet = freerdp_connect(instance);
 
   writeError(ERR_DEBUG_MODULE, "[%s] freerdp_connect exit code: %d", MODULE_NAME, nRet);
-	if (nRet == 1)
+  if (nRet == 1)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt successful.", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
@@ -584,9 +478,52 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   }
   else
   {
-    writeError(ERR_DEBUG_MODULE, "[%s] Login attempt failed.", MODULE_NAME);
-    (*psLogin)->iResult = LOGIN_RESULT_FAIL;
-    nRet = MSTATE_NEW;
+    SMBerr = freerdp_get_last_error(instance->context);
+
+    /* Locate appropriate SMB code message */
+    pErrorMsg = smbErrorMsg[0]; /* UNKNOWN_ERROR_CODE */
+    for (i = 0; i < sizeof(smbErrorCode)/4; i++) {
+      if (SMBerr == (smbErrorCode[i] & 0xFFFFFFFF)) {
+        pErrorMsg = smbErrorMsg[i];
+        break;
+      }
+    }
+
+    switch(SMBerr)
+    {
+      case 0xC000006A:  /* STATUS_WRONG_PASSWORD */
+      case 0xC000006D:  /* STATUS_LOGON_FAILURE */
+        (*psLogin)->iResult = LOGIN_RESULT_FAIL;
+        nRet = MSTATE_RUNNING;
+        break;
+
+      case 0xC0000022:  /* STATUS_ACCESS_DENIED */
+      case 0xC0000071:  /* STATUS_PASSWORD_EXPIRED */
+      case 0xC0000072:  /* STATUS_ACCOUNT_DISABLED */
+      case 0xC0000224:  /* STATUS_PASSWORD_MUST_CHANGE */
+      case 0xC000006E:  /* STATUS_ACCOUNT_RESTRICTION */
+      case 0xC0000234:  /* STATUS_ACCOUNT_LOCKED_OUT  */
+      case 0xC0000193:  /* STATUS_ACCOUNT_EXPIRED */
+      case 0xC000015B:  /* STATUS_LOGON_TYPE_NOT_GRANTED */
+        (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
+        sprintf(ErrorCode, "0x%08lX:", SMBerr);
+        (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
+        memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
+        strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
+        strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+        nRet = MSTATE_EXITING;
+        break;
+
+      default:
+        sprintf(ErrorCode, "0x%08lX:", SMBerr);
+        (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
+        memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
+        strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
+        strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+        (*psLogin)->iResult = LOGIN_RESULT_ERROR;
+        nRet = MSTATE_EXITING;
+        break;
+    }
   }
 
   setPassResult((*psLogin), szPassword);
