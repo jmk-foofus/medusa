@@ -592,13 +592,13 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
     return MSTATE_EXITING;
   }
 
-  while ((strcasestr((char *)pReceiveBuffer, _psSessionData->szDenySignal) == NULL) && (pReceiveBuffer[0] != '\0'))
+  while (pReceiveBuffer != NULL && (strcasestr((char *)pReceiveBuffer, _psSessionData->szDenySignal) == NULL) && (pReceiveBuffer[0] != '\0'))
   {
     free(pReceiveBuffer);
     pReceiveBuffer = medusaReceiveLine(hSocket, &nReceiveBufferSize);
   }
 
-  if (strcasestr((char *)pReceiveBuffer, _psSessionData->szDenySignal) != NULL)
+  if(pReceiveBuffer != NULL && strcasestr((char *)pReceiveBuffer, _psSessionData->szDenySignal) != NULL)
   {
     (*login)->iResult = LOGIN_RESULT_FAIL;
     setPassResult(*login, szPassword);
