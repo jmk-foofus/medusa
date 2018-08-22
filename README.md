@@ -18,3 +18,16 @@ Multiple protocols supported. Many services are currently supported (e.g. SMB, H
 See doc/medusa.html for Medusa documentation. For additional information:
 - http://foofus.net/?page_id=51
 - http://foofus.net/goons/jmk/medusa/medusa.html
+
+**Building on macOS**
+
+```
+brew install freerdp
+$ export FREERDP2_CFLAGS='-I/usr/local/include'
+$ export FREERDP2_LIBS='-I/usr/local/lib/freerdp'
+
+./configure
+make
+
+./src/medusa
+```
