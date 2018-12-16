@@ -122,7 +122,7 @@
 #define AUTH_NTLM 13
 #define AUTH_LMv2 14
 #define AUTH_NTLMv2 15
-
+ 
 #ifndef CHAR_BIT
 #define CHAR_BIT 8
 #endif
@@ -146,6 +146,7 @@
 
 typedef struct __SMBNT_DATA {
   unsigned char challenge[8];
+  unsigned char session_id[8];
   char workgroup[16];
   char workgroup_other[16];
   unsigned char machine_name[16];
@@ -154,6 +155,7 @@ typedef struct __SMBNT_DATA {
   int hashFlag;
   int accntFlag;
   int protoFlag;
+  int protoVersion;
 } _SMBNT_DATA;
 
 // Tells us whether we are to continue processing or not
@@ -172,6 +174,8 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin);
 int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData);
 int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData);
 int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData);
+int SMB2NegProtInit(int hSocket, _SMBNT_DATA* _psSessionData);
+int SMB2NegProt(int hSocket, _SMBNT_DATA* _psSessionData);
 
 extern void hmac_md5_init_limK_to_64(const unsigned char* key, int key_len, HMACMD5Context *ctx);
 extern void hmac_md5_update(const unsigned char *text, int text_len, HMACMD5Context *ctx);
@@ -456,9 +460,15 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
           return FAILURE;
         }
         
-        if (SMBNegProt(hSocket, _psSessionData) < 0)
+        //if (SMBNegProt(hSocket, _psSessionData) < 0)
+        //SMB2NegProtInit(hSocket, _psSessionData);
+        //if (SMB2NegProt(hSocket, _psSessionData) < 0)
+        if (SMB2NegProtInit(hSocket, _psSessionData) < 0)
         {
           writeError(ERR_ERROR, "SMB Protocol Negotiation Failed with host: %s", psLogin->psServer->pHostIP);
+
+          // TRY SMB2 HERE
+
           psLogin->iResult = LOGIN_RESULT_UNKNOWN;
           return FAILURE;
         }
@@ -1412,10 +1422,156 @@ int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData)
   writeVerbose(VB_GENERAL, "%s: Server primary domain: %s", MODULE_NAME, _psSessionData->workgroup);
 
   FREE(bufReceive);
+      
+  _psSessionData->protoVersion = 1;
 
   return SUCCESS;
 }
 
+// FOO
+int SMB2NegProtInit(int hSocket, _SMBNT_DATA* _psSessionData)
+{
+  // removing SMB 2.???? (11 bytes)
+  // 4th byte - 0xba (186) -> 0xaf (175)
+  // 5th row, 6th column - 0x97 (151) -> 0x8c (140) 
+
+  unsigned char buf[190] = {
+    0x00, 0x00, 0x00, 0xba, 0xff, 0x53, 0x4d, 0x42,
+    0x72, 0x00, 0x00, 0x00, 0x00, 0x08, 0x01, 0x40,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x7d,
+    0x00, 0x00, 0x01, 0x00, 0x00, 0x97, 0x00, 0x02,
+    0x50, 0x43, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+    0x52, 0x4b, 0x20, 0x50, 0x52, 0x4f, 0x47, 0x52,
+    0x41, 0x4d, 0x20, 0x31, 0x2e, 0x30, 0x00, 0x02,
+    0x4d, 0x49, 0x43, 0x52, 0x4f, 0x53, 0x4f, 0x46,
+    0x54, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f, 0x52,
+    0x4b, 0x53, 0x20, 0x31, 0x2e, 0x30, 0x33, 0x00,
+    0x02, 0x4d, 0x49, 0x43, 0x52, 0x4f, 0x53, 0x4f,
+    0x46, 0x54, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+    0x52, 0x4b, 0x53, 0x20, 0x33, 0x2e, 0x30, 0x00,
+    0x02, 0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x31,
+    0x2e, 0x30, 0x00, 0x02, 0x4c, 0x4d, 0x31, 0x2e,
+    0x32, 0x58, 0x30, 0x30, 0x32, 0x00, 0x02, 0x53,
+    0x61, 0x6d, 0x62, 0x61, 0x00, 0x02, 0x4e, 0x54,
+    0x20, 0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x20,
+    0x31, 0x2e, 0x30, 0x00, 0x02, 0x4e, 0x54, 0x20,
+    0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32, 0x00,
+    0x02, 0x53, 0x4d, 0x42, 0x20, 0x32, 0x2e, 0x30,
+    0x30, 0x32, 0x00, 0x02, 0x53, 0x4d, 0x42, 0x20,
+    0x32, 0x2e, 0x3f, 0x3f, 0x3f, 0x00
+  };
+    
+  // No SMB 2.???
+  //  0x30, 0x32, 0x00
+  // SMB 2.????
+  //0x30, 0x32, 0x00, 0x02, 0x53, 0x4d, 0x42, 0x20,
+  //0x32, 0x2e, 0x3f, 0x3f, 0x3f, 0x00
+
+  unsigned char* bufReceive;
+  int nReceiveBufferSize = 0;
+  int iLength = 190;
+  //int iLength = 179;
+  int iResponseOffset = 73;
+
+  if (medusaSend(hSocket, buf, iLength, 0) < 0)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
+  }
+
+  // Server should respond with SMB2 negotiate
+
+  nReceiveBufferSize = 0;
+  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  if (bufReceive == NULL)
+    return FAILURE;
+
+  _psSessionData->security_mode = ENCRYPTED;
+
+
+  // Extract some GSS stuff
+  // Check for NTLM support in response
+
+  FREE(bufReceive);
+  
+  _psSessionData->protoVersion = 2;
+
+  return SUCCESS;
+}
+
+// FOO
+int SMB2NegProt(int hSocket, _SMBNT_DATA* _psSessionData)
+{
+  unsigned char buf[512];
+  unsigned char *bufReceive = NULL;
+  int nReceiveBufferSize = 0;
+
+  /* NetBIOS Session Service */
+  unsigned char szNBSS[4] = {
+    0x00,                                             /* Message Type: Session Message */
+    0x00, 0x00, 0x68                                  /* Length */
+  };
+
+  /* SMB2 Header */
+  unsigned char szSMB[64] = {
+    0xfe, 0x53, 0x4d, 0x42,                            /* Server Component */
+    0x40, 0x00,                                        /* Header Length */
+    0x00, 0x00,                                        /* Credit Charge */
+    0x00, 0x00,                                        /* Channel Sequence */
+    0x00, 0x00,                                        /* Reserved */
+    0x00, 0x00,                                        /* Command: Negotiate Protocol */
+    0x00, 0x00,                                        /* Credits Requested */
+    0x00, 0x00, 0x00, 0x00,                            /* Flags */
+    0x00, 0x00, 0x00, 0x00,                            /* Chain Offset */
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Message ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Process ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Tree ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Session ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Signature */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00     /* Signature */
+  };
+
+  unsigned char szNegotiateProtocolRequest[40] = {
+    0x24, 0x00,                                        /* StructureSize */
+    0x02, 0x00,                                        /* Dialect count: 2 */
+    0x00,                                              /* Security mode: 0x01, Signing enabled TODO */
+    0x00,                                              /* */    
+    0x00, 0x00,                                        /* Reserved */ 
+    0x00, 0x00, 0x00, 0x00,                            /* Capabilities: 0x00000000 */
+    0x8f, 0x93, 0xd0, 0xe7, 0x44, 0x0a, 0x4a, 0x41,    /* Client Guid: TODO - RANDOM? */
+    0x81, 0xf8, 0x2d, 0xef, 0x00, 0xb5, 0x2f, 0x1f, 
+    0x00, 0x00, 0x00, 0x00,                            /* NegotiateContextOffset: 0x0000 */
+    0x00, 0x00,                                        /* NegotiateContextCount: 0 */
+    0x00, 0x00,                                        /* Reserved */
+    0x02, 0x02,                                        /* Dialect: 0x0202 */
+    0x10, 0x02                                        /* Dialect: 0x0210 */
+  };  
+
+  memset(buf, 0, 512);
+  memcpy(buf, szNBSS, 4);
+  memcpy(buf + 4, szSMB, 64);
+  memcpy(buf + 68, szNegotiateProtocolRequest, 40);
+
+  int iLength = 108;
+
+  if (medusaSend(hSocket, buf, iLength, 0) < 0)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
+  }
+
+  // Server should respond with SMB2 negotiate
+
+  nReceiveBufferSize = 0;
+  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  if (bufReceive == NULL)
+    return FAILURE;
+
+  FREE(bufReceive);
+  
+  _psSessionData->protoVersion = 2;
+
+  return SUCCESS;
+}
 
 /*
   SMBSessionSetup
@@ -1763,6 +1919,500 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   return SMBSessionRet;
 }
 
+/*
+  SMB2SessionSetup
+  Function: Send username + response to the challenge from
+            the server.
+  Returns: TRUE on success else FALSE.
+
+https://docs.oracle.com/cd/E19683-01/816-1331/sampleprogs-1/index.html
+
+
+*/
+unsigned long SMB2SessionSetupNegotiate(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSessionData, char* szLogin, char* szPassword)
+{
+  unsigned char buf[512];
+  unsigned char *bufReceive = NULL;
+  int nReceiveBufferSize = 0;
+  int ret;
+  int iByteCount;
+  int iOffset = 0;
+  unsigned long SMBSessionRet;
+  int iResponseOffset;
+  
+  writeError(ERR_DEBUG_MODULE, "[%s] Attempting SMB2 Session Setup Request Negotiation.", MODULE_NAME);
+
+  /* NetBIOS Session Service */
+  unsigned char szNBSS[4] = {
+    0x00,                                             /* Message Type: Session Message */
+    0x00, 0x00, 0xa2                                  /* Length -- MUST SET */
+  };
+
+  /* SMB2 Header */
+  unsigned char szSMB[64] = {
+    0xfe, 0x53, 0x4d, 0x42,                            /* Server Component */
+    0x40, 0x00,                                        /* Header Length */
+    0x01, 0x00,                                        /* Credit Charge */
+    0x00, 0x00,                                        /* Channel Sequence */
+    0x00, 0x00,                                        /* Reserved */
+    0x01, 0x00,                                        /* Command: Session Setup */
+    0x00, 0x20,                                        /* Credits Requested */
+    0x00, 0x00, 0x00, 0x00,                            /* Flags */
+    0x00, 0x00, 0x00, 0x00,                            /* Chain Offset */
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Message ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Process ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Tree ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Session ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Signature */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00     /* Signature */
+  };   
+
+
+	// Message ID -> 1 (Samba 1 neg proto) 2 Windows w/ 2 neg proto, 
+  
+	//unsigned char szSessionRequest[98] = {
+	unsigned char szSessionRequest[90] = {
+    0x19, 0x00,                                        /* StructureSize */
+    0x00,                                              /* Flags */  
+    0x01,                                              /* Security mode: 0x01, Signing enabled TODO */
+    0x01, 0x00, 0x00, 0x00,                            /* Capabilities */ 
+    0x00, 0x00, 0x00, 0x00,                            /* Channel */ 
+    0x58, 0x00,                                        /* Offset */
+    0x4a, 0x00,                                        /* Length */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Previous Session Id */ 
+    0x60, 0x48, 0x06, 0x06,                            /* GSS-API */
+    0x2b, 0x06, 0x01, 0x05, 0x05, 0x02,                /* OID: 1.3.6.1.5.5.2 (SPNEGO - Simple Protected Negotiation) */ 
+    0xa0, 0x3e,                                        /* Simple Protected Negotiation */
+    0x30, 0x3c, 0xa0, 0x0e, 0x30, 0x0c,                /* negTokenInit */  
+    0x06, 0x0a, 0x2b, 0x06, 0x01, 0x04,                /* mechType: 1.3.6.1.4.1.311.2.2.10 (NTLM - Microsoft NTLM Security Support Provider) */
+    0x01, 0x82, 0x37, 0x02, 0x02, 0x0a,
+    0xa2, 0x2a, 0x04, 0x28,                            /* mechToken */
+    0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00,    /* NTLMSSP identifier: NTLMSSP */
+    0x01, 0x00, 0x00, 0x00,                            /* NTLM Message Type: NTLMSSP_NEGOTIATE (0x00000001) */
+    0x05, 0x02, 0x88, 0xa0,                            /* Negotiate Flags: 0xa0880205 */
+    0x00, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,    /* Calling workstation domain: NULL */ 
+    0x00, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00     /* Calling workstation name: NULL */ 
+  };
+    
+		//0x15, 0x82, 0x08, 0x62,                            /* Negotiate Flags: 0x62088215 */
+    //0x06, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f     /* Version 6.1 (Build 0); NTLM Current Revision 15 */ 
+  memset(buf, 0, 512);
+  memcpy(buf, szNBSS, 4);
+  memcpy(buf + 4, szSMB, 64);
+
+  /* Set Session Setup AndX Request header information */
+  //memcpy(buf + 68, szSessionRequest, 98);
+  memcpy(buf + 68, szSessionRequest, 90);
+  
+  iOffset = 166; /* szNBSS + szSMB + szSessionRequest */
+  //iByteCount = 24; /* Start with length of LMv2 response */
+  
+  /* Set the header length */
+  //buf[2] = (iOffset - 4) / 256;
+  //buf[3] = (iOffset - 4) % 256;
+  //writeError(ERR_DEBUG_MODULE, "[%s] Set NBSS header length: %2.2X", MODULE_NAME, buf[3]);
+
+  if (medusaSend(hSocket, buf, iOffset, 0) < 0)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
+  }
+
+  nReceiveBufferSize = 0;
+  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  if ((bufReceive == NULL) || (nReceiveBufferSize == 0))
+    return FAILURE;
+ 
+  /* 41 - Action (Guest/Non-Guest Account) */
+  /*  9 - NT Status (Error code) */
+  //SMBSessionRet = ((bufReceive[41] & 0x01) << 24) | ((bufReceive[11] & 0xFF) << 16) | ((bufReceive[10] & 0xFF) << 8) | (bufReceive[9] & 0xFF);
+
+  // TODO: PARSE DOMAIN / HOSTNAME INFORMATION
+  // GRAB SERVER CHALLENGE 
+  
+  iResponseOffset = 14 + 7 * 16 + 5; 
+
+  /* Retrieve the challenge */
+  memcpy(_psSessionData->challenge, (char *) bufReceive + iResponseOffset, sizeof(_psSessionData->challenge));
+	writeErrorBin(ERR_INFO, "NTLM Authentication Challenge - Challenge:", (unsigned char *)_psSessionData->challenge, 8);
+
+	/* Retrieve session ID */
+	memset(_psSessionData->session_id, 0, 8); 
+  memcpy(_psSessionData->session_id, (char *) bufReceive + 44, sizeof(_psSessionData->session_id));
+	writeErrorBin(ERR_INFO, "NTLM Authentication Session ID:", (unsigned char *)_psSessionData->session_id, 8);
+
+  /* Find the primary domain/workgroup name */
+  //while ((bufReceive[iResponseOffset + 8 + i * 2] != 0) && (i < 16)) {
+  //  _psSessionData->workgroup[i] = bufReceive[iResponseOffset + 8 + i * 2];
+  //  i++;
+  //}
+  
+  //while ((bufReceive[iResponseOffset + 8 + (i + j + 1) * 2] != 0) && (j < 16)) {
+  //  _psSessionData->machine_name[j] = bufReceive[iResponseOffset + 8 + (i + j + 1) * 2];
+  //  j++;
+  //}
+      
+  //writeVerbose(VB_GENERAL, "%s: Server machine name: %s", MODULE_NAME, _psSessionData->machine_name);
+  //writeVerbose(VB_GENERAL, "%s: Server primary domain: %s", MODULE_NAME, _psSessionData->workgroup);
+
+  FREE(bufReceive);
+
+  return SMBSessionRet;
+}
+
+/*
+  SMB2SessionSetupAuthenticate
+  Function: Send username + response to the challenge from
+            the server.
+  Returns: TRUE on success else FALSE.
+*/
+unsigned long SMB2SessionSetupAuthenticate(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSessionData, char* szLogin, char* szPassword)
+{
+  unsigned char buf[512];
+  unsigned char *LMv2hash = NULL;
+  unsigned char *NTLMv2hash = NULL;
+  unsigned char *NTLMhash = NULL;
+  unsigned char *LMhash = NULL;
+  unsigned char *bufReceive = NULL;
+  unsigned char unicodeUsername[20 * 2];
+  unsigned char unicodeTarget[256 * 2];
+  unsigned char szTmp[14];
+  int nSendBufferSize = 0;
+  int nReceiveBufferSize = 0;
+  int ret;
+  int nOffsetSessionRequest = 0;
+  int nOffsetNTLMSSP = 0;
+  int nOffset = 0;
+  unsigned char szPath[256];
+  unsigned long SMBSessionRet;
+  int i = 0; 
+ 
+  /* NetBIOS Session Service */
+  unsigned char szNBSS[4] = {
+    0x00,                                             /* Message Type: Session Message */
+    0x00, 0x00, 0x85                                  /* Length -- MUST SET */
+  };
+
+  /* SMB2 Header */
+  unsigned char szSMB[64] = {
+    0xfe, 0x53, 0x4d, 0x42,                            /* Server Component */
+    0x40, 0x00,                                        /* Header Length */
+    0x01, 0x00,                                        /* Credit Charge */
+    0x00, 0x00,                                        /* Channel Sequence */
+    0x00, 0x00,                                        /* Reserved */
+    0x01, 0x00,                                        /* Command: Session Setup */
+    0x00, 0x20,                                        /* Credits Requested */
+    0x00, 0x00, 0x00, 0x00,                            /* Flags */
+    0x00, 0x00, 0x00, 0x00,                            /* Chain Offset */
+    0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Message ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Process ID */
+    0x00, 0x00, 0x00, 0x00,                            /* Tree ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Session ID */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Signature */
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00     /* Signature */
+  };   
+
+	// TODO: Message ID 2 / Samba, 3 / Windows
+
+  //unsigned char szSessionRequest[128] = {
+  unsigned char szSessionRequest[104] = {
+    0x19, 0x00,                                        /* StructureSize */
+    0x00,                                              /* Flags */
+    0x01,                                              /* Security mode: 0x01, Signing enabled (not really) */
+    0x00, 0x00, 0x00, 0x00,                            /* Capabilities: 0x00000000 */
+    0x00, 0x00, 0x00, 0x00,                            /* Channel: None (0x00000000) */
+    0x58, 0x00,                                        /* Security Blob: Offset */
+    0x00, 0x00,                                        /* Security Blob: Length -- MUST SET [14] */  
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* Previous Session Id: 0x0000000000000000 */
+    0xa1, 0x82, 0x01, 0x4e,						                 /* Simple Protected Negotiation */
+		0x30, 0x82, 0x01, 0x4a, 0xa2, 0x82, 							 /* negTokenTarg */
+		0x01, 0x46, 0x04, 0x82, 0x01, 0x42,
+    0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x00,    /* NTLMSSP identifier: NTLMSSP -- OFFSET RELATIVE TO HERE [36] */
+    0x03, 0x00, 0x00, 0x00,                            /* NTLM Message Type: NTLMSSP_AUTH (0x00000003) */
+    0x18, 0x00,                                        /* LM Response: Length */
+    0x18, 0x00,                                        /* LM Response: Maxlen */
+    0x58, 0x00, 0x00, 0x00,                            /* LM Response: Offset */
+    0x00, 0x00,                                        /* NTLM Response: Length -- MUST SET [56] */
+    0x00, 0x00,                                        /* NTLM Response: Maxlen -- MUST SET [58] */
+    0x70, 0x00, 0x00, 0x00,                            /* NTLM Response: Offset */
+    0x00, 0x00,                                        /* Domain: Length -- MUST SET [64] */
+    0x00, 0x00,                                        /* Domain: Maxlen -- MUST SET [66] */
+    0x00, 0x00, 0x00, 0x00,                            /* Domain: Offset -- MUST SET [68] */
+    0x00, 0x00,                                        /* Username: Length -- MUST SET [72] */
+    0x00, 0x00,                                        /* Username: Maxlen -- MUST SET [74] */
+    0x00, 0x00, 0x00, 0x00,                            /* Username: Offset -- MUST SET [76]*/
+    0x00, 0x00,                                        /* Hostname: Length -- MUST SET [80] */
+    0x00, 0x00,                                        /* Hostname: Maxlen -- MUST SET [82] */
+    0x58, 0x00, 0x00, 0x00,                            /* Hostname: Offset -- MUST SET [84] */
+    0x00, 0x00,                                        /* Session Key: Length */
+    0x00, 0x00,                                        /* Session Key: Maxlen */
+    0x42, 0x01, 0x00, 0x00,                            /* Session Key: Offset -- MUST SET [92] */
+    0x05, 0x02, 0x88, 0xa0                             /* Negotiate Flags */      
+  };  
+  
+    //0xa1, 0x81, 0xe7, 0x30, 0x81, 0xe4,                /* Simple Protected Negotiation */
+    //0xa2, 0x81, 0xcd, 0x04, 0x81, 0xca,
+  //0x15, 0x82, 0x08, 0x62,                            /* Negotiate Flags */      
+    //0x10, 0x00,                                        /* Session Key: Length */
+    //0x10, 0x00,                                        /* Session Key: Maxlen */
+    //0x00, 0x00, 0x00, 0x00,                            /* Session Key: Offset -- MUST SET [92] */
+    //0x06, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f,    /* Version 6.1 (Build 0); NTLM Current Revision 15 */
+    //0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,    /* MIC */ 
+    //0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00    
+
+  unsigned char szUnknown[4] = {
+    0xa3, 0x12, 0x04, 0x10
+  };
+
+  memset(buf, 0, 512);
+  memcpy(buf, szNBSS, 4);
+  memcpy(buf + 4, szSMB, 64);
+  
+  nOffsetSessionRequest = 4 + 64;
+  //memcpy(buf + nOffsetSessionRequest, szSessionRequest, 128);
+  memcpy(buf + nOffsetSessionRequest, szSessionRequest, 104);
+
+  nOffsetNTLMSSP = nOffsetSessionRequest + 36; 
+  //nOffset = 0x58;
+  nOffset = 0x40;
+
+	/* Set Session ID */
+	memcpy(buf + 4 + 40, _psSessionData->session_id, 8);
+
+  /* Set MIC */
+  //0x00 x 16
+	// TEMP
+	//unsigned char szMIC[16] = {
+	//	0x57, 0xe9, 0xc4, 0x93, 0x3b, 0x26, 0xb2, 0xb4,
+	//	0x6d, 0xc4, 0xbe, 0xe1, 0x1f, 0x99, 0xae, 0x1e  
+	//};
+  //memcpy(buf + nOffsetNTLMSSP + nOffset - 16, szMIC, 16);
+
+ 
+  /* Set Domain name */
+  if (_psSessionData->accntFlag == LOCAL) {
+    strcpy((char *) _psSessionData->workgroup, "localhost");
+  } else if (_psSessionData->accntFlag == BOTH) {
+    memset(_psSessionData->workgroup, 0, 16);
+  } else if (_psSessionData->accntFlag == OTHER) {
+    strncpy(_psSessionData->workgroup, _psSessionData->workgroup_other, 16);
+  }
+  
+  buf[nOffsetSessionRequest + 64] = 2 * strlen((char *) _psSessionData->workgroup);   /* Domain name length */
+  buf[nOffsetSessionRequest + 66] = 2 * strlen((char *) _psSessionData->workgroup);   /* Domain name max length */
+  buf[nOffsetSessionRequest + 68] = (nOffset) % 256;   																/* Domain name offset */
+  buf[nOffsetSessionRequest + 69] = (nOffset) / 256;
+  
+  bzero(unicodeTarget, sizeof(unicodeTarget));
+  for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
+    unicodeTarget[i * 2] = (unsigned char)_psSessionData->workgroup[i];
+
+  memcpy(buf + nOffsetNTLMSSP + nOffset, unicodeTarget, 2 * strlen((char *) _psSessionData->workgroup));
+  nOffset += 2 * strlen((char *) _psSessionData->workgroup);
+  
+  //writeError(ERR_DEBUG_MODULE, "[%s] Set domain name: %s (length: %2.2X, offset %2.2X)", MODULE_NAME, _psSessionData->workgroup, buf[57], buf[57]);
+
+  /* Set Username */
+  
+  bzero(unicodeTarget, sizeof(unicodeTarget));
+  for (i = 0; i < strlen((char *)szLogin); i++)
+    unicodeTarget[i * 2] = (unsigned char)szLogin[i];
+  
+  memcpy(buf + nOffsetNTLMSSP + nOffset, unicodeTarget, 2 * strlen(szLogin));
+
+  buf[nOffsetSessionRequest + 72] = 2 * strlen(szLogin);   /* Username length */
+  buf[nOffsetSessionRequest + 74] = 2 * strlen(szLogin);   /* Username max length */
+  buf[nOffsetSessionRequest + 76] = (nOffset) % 256;   		 /* Username offset */
+  buf[nOffsetSessionRequest + 77] = (nOffset) / 256;
+  
+  nOffset += 2 * strlen(szLogin);
+  
+  //writeError(ERR_DEBUG_MODULE, "[%s] Set username: %s (length: %2.2X, offset %2.2X)", MODULE_NAME, szLogin, buf[57], buf[57]);
+
+  /* Set Hostname */
+  //memset(szTmp, 0, 7);
+  //strncpy(szTmp, "MEDUSA", 6);
+  //memset(szTmp, 0, 14);
+  //strncpy(szTmp, "KALI-EXTERNAL", 13);
+ 
+  //bzero(unicodeTarget, sizeof(unicodeTarget));
+  //for (i = 0; i < strlen(szTmp); i++)
+  //  unicodeTarget[i * 2] = (unsigned char)szTmp[i];
+
+  //memcpy(buf + nOffsetNTLMSSP + nOffset, unicodeTarget, 2 * strlen(szTmp));
+
+  //buf[nOffsetSessionRequest + 80] = 2 * strlen(szTmp);  /* Hostname length */
+  //buf[nOffsetSessionRequest + 82] = 2 * strlen(szTmp);  /* Hostname max length */
+  buf[nOffsetSessionRequest + 84] = (nOffset) % 256;   /* Hostname offset */
+  buf[nOffsetSessionRequest + 85] = (nOffset) / 256;
+
+  //nOffset += 2 * strlen(szTmp);
+
+  /* Set Lan Manager Response */
+//  if (_psSessionData->authLevel == AUTH_LMv2)
+//  {
+//    writeError(ERR_DEBUG_MODULE, "[%s] Calculating LMv2 password response hash.", MODULE_NAME);
+//    /* Calculate and set LMv2 response hash */
+//    ret = HashLMv2(_psSessionData, &LMv2hash, (unsigned char *) szLogin, (unsigned char *) szPassword);
+//    if (ret == FAILURE)
+//      return FAILURE;
+
+    //memcpy(buf + nOffsetNTLMSSP + nOffset, LMv2hash, 24);
+    //memcpy(buf + nOffsetNTLMSSP + nOffset, LMv2hash, 8);
+//    FREE(LMv2hash);
+
+    // TODO: Wireshark has challenge before response? This is flipped from code
+//  }
+//  else {
+    // TODO
+
+//  }
+//  nOffset += 24;
+ 
+  /* Set NTLMv2 Response */
+  buf[nOffsetSessionRequest + 56] = 24;   /* NTLM response length */
+  buf[nOffsetSessionRequest + 58] = 24;   /* NTLM response max length */
+
+	/* Calculate and set NTLM password hash */
+  NTLMhash = (unsigned char *) malloc(24);
+  memset(NTLMhash, 0, 24);
+
+  ret = HashNTLM(_psSessionData, &NTLMhash, (unsigned char *) szPassword, (unsigned char *) _psSessionData->challenge);
+  if (ret == FAILURE)
+    return FAILURE;
+
+	// TMP store NTLM hash in LM field
+  memcpy(buf + nOffsetNTLMSSP + nOffset, NTLMhash, 24);
+  nOffset += 24;
+  
+	memcpy(buf + nOffsetNTLMSSP + nOffset, NTLMhash, 24);
+  nOffset += 24;
+
+  FREE(NTLMhash);
+  
+
+	///////////////////////////////////////////////
+	///////////////////////////////////////////////
+	///////////////////////////////////////////////
+
+  /* Set Session Key */
+  // 0xXX x 16
+  
+	//MD4_CTX md4Context;
+	//char szUserSessionKey[16];
+
+	//memset(szUserSessionKey, 0, 16); 
+
+  //MD4_Init(&md4Context);
+  //MD4_Update(&md4Context, NTLMhash, 24);
+  //MD4_Final(szUserSessionKey, &md4Context);        /* Tell MD4 we're done */
+
+	// FOO
+	// MD4(NTLMhash)
+	//writeErrorBin(ERR_INFO, "NTLM User Session Key:", (unsigned char *)szUserSessionKey, 16);
+	//memcpy(buf + nOffsetNTLMSSP + nOffset, szUserSessionKey, 16);
+
+  //buf[nOffsetSessionRequest + 92] = (nOffset) % 256;   /* Session key offset */
+  //buf[nOffsetSessionRequest + 93] = (nOffset) / 256;
+
+  //nOffset += 16;
+
+  /* Set Unknown Trailing Value */  
+  //memcpy(buf + nOffsetNTLMSSP + nOffset, szUnknown, 4);
+  //nOffset += 4;
+
+  /* Set mechListMIC */
+  // 0x?? x 16
+//	unsigned char szMechListMIC[16] = {
+//		0x01, 0x00, 0x00, 0x00, 0x14, 0xed, 0x07, 0xb2, 
+//		0xa0, 0x2d, 0xce, 0xc7, 0x00, 0x00, 0x00, 0x00 
+//	};
+//  memcpy(buf + nOffsetNTLMSSP + nOffset, szMechListMIC, 16);
+//
+//  nOffset += 16;
+
+  /* Set Security Blob length - Add 12 bytes for SPN header */
+  buf[nOffsetSessionRequest + 14] = (nOffset + 12) % 256;
+  buf[nOffsetSessionRequest + 15] = (nOffset + 12) / 256;
+ 
+  //*************************************************************************
+ 
+  //iOffset = 4 + 64 + 125; /* szNBSS + szSMB + szSessionRequest */
+  //iByteCount = 24; /* Start with length of LMv2 response */
+
+  /* Set Session Setup AndX Request header information */
+  /* Session Setup AndX Request */
+
+  /* Set data byte count */
+  //buf[iOffset - 2] = iByteCount;
+  //writeError(ERR_DEBUG_MODULE, "[%s] Set byte count: %2.2X", MODULE_NAME, buf[57]);
+
+  /* Set AndXOffset */
+  //buf[39] = (iOffset - 4 + iByteCount) % 256;
+  //buf[40] = (iOffset - 4 + iByteCount) / 256;
+
+  /* Chained Tree AndX Request - Test for ADMIN$ access */
+  //iOffset += iByteCount;
+
+  //unsigned char szTreeConnectRequest[9] = {
+  //  0x04,                               /* Word Count */
+  //  0xff,                               /* AndXCommand: No further commands */
+  //  0x00,                               /* Reserved */
+  //  0x00, 0x00,                         /* AndXOffset */
+  //  0x08, 0x00,                         /* Flags */
+  //  0x01, 0x00                          /* Password Length */
+  //};
+
+  //memcpy(buf + iOffset, szTreeConnectRequest, 9);
+  //iOffset += 9;
+
+  /* Set byte count (BCC) */
+  /* Password (1) + "\\" + "host IP" + "\ADMIN$" + null termination + service (6) */
+  //iByteCount = 1 + 2 + strlen((char *) (*psLogin)->psServer->pHostIP) + 7 + 1 + 6;
+  //buf[iOffset] = (iByteCount) % 256;
+  //buf[iOffset + 1] = (iByteCount) / 256;
+  //writeError(ERR_DEBUG_MODULE, "[%s] Set byte count (BCC): 0x%2.2X%2.2X", MODULE_NAME, buf[iOffset + 1], buf[iOffset]);
+  //iOffset += 2;
+
+  /* Set password field */
+  //memset(buf + iOffset, 0, 1);
+  //iOffset++;
+ 
+  /* Set target path -- e.g., \\192.168.0.1\ADMIN$ */
+  //memset(szPath, 0, 256);
+  //snprintf((char *)szPath, sizeof(szPath), "\\\\%s\\ADMIN$", (*psLogin)->psServer->pHostIP);
+
+  //memcpy(buf + iOffset, szPath, strlen((char *)szPath));
+  //iOffset += strlen((char *)szPath) + 1;
+
+  /* Set service field */
+  //unsigned char szService[6] = { 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x00 };
+  //memcpy(buf + iOffset, szService, 6);
+  //iOffset += 6;
+  /* End Chained Tree AndX Request */
+  
+  /* Set the header length */
+  buf[2] = (nOffsetNTLMSSP + nOffset - 4) / 256;
+  buf[3] = (nOffsetNTLMSSP + nOffset - 4) % 256;
+  writeError(ERR_DEBUG_MODULE, "[%s] Set NBSS header length: %2.2X", MODULE_NAME, buf[3]);
+
+  if (medusaSend(hSocket, buf, nOffsetNTLMSSP + nOffset, 0) < 0)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
+  }
+
+  nReceiveBufferSize = 0;
+  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  if ((bufReceive == NULL) || (nReceiveBufferSize == 0))
+    return FAILURE;
+ 
+  /* 41 - Action (Guest/Non-Guest Account) */
+  /*  9 - NT Status (Error code) */
+  SMBSessionRet = ((bufReceive[41] & 0x01) << 24) | ((bufReceive[11] & 0xFF) << 16) | ((bufReceive[10] & 0xFF) << 8) | (bufReceive[9] & 0xFF);
+  FREE(bufReceive);
+
+  return SMBSessionRet;
+}
+
 int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* szLogin, char* szPassword)
 {
   int SMBerr, SMBaction;
@@ -1830,7 +2480,9 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
 
   memset(&ErrorCode, 0, 10);
 
-  SMBSessionRet = SMBSessionSetup(hSocket, psLogin, _psSessionData, szLogin, szPassword);
+  //SMBSessionRet = SMBSessionSetup(hSocket, psLogin, _psSessionData, szLogin, szPassword);
+  SMBSessionRet = SMB2SessionSetupNegotiate(hSocket, psLogin, _psSessionData, szLogin, szPassword);
+  SMBSessionRet = SMB2SessionSetupAuthenticate(hSocket, psLogin, _psSessionData, szLogin, szPassword);
   SMBerr = (unsigned long) SMBSessionRet & 0x00FFFFFF;
   SMBaction = ((unsigned long) SMBSessionRet & 0xFF000000) >> 24;
 
