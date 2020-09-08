@@ -37,6 +37,11 @@ int nModuleParamCount;    // the "argc" for the module
 //int ctrlc = 0;
 sAudit *psAudit = NULL;
 
+int iVerboseLevel;
+int iErrorLevel;
+FILE *pOutputFile;
+pthread_mutex_t ptmFileMutex;
+
 void freeModuleParams()
 {
   int i;
