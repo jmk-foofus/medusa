@@ -1884,8 +1884,8 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
       sprintf(ErrorCode, "0x%6.6X:", SMBerr);
       (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
       memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
-      strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
-      strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+      strcpy((*psLogin)->pErrorMsg, ErrorCode);
+      strcat((*psLogin)->pErrorMsg, pErrorMsg);
       iRet = MSTATE_EXITING;
       break;
     case 0x000022:  /* Valid password, no access to ADMIN$ (non-administative account) */
@@ -1915,8 +1915,8 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
       sprintf(ErrorCode, "0x%6.6X:", SMBerr);
       (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
       memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
-      strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
-      strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+      strcpy((*psLogin)->pErrorMsg, ErrorCode);
+      strcat((*psLogin)->pErrorMsg, pErrorMsg);
       (*psLogin)->iResult = LOGIN_RESULT_ERROR;
       iRet = MSTATE_EXITING;
       break;

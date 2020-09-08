@@ -193,7 +193,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       {
         _psAudit->pGlobalPass = malloc( strlen(optarg) + 2 );
         memset(_psAudit->pGlobalPass, 0, strlen(optarg) + 2);
-        strncpy(_psAudit->pGlobalPass, optarg, strlen(optarg));
+        strcpy(_psAudit->pGlobalPass, optarg);
         _psAudit->PassType = L_SINGLE;
         _psAudit->iPassCnt = 1;
       }
@@ -375,10 +375,10 @@ int invokeModule(char* pModuleName, sLogin* pLogin, int argc, char* argv[])
       nPathLength = strlen(szModulePaths[i]) + strlen(pModuleName) + strlen(MODULE_EXTENSION) + 2;  // Going to add a slash too
       modPath = malloc(nPathLength);
       memset(modPath, 0, nPathLength);
-      strncpy(modPath, szModulePaths[i], strlen(szModulePaths[i]));
-      strncat(modPath, "/", 1);
-      strncat(modPath, pModuleName, strlen(pModuleName));
-      strncat(modPath, MODULE_EXTENSION, strlen(MODULE_EXTENSION));
+      strcpy(modPath, szModulePaths[i]);
+      strcat(modPath, "/");
+      strcat(modPath, pModuleName);
+      strcat(modPath, MODULE_EXTENSION);
 
       // Now try the load
       writeError(ERR_DEBUG, "Attempting to load %s", modPath);

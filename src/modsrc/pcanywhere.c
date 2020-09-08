@@ -367,9 +367,9 @@ int pcaUserAuth(int hSocket, char* szDomain, char* szLogin, char* szPassword)
     
       szTmp = malloc(strlen(szDomain) + 1 + strlen(szLogin) + 1);
       memset(szTmp, 0, strlen(szDomain) + 1 + strlen(szLogin) + 1);
-      strncpy(szTmp, szDomain, strlen(szDomain));
-      memset(szTmp + strlen(szDomain), '\\', 1);
-      strncpy(szTmp + strlen(szDomain) + 1, szLogin, strlen(szLogin));
+      strcpy(szTmp, szDomain);
+      strcat(szTmp, "\\");
+      strcat(szTmp, szLogin);
       pcaEncrypt(szTmp, clogin, 0xAB, 1);
       writeError(ERR_DEBUG_MODULE, "%s: Setting domain\\user value: %s", MODULE_NAME, szTmp);
       FREE(szTmp);

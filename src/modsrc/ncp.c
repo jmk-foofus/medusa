@@ -209,8 +209,8 @@ int initModule(sLogin* psLogin, _NCP_DATA *_psSessionData)
         {
           szUserContext = malloc(strlen(psCredSet->psUser->pUser) + strlen(_psSessionData->context) + 1);
           memset(szUserContext, 0, strlen(psCredSet->psUser->pUser) + strlen(_psSessionData->context) + 1);
-          strncpy(szUserContext, psCredSet->psUser->pUser, strlen(psCredSet->psUser->pUser));
-          strncpy(szUserContext + strlen(psCredSet->psUser->pUser), _psSessionData->context, strlen(_psSessionData->context));
+          strcpy(szUserContext, psCredSet->psUser->pUser);
+          strcat(szUserContext, _psSessionData->context);
         }
         else
           szUserContext = psCredSet->psUser->pUser;

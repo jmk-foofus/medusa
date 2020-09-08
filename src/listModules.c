@@ -103,9 +103,9 @@ void listModules(char* arrPaths[], int nTerminateNow)
             iLength = strlen( pdeEntry[j]->d_name ) + strlen( pszTarget ) + 2;
             pszLibName = (char*)malloc( iLength );
             memset( pszLibName, 0, iLength );
-            strncpy( pszLibName, pszTarget, strlen(pszTarget) );
-            strncat( pszLibName, "/", 1 );
-            strncat( pszLibName, pdeEntry[j]->d_name, strlen(pdeEntry[j]->d_name) );
+            strcpy(pszLibName, pszTarget);
+            strcat(pszLibName, "/");
+            strcat(pszLibName, pdeEntry[j]->d_name);
   
             /*  Load this as a shared library  */
             pLibrary = dlopen( pszLibName, RTLD_NOW );

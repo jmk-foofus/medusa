@@ -640,8 +640,8 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   {
     szURI = malloc(1 + strlen(_psSessionData->szDir) + 1);
     memset(szURI, 0, 1 + strlen(_psSessionData->szDir) + 1);
-    strncat(szURI, "/", 1);
-    strncat(szURI, _psSessionData->szDir, strlen(_psSessionData->szDir));
+    strcpy(szURI, "/");
+    strcat(szURI, _psSessionData->szDir);
   }
 
   /* Send initial request */
