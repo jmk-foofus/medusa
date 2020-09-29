@@ -288,9 +288,7 @@ int go(sLogin* logins, int argc, char *argv[])
     psSessionData->protoFlag = WIN2000_NATIVEMODE;
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -534,9 +532,7 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin)
       writeError(ERR_NOTICE, "[%s] Using the DOMAIN\\USER format with the GROUP/GROUP_OTHER module options is redundant.", MODULE_NAME);
     }
 
-    pOptTmp = malloc( strlen(szLogin) + 1);
-    memset(pOptTmp, 0, strlen(szLogin) + 1);
-    strncpy(pOptTmp, szLogin, strlen(szLogin));
+    pOptTmp = strdup(szLogin);
     writeError(ERR_DEBUG_MODULE, "Processing domain and username: %s", pOptTmp);
 
     pOpt = strtok_r(pOptTmp, "\\", &strtok_ptr); 
@@ -544,9 +540,7 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin)
     writeError(ERR_DEBUG_MODULE, "Processing domain: %s", _psSessionData->workgroup_other);
     
     pOpt = strtok_r(NULL, "\\", &strtok_ptr);
-    szUser = malloc(strlen(pOpt) + 1);
-    memset(szUser, 0, strlen(pOpt) + 1);
-    strncpy(szUser, pOpt, strlen(pOpt));
+    szUser = strdup(pOpt);
     writeError(ERR_DEBUG_MODULE, "Processing username: %s", szUser);
 
     FREE(pOptTmp);
@@ -555,9 +549,7 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin)
   }
   else
   {
-    szUser = malloc(strlen(szLogin) + 1); 
-    memset(szUser, 0, strlen(szLogin) + 1);
-    strncpy(szUser, szLogin, strlen(szLogin));
+    szUser = strdup(szLogin);
     writeError(ERR_DEBUG_MODULE, "Processing username: %s", szUser);
   }
 

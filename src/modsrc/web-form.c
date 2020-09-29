@@ -143,9 +143,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -157,9 +155,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szDir = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szDir, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szDir, pOpt, strlen(pOpt));
+          psSessionData->szDir = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method FORM requires value to be set.");
@@ -171,9 +167,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szDenySignal= malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szDenySignal, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szDenySignal, pOpt, strlen(pOpt));
+          psSessionData->szDenySignal= strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method DENY-SIGNAL requires value to be set.");
@@ -185,9 +179,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szFormData = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szFormData, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szFormData, pOpt, strlen(pOpt));
+          psSessionData->szFormData = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method FORM-DATA requires value to be set.");
@@ -199,9 +191,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szUserAgent = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szUserAgent, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szUserAgent, pOpt, strlen(pOpt));
+          psSessionData->szUserAgent = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method USER-AGENT requires value to be set.");
@@ -351,25 +341,19 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
             pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
             if (pTemp != NULL)
             {
-              _psSessionData->szFormUser = malloc( strlen(pTemp) + 1 );
-              memset(_psSessionData->szFormUser, 0, strlen(pTemp) + 1);
-              strncpy(_psSessionData->szFormUser, pTemp, strlen(pTemp));
+              _psSessionData->szFormUser = strdup(pTemp);
             }
 
             pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
             if (pTemp != NULL)
             {
-              _psSessionData->szFormPass = malloc( strlen(pTemp) + 1);
-              memset(_psSessionData->szFormPass, 0, strlen(pTemp) + 1);
-              strncpy(_psSessionData->szFormPass, pTemp, strlen(pTemp));
+              _psSessionData->szFormPass = strdup(pTemp);
             }
 
             pTemp = strtok_r(NULL, "", &pStrtokSavePtr);
             if (pTemp != NULL)
             {
-              _psSessionData->szFormRest = malloc( strlen(pTemp) + 1 );
-              memset(_psSessionData->szFormRest, 0, strlen(pTemp) + 1);
-              strncpy(_psSessionData->szFormRest, pTemp, strlen(pTemp));
+              _psSessionData->szFormRest = strdup(pTemp);
             }
           }
 

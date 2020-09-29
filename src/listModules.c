@@ -73,10 +73,7 @@ void listModules(char* arrPaths[], int nTerminateNow)
     }
     else
     {
-      iLength = strlen( pszDir ) + 1;
-      pszTarget = (char*)malloc( iLength );
-      memset( pszTarget, 0, iLength );
-      strncpy( pszTarget, pszDir, strlen(pszDir) );
+      pszTarget = strdup(pszDir);
       iLength = 0;
     }  /*  (was a directory specified?)  */
       

@@ -142,9 +142,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       }
       else
       {
-        _psAudit->pGlobalHost = malloc( strlen(optarg) + 1 );
-        memset(_psAudit->pGlobalHost, 0, strlen(optarg) + 1);
-        strncpy(_psAudit->pGlobalHost, optarg, strlen(optarg));
+        _psAudit->pGlobalHost = strdup(optarg);
         _psAudit->HostType = L_SINGLE;
       }
       break;
@@ -156,9 +154,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       }
       else
       {
-        _psAudit->pOptHost = malloc( strlen(optarg) + 1 );
-        memset(_psAudit->pOptHost, 0, strlen(optarg) + 1);
-        strncpy(_psAudit->pOptHost, optarg, strlen(optarg));
+        _psAudit->pOptHost = strdup(optarg);
         _psAudit->HostType = L_FILE;
       }
       break;
@@ -170,9 +166,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       }
       else
       {
-        _psAudit->pGlobalUser = malloc( strlen(optarg) + 1 );
-        memset(_psAudit->pGlobalUser, 0, strlen(optarg) + 1);
-        strncpy(_psAudit->pGlobalUser, optarg, strlen(optarg));
+        _psAudit->pGlobalUser = strdup(optarg);
         _psAudit->UserType = L_SINGLE;
         _psAudit->iUserCnt = 1;
       }
@@ -185,9 +179,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       }
       else
       {
-        _psAudit->pOptUser = malloc( strlen(optarg) + 1 );
-        memset(_psAudit->pOptUser, 0, strlen(optarg) + 1);
-        strncpy(_psAudit->pOptUser, optarg, strlen(optarg));
+        _psAudit->pOptUser = strdup(optarg);
         _psAudit->UserType = L_FILE;
       }
       break;
@@ -214,21 +206,15 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       }
       else
       {
-        _psAudit->pOptPass = malloc( strlen(optarg) + 1 );
-        memset(_psAudit->pOptPass, 0, strlen(optarg) + 1);
-        strncpy(_psAudit->pOptPass, optarg, strlen(optarg));
+        _psAudit->pOptPass = strdup(optarg);
         _psAudit->PassType = L_FILE;
       }
       break;
     case 'C':
-      _psAudit->pOptCombo = malloc( strlen(optarg) + 1 );
-      memset(_psAudit->pOptCombo, 0, strlen(optarg) + 1);
-      strncpy(_psAudit->pOptCombo, optarg, strlen(optarg));
+      _psAudit->pOptCombo = strdup(optarg);
       break;
     case 'O':
-      _psAudit->pOptOutput = malloc( strlen(optarg) + 1 );
-      memset(_psAudit->pOptOutput, 0, strlen(optarg) + 1);
-      strncpy(_psAudit->pOptOutput, optarg, strlen(optarg));
+      _psAudit->pOptOutput = strdup(optarg);
       break;
     case 'e':
       if (strcmp(optarg, "n") == 0)
@@ -283,16 +269,12 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       writeVerbose(VB_EXIT, "");  // Terminate now
       break;
     case 'M':
-      szModuleName = malloc(strlen(optarg) + 1);
-      memset(szModuleName, 0, strlen(optarg) + 1);
-      strncpy(szModuleName, optarg, strlen(optarg));
+      szModuleName = strdup(optarg);
       _psAudit->pModuleName = szModuleName;
       break;
     case 'm':
       nModuleParamCount++;
-      szTempModuleParam = malloc(strlen(optarg) + 1);
-      memset(szTempModuleParam, 0, strlen(optarg) + 1);
-      strncpy(szTempModuleParam, optarg, strlen(optarg));
+      szTempModuleParam = strdup(optarg);
       arrModuleParams = realloc(arrModuleParams, nModuleParamCount * sizeof(char*));
       arrModuleParams[nModuleParamCount - 1] = szTempModuleParam;
       break;
@@ -318,9 +300,7 @@ int checkOptions(int argc, char **argv, sAudit *_psAudit)
       _psAudit->iSocketWait = atoi(optarg);
       break;
     case 'Z':
-      _psAudit->pOptResume = malloc( strlen(optarg) + 1 );
-      memset(_psAudit->pOptResume, 0, strlen(optarg) + 1);
-      strncpy(_psAudit->pOptResume, optarg, strlen(optarg));
+      _psAudit->pOptResume = strdup(optarg);
       break;
     default:
       writeError(ERR_CRITICAL, "Unknown error processing command-line options.");
@@ -957,9 +937,7 @@ int loadLoginInfo(sAudit *_psAudit)
         psHostPrevTmp = psHost;
       }
 
-      psHost->pHost = malloc( strlen(pHost) + 1 );
-      memset(psHost->pHost, 0, strlen(pHost) + 1);
-      strncpy(psHost->pHost, pHost, strlen(pHost) + 1);
+      psHost->pHost = strdup(pHost);
       psHost->iPortOverride = _psAudit->iPortOverride;
       psHost->iUseSSL = _psAudit->iUseSSL;
       psHost->iTimeout = _psAudit->iTimeout;
@@ -1001,9 +979,7 @@ int loadLoginInfo(sAudit *_psAudit)
 
         psHost->psUserPrevTmp = psUser;
 
-        psUser->pUser = malloc( strlen(pUser) + 1 );
-        memset(psUser->pUser, 0, strlen(pUser) + 1);
-        strncpy(psUser->pUser, pUser, strlen(pUser));
+        psUser->pUser = strdup(pUser);
         psUser->iPassCnt = _psAudit->iPassCnt;
         psUser->iPassStatus = PL_UNSET;
         psUser->iId = psHost->iUserCnt;
@@ -1025,9 +1001,7 @@ int loadLoginInfo(sAudit *_psAudit)
       {
         psPass = malloc(sizeof(sPass));
         memset(psPass, 0, sizeof(sPass));
-        psPass->pPass = malloc( strlen(pPass) + 1 );
-        memset(psPass->pPass, 0, strlen(pPass) + 1);
-        strncpy(psPass->pPass, pPass, strlen(pPass));
+        psPass->pPass = strdup(pPass);
         psUser->iPassCnt++;
         psHost->iUserPassCnt++;
 
@@ -1477,9 +1451,7 @@ int addMissedCredSet(sLogin *_psLogin, sCredentialSet *_psCredSet)
   
   psCredSetMissed->psUser = _psCredSet->psUser;
 
-  psCredSetMissed->pPass = malloc(strlen(_psCredSet->pPass) + 1);
-  memset(psCredSetMissed->pPass, 0, strlen(_psCredSet->pPass) + 1);
-  strncpy(psCredSetMissed->pPass, _psCredSet->pPass, strlen(_psCredSet->pPass));
+  psCredSetMissed->pPass = strdup(_psCredSet->pPass);
 
   /* append structure to host's list of missed credentials */
   if (_psLogin->psServer->psCredentialSetMissed == NULL) /* first missed credential set */

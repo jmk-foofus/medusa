@@ -118,9 +118,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -132,9 +130,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szDir = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szDir, 0, (strlen(pOpt) + 1));
-          strncpy((char *)psSessionData->szDir, pOpt, strlen(pOpt));
+          psSessionData->szDir = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method DIR requires value to be set.");
@@ -310,9 +306,7 @@ int tryLogin(int hSocket, sLogin** psLogin, _CVS_DATA* _psSessionData, char* szL
     return FAILURE;
   }
 
-  szPassTmp = malloc(strlen(szPassword) + 1);
-  memset(szPassTmp, 0, strlen(szPassword) + 1);
-  strncpy(szPassTmp, szPassword, strlen(szPassword));
+  szPassTmp = strdup(szPassword);
 
   for (i = 0; i < strlen(szPassTmp); i++)
     szPassTmp[i] = key[szPassTmp[i] - 0x20];

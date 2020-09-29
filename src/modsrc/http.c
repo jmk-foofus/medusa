@@ -146,9 +146,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -160,9 +158,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szDir = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szDir, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szDir, pOpt, strlen(pOpt) + 1);
+          psSessionData->szDir = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method DIR requires value to be set.");
@@ -174,9 +170,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szUserAgent = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szUserAgent, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szUserAgent, pOpt, strlen(pOpt) + 1);
+          psSessionData->szUserAgent = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method USER-AGENT requires value to be set.");
@@ -224,9 +218,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szDomain = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szDomain, 0, strlen(pOpt) + 1);
-          strncpy((char *) psSessionData->szDomain, pOpt, strlen(pOpt));
+          psSessionData->szDomain = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method DOMAIN requires value to be set.");
@@ -642,9 +634,7 @@ int sendAuthDigest(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, cha
   /* URI should start with a "/" */
   if (strncmp(_psSessionData->szDir, "/", 1) == 0) 
   {
-    szURI = malloc(strlen(_psSessionData->szDir) + 1);
-    memset(szURI, 0, strlen(_psSessionData->szDir) + 1);
-    strncat(szURI, _psSessionData->szDir, strlen(_psSessionData->szDir));
+    szURI = strdup(_psSessionData->szDir);
   }
   else
   {

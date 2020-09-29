@@ -127,9 +127,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -141,9 +139,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szBranch = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szBranch, 0, strlen(pOpt) + 1);
-          strncpy((char *)psSessionData->szBranch, pOpt, strlen(pOpt));
+          psSessionData->szBranch = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method BRANCH requires value to be set.");
