@@ -19,22 +19,43 @@ See doc/medusa.html for Medusa documentation. For additional information:
 - http://foofus.net/?page_id=51
 - http://foofus.net/goons/jmk/medusa/medusa.html
 
-**Building on macOS**
+## Building on macOS
+
+First download the source code and change to the Medusa directory:
 
 ```
-#getting the source
 git clone https://github.com/jmk-foofus/medusa
 cd medusa
+```
 
-#macOS dependencies
+Also install the needed dependencies using Homebrew:
+
+```
+brew cask install xquartz
 brew install freerdp
+```
+
+Then add the Freerdp path for executing the configuration without issues:
+
+```
 $ export FREERDP2_CFLAGS='-I/usr/local/include'
 $ export FREERDP2_LIBS='-I/usr/local/lib/freerdp'
+```
 
-#building
+Then build things:
+
+```
 ./configure
-make
+make && make install
+```
 
-#executing
-./src/medusa
+Then copy the binary to your binaries folder
+
+```
+sudo cp src/medusa  /usr/local/bin
+ ```
+Now you can start using Medusa:
+
+```
+medusa
 ```
