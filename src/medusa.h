@@ -63,10 +63,10 @@
 #define TRUE 1
 
 /* GLOBAL VARIABLES */
-FILE *pOutputFile;
-pthread_mutex_t ptmFileMutex;
-int iVerboseLevel;      // Global control over general message verbosity
-int iErrorLevel;        // Global control over error debugging verbosity
+extern FILE *pOutputFile;
+extern pthread_mutex_t ptmFileMutex;
+extern int iVerboseLevel;      // Global control over general message verbosity
+extern int iErrorLevel;        // Global control over error debugging verbosity
 
 //#define MAX_BUF (16 * 1024)
 #define MAX_BUF 16384 
