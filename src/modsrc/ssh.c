@@ -131,9 +131,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
     for (i=0; i<argc; i++) {
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", argv[i]);
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
 
       if (strcmp(pOpt, "BANNER") == 0)

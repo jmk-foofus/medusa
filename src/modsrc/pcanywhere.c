@@ -140,9 +140,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -369,9 +367,9 @@ int pcaUserAuth(int hSocket, char* szDomain, char* szLogin, char* szPassword)
     
       szTmp = malloc(strlen(szDomain) + 1 + strlen(szLogin) + 1);
       memset(szTmp, 0, strlen(szDomain) + 1 + strlen(szLogin) + 1);
-      strncpy(szTmp, szDomain, strlen(szDomain));
-      memset(szTmp + strlen(szDomain), '\\', 1);
-      strncpy(szTmp + strlen(szDomain) + 1, szLogin, strlen(szLogin));
+      strcpy(szTmp, szDomain);
+      strcat(szTmp, "\\");
+      strcat(szTmp, szLogin);
       pcaEncrypt(szTmp, clogin, 0xAB, 1);
       writeError(ERR_DEBUG_MODULE, "%s: Setting domain\\user value: %s", MODULE_NAME, szTmp);
       FREE(szTmp);

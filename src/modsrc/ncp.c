@@ -142,9 +142,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
  
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -211,8 +209,8 @@ int initModule(sLogin* psLogin, _NCP_DATA *_psSessionData)
         {
           szUserContext = malloc(strlen(psCredSet->psUser->pUser) + strlen(_psSessionData->context) + 1);
           memset(szUserContext, 0, strlen(psCredSet->psUser->pUser) + strlen(_psSessionData->context) + 1);
-          strncpy(szUserContext, psCredSet->psUser->pUser, strlen(psCredSet->psUser->pUser));
-          strncpy(szUserContext + strlen(psCredSet->psUser->pUser), _psSessionData->context, strlen(_psSessionData->context));
+          strcpy(szUserContext, psCredSet->psUser->pUser);
+          strcat(szUserContext, _psSessionData->context);
         }
         else
           szUserContext = psCredSet->psUser->pUser;

@@ -150,9 +150,7 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
     for (i=0; i<argc; i++) {
-      pOptTmp = malloc( strlen(argv[i]) + 1);
-      memset(pOptTmp, 0, strlen(argv[i]) + 1);
-      strncpy(pOptTmp, argv[i], strlen(argv[i]));
+      pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
@@ -686,9 +684,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     sprintf(szErrorMsg, "CPF1120 - User %s does not exist.", szUser); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_ERROR;
     iRet = MSTATE_EXITING;
   }
@@ -696,9 +692,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     strcpy(szErrorMsg, "CPF1116 - Next not valid sign-on attempt varies off device."); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_FAIL;
     iRet = MSTATE_NEW;
   }
@@ -706,9 +700,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     strcpy(szErrorMsg, "CPF1392 - Next not valid sign-on disables user profile."); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_ERROR;
     iRet = MSTATE_EXITING;
   }
@@ -729,9 +721,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     sprintf(szErrorMsg, "CPF1394 - User profile %s cannot sign on.", szUser); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_ERROR;
     iRet = MSTATE_EXITING;
   }
@@ -739,9 +729,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     sprintf(szErrorMsg, "CPF1118 - No password associated with user %s.", szUser); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
     iRet = MSTATE_EXITING;
   }
@@ -749,9 +737,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     strcpy(szErrorMsg, "CPF1109 - Not authorized to subsystem."); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
     iRet = MSTATE_EXITING;
   }
@@ -759,9 +745,7 @@ int tryLoginAS400(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword
   {
     strcpy(szErrorMsg, "CPF1110 - Not authorized to work station."); 
     writeError(ERR_ERROR, "[%s] %s", MODULE_NAME, szErrorMsg);
-    (*psLogin)->pErrorMsg = malloc( strlen(szErrorMsg) + 1 );
-    memset((*psLogin)->pErrorMsg, 0, strlen(szErrorMsg) + 1 );
-    strncpy((*psLogin)->pErrorMsg, szErrorMsg, strlen(szErrorMsg));
+    (*psLogin)->pErrorMsg = strdup(szErrorMsg);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
     iRet = MSTATE_EXITING;
   }
