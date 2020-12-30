@@ -207,7 +207,7 @@ int go(sLogin* logins, int argc, char *argv[])
           {
             psSessionData->szCustomHeader = malloc(strlen(pOpt) + 1);
             memset(psSessionData->szCustomHeader, 0, strlen(pOpt) + 3);
-            strncpy(psSessionData->szCustomHeader, pOpt, strlen(pOpt));
+            strcpy(psSessionData->szCustomHeader, pOpt);
             strncpy(psSessionData->szCustomHeader + strlen(pOpt), "\r\n", 2);
             psSessionData->nCustomHeaders = 1;
           }
@@ -216,7 +216,7 @@ int go(sLogin* logins, int argc, char *argv[])
             int oldSize = strlen(psSessionData->szCustomHeader);
             psSessionData->szCustomHeader = realloc(psSessionData->szCustomHeader, oldSize + strlen(pOpt) + 3);
             memset(psSessionData->szCustomHeader + oldSize, 0, strlen(pOpt) + 3);
-            strncpy(psSessionData->szCustomHeader + oldSize, pOpt, strlen(pOpt));
+            strcpy(psSessionData->szCustomHeader + oldSize, pOpt);
             strncpy(psSessionData->szCustomHeader + oldSize + strlen(pOpt), "\r\n", 2);
             psSessionData->nCustomHeaders += 1;
           }

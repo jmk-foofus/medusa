@@ -266,7 +266,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* psLogin)
           nCmdPartLength = (int64_t) szTmp - (int64_t) _psSessionData->szCmdParam;
           writeError(ERR_DEBUG_MODULE, "Processing \%H... Copying (%d) parameter characters.", nCmdPartLength);
           strncpy(szCmdTmp, _psSessionData->szCmdParam, nCmdPartLength); 
-          strncpy(szCmdTmp + nCmdPartLength, psLogin->psServer->pHostIP, strlen(psLogin->psServer->pHostIP)); 
+          strcpy(szCmdTmp + nCmdPartLength, psLogin->psServer->pHostIP); 
           strncpy(szCmdTmp + nCmdPartLength + strlen(psLogin->psServer->pHostIP), szTmp + 2, strlen(szTmp) - 2);
         }
         else
@@ -285,7 +285,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* psLogin)
           nCmdPartLength = (int64_t) szTmp - (int64_t) szCmdTmp;
           writeError(ERR_DEBUG_MODULE, "Processing \%U... Copying (%d) parameter characters.", nCmdPartLength);
           strncpy(_psSessionData->szCmdParamFull, szCmdTmp, nCmdPartLength); 
-          strncpy(_psSessionData->szCmdParamFull + nCmdPartLength, psCredSet->psUser->pUser, strlen(psCredSet->psUser->pUser)); 
+          strcpy(_psSessionData->szCmdParamFull + nCmdPartLength, psCredSet->psUser->pUser); 
           strncpy(_psSessionData->szCmdParamFull + nCmdPartLength + strlen(psCredSet->psUser->pUser), szTmp + 2, strlen(szTmp) - 2); 
         }
         else
@@ -304,7 +304,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* psLogin)
           nCmdPartLength = (int64_t) szTmp - (int64_t) _psSessionData->szCmdParamFull;
           writeError(ERR_DEBUG_MODULE, "Processing \%P... Copying (%d) parameter characters.", nCmdPartLength);
           strncpy(szCmdTmp, _psSessionData->szCmdParamFull, nCmdPartLength); 
-          strncpy(szCmdTmp + nCmdPartLength, psCredSet->pPass, strlen(psCredSet->pPass)); 
+          strcpy(szCmdTmp + nCmdPartLength, psCredSet->pPass); 
           strncpy(szCmdTmp + nCmdPartLength + strlen(psCredSet->pPass), szTmp + 2, strlen(szTmp) - 2); 
 
           strncpy(_psSessionData->szCmdParamFull, szCmdTmp, nCmdLength + 1);
@@ -326,10 +326,10 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* psLogin)
         
         _psSessionData->szCmdFull = malloc(strlen(_psSessionData->szCmd) + strlen(_psSessionData->szCmdParamFull) + 7);
         memset(_psSessionData->szCmdFull, 0, strlen(_psSessionData->szCmd) + strlen(_psSessionData->szCmdParamFull) + 7);
-        strncpy(_psSessionData->szCmdFull, _psSessionData->szCmd, strlen(_psSessionData->szCmd));
-        strncat(_psSessionData->szCmdFull, " ", 1);
-        strncat(_psSessionData->szCmdFull, _psSessionData->szCmdParamFull, strlen(_psSessionData->szCmdParamFull));
-        strncat(_psSessionData->szCmdFull, " 1>&2", 5);
+        strcpy(_psSessionData->szCmdFull, _psSessionData->szCmd);
+        strcat(_psSessionData->szCmdFull, " ");
+        strcat(_psSessionData->szCmdFull, _psSessionData->szCmdParamFull);
+        strcat(_psSessionData->szCmdFull, " 1>&2");
         
         writeError(ERR_DEBUG_MODULE, "Command line: %s", _psSessionData->szCmdFull);
         /* end command-line argument parsing */

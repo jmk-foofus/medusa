@@ -140,8 +140,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szBannerMsg = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szBannerMsg, pOpt, strlen(pOpt));
+          psSessionData->szBannerMsg = strdup(pOpt);
         }
         else
         {
@@ -419,7 +418,7 @@ void response_callback(const char* name, int name_len, const char* instruction, 
       if ( ((strcasestr(prompts[i].text, "") != NULL ) && ((prompts[i].length == 9) || (prompts[i].length == 10)) ) || ( strcasestr(prompts[i].text, "Password:") != NULL ) ) {
         responses[i].text = malloc( strlen(pPass) );
         memset(responses[i].text, 0, strlen(pPass));
-        strncpy(responses[i].text, pPass, strlen(pPass));
+        strcpy(responses[i].text, pPass);
         responses[i].length = strlen(pPass);
         writeError(ERR_DEBUG_MODULE, "libssh2 response_callback set password response: %s", pPass);
         ((_ssh2_session_data*)(*abstract))->iAnswerCount++;

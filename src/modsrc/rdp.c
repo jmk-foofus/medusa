@@ -509,8 +509,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
         sprintf(ErrorCode, "0x%8.8X:", SMBerr);
         (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
-        strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
-        strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+        strcpy((*psLogin)->pErrorMsg, ErrorCode);
+        strcat((*psLogin)->pErrorMsg, pErrorMsg);
         nRet = MSTATE_EXITING;
         break;
 
@@ -518,8 +518,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
         sprintf(ErrorCode, "0x%8.8X:", SMBerr);
         (*psLogin)->pErrorMsg = malloc( strlen(ErrorCode) + strlen(pErrorMsg) + 1);
         memset((*psLogin)->pErrorMsg, 0, strlen(ErrorCode) + strlen(pErrorMsg) + 1);
-        strncpy((*psLogin)->pErrorMsg, ErrorCode, strlen(ErrorCode));
-        strncat((*psLogin)->pErrorMsg, pErrorMsg, strlen(pErrorMsg));
+        strcpy((*psLogin)->pErrorMsg, ErrorCode);
+        strcat((*psLogin)->pErrorMsg, pErrorMsg);
         (*psLogin)->iResult = LOGIN_RESULT_ERROR;
         nRet = MSTATE_EXITING;
         break;

@@ -176,8 +176,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szHELO = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szHELO, pOpt, strlen(pOpt));
+          psSessionData->szHELO =strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method HELODOMAIN requires value to be set.");
@@ -189,8 +188,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szMAILFROM = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szMAILFROM, pOpt, strlen(pOpt));
+          psSessionData->szMAILFROM = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method MAILFROM requires value to be set.");

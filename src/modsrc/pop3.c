@@ -536,9 +536,9 @@ int sendAuthPLAIN(int hSocket, char* szLogin, char* szPassword)
   nSendBufferSize = strlen(szLogin) + 1 + strlen(szLogin) + 1 + strlen(szPassword);
   szTmpBuf = malloc(nSendBufferSize + 1);
   memset(szTmpBuf, 0, nSendBufferSize + 1);
-  strncpy(szTmpBuf, szLogin, strlen(szLogin));
-  strncpy(szTmpBuf + strlen(szLogin) + 1, szLogin, strlen(szLogin));
-  strncpy(szTmpBuf + strlen(szLogin) + 1 + strlen(szLogin) + 1, szPassword, strlen(szPassword));
+  strcpy(szTmpBuf, szLogin);
+  strcpy(szTmpBuf + strlen(szLogin) + 1, szLogin);
+  strcpy(szTmpBuf + strlen(szLogin) + 1 + strlen(szLogin) + 1, szPassword);
 
   szTmpBuf64 = malloc((2 * nSendBufferSize + 2) + 1);
   memset(szTmpBuf64, 0, (2 * nSendBufferSize + 2) + 1);
@@ -620,7 +620,7 @@ int sendAuthLOGIN(int hSocket, char* szLogin, char* szPassword)
   bufSend = malloc((2 * strlen(szLogin) + 2) + 2 + 1);
   memset(bufSend, 0, (2 * strlen(szLogin) + 2) + 2 + 1);
   base64_encode(szLogin, strlen(szLogin), (char*)bufSend);
-  strncat((char*)bufSend, "\r\n", 2);   
+  strcat((char*)bufSend, "\r\n");   
  
   if (medusaSend(hSocket, bufSend, strlen((char*)bufSend), 0) < 0)
   {
@@ -652,7 +652,7 @@ int sendAuthLOGIN(int hSocket, char* szLogin, char* szPassword)
   bufSend = malloc((2 * strlen(szPassword) + 2) + 2 + 1);
   memset(bufSend, 0, (2 * strlen(szPassword) + 2) + 2 + 1);
   base64_encode(szPassword, strlen(szPassword), (char*)bufSend);
-  strncat((char*)bufSend, "\r\n", 2);
+  strcat((char*)bufSend, "\r\n");
 
   if (medusaSend(hSocket, bufSend, strlen((char*)bufSend), 0) < 0)
   {
