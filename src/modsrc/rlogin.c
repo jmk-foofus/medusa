@@ -38,9 +38,8 @@
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
 #define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
 
-#define BUF_SIZE 300
-
 #define PORT_RLOGIN 513
+#define RECEIVE_DELAY 1000000 /* Response wait time (usec) */
 
 // Tells us whether we are to continue processing or not
 enum MODULE_STATE
@@ -215,74 +214,70 @@ int initModule(sLogin* psLogin)
 int tryLogin(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword)
 {
   int iRet;
-  unsigned char bufSend[BUF_SIZE];
+  unsigned char* bufSend;
   unsigned char* bufReceive;
   int nReceiveBufferSize = 0;
+  int nSendBufferSize = 0;
 
-  /* send username */
-  memset(bufSend, 0, sizeof(bufSend));
-  bufSend[0]=0x00;
-  strncpy((char *)bufSend+1, szLogin, strlen(szLogin));
-  bufSend[strlen(szLogin)+1]=0x00;
-  strncpy((char *)bufSend+2+strlen(szLogin), szLogin, strlen(szLogin));
-  bufSend[strlen(szLogin)+1+strlen(szLogin)+1]=0x00;
-  strncpy((char *)bufSend+1+strlen(szLogin)+1+strlen(szLogin)+1, "xterm", 5);
-  bufSend[strlen(szLogin)+1+strlen(szLogin)+1+7]=0x00;
-  
-  if (medusaSend(hSocket, bufSend, strlen(szLogin)+1+strlen(szLogin)+1+7 , 0) < 0)
+  /* send: 0x00/username/0x00/username/0x00/xterm/0x00 */
+  nSendBufferSize = 1 + strlen(szLogin) + 1 + strlen(szLogin) + 1 + 5 + 1;
+  bufSend = malloc(nSendBufferSize);
+  memset(bufSend, 0, nSendBufferSize);
+  memcpy(bufSend + 1, szLogin, strlen(szLogin));
+  memcpy(bufSend + 1 + strlen(szLogin) + 1, szLogin, strlen(szLogin));
+  strcpy(bufSend + 1 + strlen(szLogin) + 1 + strlen(szLogin) + 1, "xterm");
+
+  if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
   }
+  FREE(bufSend);
  
   nReceiveBufferSize = 0;
-  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  bufReceive = medusaReceiveRawDelay(hSocket, &nReceiveBufferSize, RECEIVE_DELAY, RECEIVE_DELAY);
   if (bufReceive == NULL)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaReceive returned no data.", MODULE_NAME);
+    return FAILURE;
+  }
+  else if ((nReceiveBufferSize > 1) && (strstr((char *)bufReceive + 1, "Incorrect") != NULL))
+  {
+    writeError(ERR_DEBUG_MODULE, "%s : Login attempt failed.", MODULE_NAME);
+    (*psLogin)->iResult = LOGIN_RESULT_FAIL;
+    iRet = MSTATE_NEW;
+  }
+  else if ((nReceiveBufferSize > 1) && (strstr((char *)bufReceive + 1, "Password") != NULL))
+  {
+    writeError(ERR_DEBUG_MODULE, "%s : Login attempt asked for password.", MODULE_NAME);
+    nSendBufferSize = strlen(szPassword) + 1 + 1;
+    bufSend = malloc(nSendBufferSize);
+    memset(bufSend, 0, nSendBufferSize);
+    sprintf((char *)bufSend, "%s\r", szPassword);
+    if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
     {
-      writeError(ERR_ERROR, "%s failed: medusaReceive returned no data.", MODULE_NAME);
-      return FAILURE;
+      writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
     }
 
-  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
-  if (bufReceive == NULL)
+    nReceiveBufferSize = 0;
+    bufReceive = medusaReceiveRawDelay(hSocket, &nReceiveBufferSize, RECEIVE_DELAY, RECEIVE_DELAY);
+    if (bufReceive == NULL)
     {
       writeError(ERR_ERROR, "%s failed: medusaReceive returned no data.", MODULE_NAME);
       return FAILURE;
     }
-  else if (strstr((char *)bufReceive,"Incorrect") != NULL)
+    else if ((nReceiveBufferSize == 2) || (strstr((char *)bufReceive, "incorrect") != NULL))
     {
       writeError(ERR_DEBUG_MODULE, "%s : Login attempt failed here.", MODULE_NAME);
       (*psLogin)->iResult = LOGIN_RESULT_FAIL;
       iRet = MSTATE_NEW;
     }
-  else if (strstr((char *)bufReceive,"Password") != NULL)
-    {
-      writeError(ERR_DEBUG_MODULE, "%s : Login attempt asked for password.", MODULE_NAME);
-      sprintf((char *)bufSend,"%s\r",szPassword);
-      if (medusaSend(hSocket, bufSend, strlen((char *)bufSend), 0) < 0)
-      {
-        writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
-      }
- 
-      nReceiveBufferSize = 0;
-      bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
-      if (bufReceive == NULL)
-      {
-        writeError(ERR_ERROR, "%s failed: medusaReceive returned no data.", MODULE_NAME);
-        return FAILURE;
-      }
-      else if (strstr((char *)bufReceive,"incorrect") != NULL)
-      {
-        writeError(ERR_DEBUG_MODULE, "%s : Login attempt failed here.", MODULE_NAME);
-        (*psLogin)->iResult = LOGIN_RESULT_FAIL;
-        iRet = MSTATE_NEW;
-      }
-      else {
-        /* We can't tell for sure but it wasn't a failure or a password prompt */
-        writeError(ERR_DEBUG_MODULE, "%s : Login attempt succeeded via password send.", MODULE_NAME);
-        (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
-        iRet = MSTATE_EXITING;
-      }
+    else {
+      /* We can't tell for sure but it wasn't a failure or a password prompt */
+      writeError(ERR_DEBUG_MODULE, "%s : Login attempt succeeded via password send.", MODULE_NAME);
+      (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
+      iRet = MSTATE_EXITING;
     }
+  }
   else
     {
       /* We can't tell for sure but it wasn't a failure or a password prompt */
