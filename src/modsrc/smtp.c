@@ -182,8 +182,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szEHLO = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szEHLO, pOpt, strlen(pOpt));
+          psSessionData->szEHLO = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method EHLO requires value to be set.");
@@ -404,7 +403,6 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
     {
       FREE(bufReceive);
      
-      params->nSSLVersion = 3.1; /* Force the use of TLSv1 */ 
       if (medusaConnectSocketSSL(params, hSocket) < 0)
       {
         writeError(ERR_ERROR, "[%s] Failed to establish SSLv3 connection.", MODULE_NAME);
@@ -522,9 +520,9 @@ int sendAuthPLAIN(int hSocket, char* szLogin, char* szPassword)
   nSendBufferSize = strlen(szLogin) + 1 + strlen(szLogin) + 1 + strlen(szPassword);
   szTmpBuf = malloc(nSendBufferSize + 1);
   memset(szTmpBuf, 0, nSendBufferSize + 1);
-  strncpy((char *)szTmpBuf, szLogin, strlen((char *)szLogin));
-  strncpy((char *)szTmpBuf + strlen(szLogin) + 1, szLogin, strlen(szLogin));
-  strncpy((char *)szTmpBuf + strlen(szLogin) + 1 + strlen(szLogin) + 1, szPassword, strlen(szPassword));
+  strcpy((char *)szTmpBuf, szLogin);
+  strcpy((char *)szTmpBuf + strlen(szLogin) + 1, szLogin);
+  strcpy((char *)szTmpBuf + strlen(szLogin) + 1 + strlen(szLogin) + 1, szPassword);
 
   szTmpBuf64 = malloc((2 * nSendBufferSize + 2) + 1);
   memset(szTmpBuf64, 0, (2 * nSendBufferSize + 2) + 1);
@@ -624,7 +622,7 @@ int sendAuthLOGIN(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char
   bufSend = malloc((2 * strlen((char *)szLoginDomain) + 2) + 2 + 1);
   memset(bufSend, 0, (2 * strlen((char *)szLoginDomain) + 2) + 2 + 1);
   base64_encode((char *)szLoginDomain, strlen((char *)szLoginDomain), (char *)bufSend);
-  strncat((char *)bufSend, "\r\n", 2);
+  strcat((char *)bufSend, "\r\n");
   
   if (_psSessionData->szDomain)
     FREE(szLoginDomain);
@@ -667,7 +665,7 @@ int sendAuthLOGIN(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char
   bufSend = malloc((2 * strlen(szPassword) + 2) + 2 + 1);
   memset(bufSend, 0, (2 * strlen(szPassword) + 2) + 2 + 1);
   base64_encode((char *)szPassword, strlen((char *)szPassword), (char *)bufSend);
-  strncat((char *)bufSend, "\r\n", 2);
+  strcat((char *)bufSend, "\r\n");
 
   if (medusaSend(hSocket, bufSend, strlen((char *)bufSend), 0) < 0)
   {

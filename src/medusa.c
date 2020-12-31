@@ -1942,7 +1942,7 @@ void sigint_handler(int sig __attribute__((unused)))
   }
 
   /* terminate resume map */
-  strncat(szResumeMap, ".", 1);
+  strcat(szResumeMap, ".");
   
   writeError(ERR_ALERT, "To resume scan, add the following to your original command: \"-Z %s\"", szResumeMap);
       

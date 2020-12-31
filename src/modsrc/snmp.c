@@ -672,7 +672,7 @@ int sendWrite(int hSocket, _SNMP_DATA* _psSessionData, char* szPassword, char* s
   memset(bufSend + sizeof(snmpv1_a) + strlen(szPassword) + 15, 14 + strlen(szLocation), 1); /* set length remaining */
   memset(bufSend + sizeof(snmpv1_a) + strlen(szPassword) + 17, 12 + strlen(szLocation), 1); /* set length remaining */
   memset(bufSend + sizeof(snmpv1_a) + strlen(szPassword) + sizeof(snmpv1_w) - 1, strlen(szLocation), 1);
-  strncpy((char *)bufSend + sizeof(snmpv1_a) + strlen(szPassword) + sizeof(snmpv1_w), szLocation, strlen(szLocation));
+  strcpy((char *)bufSend + sizeof(snmpv1_a) + strlen(szPassword) + sizeof(snmpv1_w), szLocation);
 
   writeError(ERR_DEBUG_MODULE, "[%s] Sending SET request for system.sysLocation.", MODULE_NAME);
   if (medusaSend(hSocket, bufSend, nSendBufferSize - 1, 0) < 0)
