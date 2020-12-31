@@ -174,4 +174,5 @@ wrapper_mod_LDFLAGS = -fPIC
 LDADD = @MODULE_LIBS@
 
 noinst_HEADERS = module.h d3des.h sha1.h hmacmd5.h http-digest.h ntlm.h
-EXTRA_DIST = wrapper/*.pl
+EXTRA_DIST_WRAPPER != ls $(srcdir)/wrapper/*.pl 
+EXTRA_DIST = $(EXTRA_DIST_WRAPPER)
