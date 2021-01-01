@@ -224,8 +224,8 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
     {
       case MSTATE_NEW:
         instance = freerdp_new();
-        instance->PreConnect = (signed char (*)(struct rdp_freerdp *))tf_pre_connect;
-        instance->PostConnect = (signed char (*)(struct rdp_freerdp *))tf_post_connect;
+        instance->PreConnect = (signed int (*)(struct rdp_freerdp *))tf_pre_connect;
+        instance->PostConnect = (signed int (*)(struct rdp_freerdp *))tf_post_connect;
         instance->ContextSize = sizeof(tfContext);
         instance->ContextNew = tf_context_new;
         instance->ContextFree = tf_context_free;
@@ -363,6 +363,7 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   int nRet;
   unsigned int i;
   int old_stderr;
+  int old_stdout;
 
   /* Nessus Plugins: smb_header.inc */
   /* Note: we are currently only examining the lower 2 bytes of data */
@@ -456,12 +457,16 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   {
     pthread_mutex_lock(&(*psLogin)->psServer->psAudit->ptmMutex);
     old_stderr = dup(1);
+    old_stdout = dup(1);
     (void)(freopen("/dev/null", "w", stderr) + 1); /* ignore return code */
+    (void)(freopen("/dev/null", "w", stdout) + 1); /* ignore return code */
 
     nRet = freerdp_connect(instance);
 
     fclose(stderr);
+    fclose(stdout);
     stderr = fdopen(old_stderr, "w");
+    stdout = fdopen(old_stdout, "w");
     pthread_mutex_unlock(&(*psLogin)->psServer->psAudit->ptmMutex);
   }
   else
