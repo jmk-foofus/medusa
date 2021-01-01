@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
@@ -38,8 +38,7 @@ if test -d "/usr/local/lib"
   then LDFLAGS="$LDFLAGS -L/usr/local/lib"
 fi
 
-# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
-CPPFLAGS="$CPPFLAGS -fPIC -D_GNU_SOURCE"
+CPPFLAGS="$CPPFLAGS -fPIC"
 CPPFLAGS="$CPPFLAGS -I/usr/include -I/usr/local/include -I${postgresql_prefix}/include/postgresql -I${postgresql_prefix}/include/pgsql -I${afpfsng_prefix}/include/afpfs-ng"
 
 AS_MESSAGE([checking for pthread support...])
@@ -924,6 +923,9 @@ AC_MSG_NOTICE([ disabled. To enable non-default modules, use the ])
 AC_MSG_NOTICE([ "--enable-module-MODULE_NAME" configure option.])
 AC_MSG_NOTICE([*******************************************************])
 AC_MSG_NOTICE([])
+
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
 
 AC_CHECK_FUNCS(strcasestr)
 AC_CHECK_FUNCS(asprintf)
