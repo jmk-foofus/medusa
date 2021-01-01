@@ -308,7 +308,6 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
             FREE(bufReceive);
   
             writeError(ERR_DEBUG_MODULE, "[%s] Starting TLS negotiation.", MODULE_NAME);
-            params.nSSLVersion = 3.1; /* Force the use of TLSv1 */
             if (medusaConnectSocketSSL(&params, hSocket) < 0)
             {
               writeError(ERR_ERROR, "[%s] Failed to establish SSLv3 connection.", MODULE_NAME);

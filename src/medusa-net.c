@@ -345,28 +345,8 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
   SSL_load_error_strings();
   SSLeay_add_ssl_algorithms();
 
-  /* The SSL context can support SSLv2, SSLv3, or both. The default is to use whatever
-     the server demands. The module can override this by setting nSSLVersion. */
-
-  /* Debian's OpenSSL has SSLv2 support disabled. */
-#if !defined(OPENSSL_NO_SSL2) && (OPENSSL_VERSION_NUMBER < 0x10100005L)
-  if (pParams->nSSLVersion == 2)
-    sslContext = SSL_CTX_new(SSLv2_client_method());
-  else
-#endif
-#if !defined(OPENSSL_NO_SSL3) && (OPENSSL_VERSION_NUMBER < 0x10100005L)
-  if (pParams->nSSLVersion == 3)
-    sslContext = SSL_CTX_new(SSLv3_client_method());
-  else
-#endif
-  if (pParams->nSSLVersion == (float)3.1)
-    sslContext = SSL_CTX_new(TLSv1_client_method());
-  else
-  {
-    sslContext = SSL_CTX_new(SSLv23_client_method());
-    //SSL_CTX_set_options(sslContext, SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2);
-  }
-
+  /* OpenSSL 1.1.0 introduced TLS_client_method() and deprecated all version specific functions. */
+  sslContext = SSL_CTX_new(TLS_client_method());
   if (sslContext == NULL)
   {
     err = ERR_get_error();

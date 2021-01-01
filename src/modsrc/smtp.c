@@ -403,7 +403,6 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
     {
       FREE(bufReceive);
      
-      params->nSSLVersion = 3.1; /* Force the use of TLSv1 */ 
       if (medusaConnectSocketSSL(params, hSocket) < 0)
       {
         writeError(ERR_ERROR, "[%s] Failed to establish SSLv3 connection.", MODULE_NAME);
