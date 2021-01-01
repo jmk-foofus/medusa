@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
@@ -97,7 +97,7 @@ AC_CHECK_LIB(crypto, CRYPTO_lock, [], [AC_MSG_WARN([ *** LibCrypto may be requir
 AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h, 
   [AC_CHECK_LIB(ssl, main,
     [AC_DEFINE(HAVE_LIBSSL, 1, [Found OpenSSL Library]) LIBS="$LIBS -lssl -lcrypto" check_libssl="true"],
-    [AC_MSG_WARN([ *** OpenSSL library required for SSL support. ***
+    [AC_MSG_ERROR([ *** OpenSSL library required for SSL support. ***
 
       Many of the Medusa modules depend on the OpenSSL library and header files. If
       multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -109,7 +109,7 @@ AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h,
 
     ])]
   )],
-  [AC_MSG_WARN([ *** OpenSSL header files required for SSL support. ***
+  [AC_MSG_ERROR([ *** OpenSSL header files required for SSL support. ***
   
     Many of the Medusa modules depend on the OpenSSL library and header files. If
     multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -419,24 +419,19 @@ dnl ********** RDP Medusa Module **********
 check_module_rdp="false"
 module_rdp_headers="false"
 
-PKG_CHECK_MODULES(FREERDP2, freerdp2)
-CPPFLAGS="$CPPFLAGS $FREERDP2_CFLAGS"
-
-dnl https://ci.freerdp.com - Nightly FreeRDP master builds 
-if test -d "/opt/freerdp-nightly"; then
-  CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
-  LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
-fi
+AC_ARG_WITH(freerdp, AS_HELP_STRING([--with-freerdp=prefix],[Prefix for FreeRDP include directory (default = /usr)]), [freerdp_prefix="$withval"], [freerdp_prefix="/usr"])
+CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp2 -I${freerdp_prefix}/include/winpr2"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
 AC_CHECK_HEADER([freerdp/freerdp.h],
   [AC_CHECK_LIB(freerdp2, main,
-    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS $FREERDP2_LIBS" check_module_rdp="true"],
+    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS -lfreerdp2" check_module_rdp="true"],
     [AC_MSG_WARN([ *** FreeRDP2 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
       includes both the library and header files. Your distribution may offer
-      packages such as freerdp2-dev, which will provide these files.
+      packages such as freerdp2-dev/libfreerdp2, which will provide these 
+      files.
 
     ])]
   )],
@@ -444,7 +439,8 @@ AC_CHECK_HEADER([freerdp/freerdp.h],
 
     The FreeRDP package must be installed for RDP module to function. This
     includes both the library and header files. Your distribution may offer
-    packages such as freerdp2-dev, which will provide these files.
+    packages such as freerdp2-dev/libwinpr2-dev, which will provide these 
+    files.
 
   ])]
 )
@@ -927,6 +923,9 @@ AC_MSG_NOTICE([ disabled. To enable non-default modules, use the ])
 AC_MSG_NOTICE([ "--enable-module-MODULE_NAME" configure option.])
 AC_MSG_NOTICE([*******************************************************])
 AC_MSG_NOTICE([])
+
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
 
 AC_CHECK_FUNCS(strcasestr)
 AC_CHECK_FUNCS(asprintf)

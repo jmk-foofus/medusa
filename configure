@@ -657,11 +657,6 @@ BUILD_MODULE_REXEC_FALSE
 BUILD_MODULE_REXEC_TRUE
 BUILD_MODULE_RDP_FALSE
 BUILD_MODULE_RDP_TRUE
-FREERDP2_LIBS
-FREERDP2_CFLAGS
-PKG_CONFIG_LIBDIR
-PKG_CONFIG_PATH
-PKG_CONFIG
 BUILD_MODULE_POSTGRES_FALSE
 BUILD_MODULE_POSTGRES_TRUE
 BUILD_MODULE_POP3_FALSE
@@ -689,15 +684,6 @@ BUILD_MODULE_AFP_TRUE
 EGREP
 GREP
 CPP
-am__fastdepCC_FALSE
-am__fastdepCC_TRUE
-CCDEPMODE
-am__nodep
-AMDEPBACKSLASH
-AMDEP_FALSE
-AMDEP_TRUE
-am__include
-DEPDIR
 OBJEXT
 EXEEXT
 ac_ct_CC
@@ -782,13 +768,11 @@ PACKAGE_VERSION
 PACKAGE_TARNAME
 PACKAGE_NAME
 PATH_SEPARATOR
-SHELL
-am__quote'
+SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_silent_rules
-enable_dependency_tracking
 enable_debug
 with_postgresql
 with_afpfsng
@@ -805,6 +789,7 @@ enable_module_nntp
 enable_module_pcanywhere
 enable_module_pop3
 enable_module_postgres
+with_freerdp
 enable_module_rdp
 enable_module_rexec
 enable_module_rlogin
@@ -830,12 +815,7 @@ CFLAGS
 LDFLAGS
 LIBS
 CPPFLAGS
-CPP
-PKG_CONFIG
-PKG_CONFIG_PATH
-PKG_CONFIG_LIBDIR
-FREERDP2_CFLAGS
-FREERDP2_LIBS'
+CPP'
 
 
 # Initialize some variables set by options.
@@ -1468,10 +1448,6 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-silent-rules   less verbose build output (undo: "make V=1")
   --disable-silent-rules  verbose build output (undo: "make V=0")
-  --enable-dependency-tracking
-                          do not reject slow dependency extractors
-  --disable-dependency-tracking
-                          speeds up one-time build
   --enable-debug=no/yes turn on debugging (default=yes)
   --enable-module-afp=no/yes            Enable AFP module (default=no)
   --enable-module-cvs=no/yes            Enable CVS module (default=yes)
@@ -1510,6 +1486,8 @@ Optional Packages:
   --with-afpfsng=prefix   Prefix for afpfs-ng include directory (default =
                           /usr)
   --with-ssl=prefix       Prefix for OpenSSL libraries
+  --with-freerdp=prefix   Prefix for FreeRDP include directory (default =
+                          /usr)
   --with-default-mod-path=path
                           Location of medusa module files (default =
                           /usr/local/lib/medusa/modules)
@@ -1523,15 +1501,6 @@ Some influential environment variables:
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
   CPP         C preprocessor
-  PKG_CONFIG  path to pkg-config utility
-  PKG_CONFIG_PATH
-              directories to add to pkg-config's search path
-  PKG_CONFIG_LIBDIR
-              path overriding pkg-config's built-in search path
-  FREERDP2_CFLAGS
-              C compiler flags for FREERDP2, overriding pkg-config
-  FREERDP2_LIBS
-              linker flags for FREERDP2, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -4072,197 +4041,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-DEPDIR="${am__leading_dot}deps"
-
-ac_config_commands="$ac_config_commands depfiles"
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} supports the include directive" >&5
-$as_echo_n "checking whether ${MAKE-make} supports the include directive... " >&6; }
-cat > confinc.mk << 'END'
-am__doit:
-	@echo this is the am__doit target >confinc.out
-.PHONY: am__doit
-END
-am__include="#"
-am__quote=
-# BSD make does it like this.
-echo '.include "confinc.mk" # ignored' > confmf.BSD
-# Other make implementations (GNU, Solaris 10, AIX) do it like this.
-echo 'include confinc.mk # ignored' > confmf.GNU
-_am_result=no
-for s in GNU BSD; do
-  { echo "$as_me:$LINENO: ${MAKE-make} -f confmf.$s && cat confinc.out" >&5
-   (${MAKE-make} -f confmf.$s && cat confinc.out) >&5 2>&5
-   ac_status=$?
-   echo "$as_me:$LINENO: \$? = $ac_status" >&5
-   (exit $ac_status); }
-  case $?:`cat confinc.out 2>/dev/null` in #(
-  '0:this is the am__doit target') :
-    case $s in #(
-  BSD) :
-    am__include='.include' am__quote='"' ;; #(
-  *) :
-    am__include='include' am__quote='' ;;
-esac ;; #(
-  *) :
-     ;;
-esac
-  if test "$am__include" != "#"; then
-    _am_result="yes ($s style)"
-    break
-  fi
-done
-rm -f confinc.* confmf.*
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${_am_result}" >&5
-$as_echo "${_am_result}" >&6; }
-
-# Check whether --enable-dependency-tracking was given.
-if test "${enable_dependency_tracking+set}" = set; then :
-  enableval=$enable_dependency_tracking;
-fi
-
-if test "x$enable_dependency_tracking" != xno; then
-  am_depcomp="$ac_aux_dir/depcomp"
-  AMDEPBACKSLASH='\'
-  am__nodep='_no'
-fi
- if test "x$enable_dependency_tracking" != xno; then
-  AMDEP_TRUE=
-  AMDEP_FALSE='#'
-else
-  AMDEP_TRUE='#'
-  AMDEP_FALSE=
-fi
-
-
-
-depcc="$CC"   am_compiler_list=
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking dependency style of $depcc" >&5
-$as_echo_n "checking dependency style of $depcc... " >&6; }
-if ${am_cv_CC_dependencies_compiler_type+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -z "$AMDEP_TRUE" && test -f "$am_depcomp"; then
-  # We make a subdir and do the tests there.  Otherwise we can end up
-  # making bogus files that we don't know about and never remove.  For
-  # instance it was reported that on HP-UX the gcc test will end up
-  # making a dummy file named 'D' -- because '-MD' means "put the output
-  # in D".
-  rm -rf conftest.dir
-  mkdir conftest.dir
-  # Copy depcomp to subdir because otherwise we won't find it if we're
-  # using a relative directory.
-  cp "$am_depcomp" conftest.dir
-  cd conftest.dir
-  # We will build objects and dependencies in a subdirectory because
-  # it helps to detect inapplicable dependency modes.  For instance
-  # both Tru64's cc and ICC support -MD to output dependencies as a
-  # side effect of compilation, but ICC will put the dependencies in
-  # the current directory while Tru64 will put them in the object
-  # directory.
-  mkdir sub
-
-  am_cv_CC_dependencies_compiler_type=none
-  if test "$am_compiler_list" = ""; then
-     am_compiler_list=`sed -n 's/^#*\([a-zA-Z0-9]*\))$/\1/p' < ./depcomp`
-  fi
-  am__universal=false
-  case " $depcc " in #(
-     *\ -arch\ *\ -arch\ *) am__universal=true ;;
-     esac
-
-  for depmode in $am_compiler_list; do
-    # Setup a source with many dependencies, because some compilers
-    # like to wrap large dependency lists on column 80 (with \), and
-    # we should not choose a depcomp mode which is confused by this.
-    #
-    # We need to recreate these files for each test, as the compiler may
-    # overwrite some of them when testing with obscure command lines.
-    # This happens at least with the AIX C compiler.
-    : > sub/conftest.c
-    for i in 1 2 3 4 5 6; do
-      echo '#include "conftst'$i'.h"' >> sub/conftest.c
-      # Using ": > sub/conftst$i.h" creates only sub/conftst1.h with
-      # Solaris 10 /bin/sh.
-      echo '/* dummy */' > sub/conftst$i.h
-    done
-    echo "${am__include} ${am__quote}sub/conftest.Po${am__quote}" > confmf
-
-    # We check with '-c' and '-o' for the sake of the "dashmstdout"
-    # mode.  It turns out that the SunPro C++ compiler does not properly
-    # handle '-M -o', and we need to detect this.  Also, some Intel
-    # versions had trouble with output in subdirs.
-    am__obj=sub/conftest.${OBJEXT-o}
-    am__minus_obj="-o $am__obj"
-    case $depmode in
-    gcc)
-      # This depmode causes a compiler race in universal mode.
-      test "$am__universal" = false || continue
-      ;;
-    nosideeffect)
-      # After this tag, mechanisms are not by side-effect, so they'll
-      # only be used when explicitly requested.
-      if test "x$enable_dependency_tracking" = xyes; then
-	continue
-      else
-	break
-      fi
-      ;;
-    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
-      # This compiler won't grok '-c -o', but also, the minuso test has
-      # not run yet.  These depmodes are late enough in the game, and
-      # so weak that their functioning should not be impacted.
-      am__obj=conftest.${OBJEXT-o}
-      am__minus_obj=
-      ;;
-    none) break ;;
-    esac
-    if depmode=$depmode \
-       source=sub/conftest.c object=$am__obj \
-       depfile=sub/conftest.Po tmpdepfile=sub/conftest.TPo \
-       $SHELL ./depcomp $depcc -c $am__minus_obj sub/conftest.c \
-         >/dev/null 2>conftest.err &&
-       grep sub/conftst1.h sub/conftest.Po > /dev/null 2>&1 &&
-       grep sub/conftst6.h sub/conftest.Po > /dev/null 2>&1 &&
-       grep $am__obj sub/conftest.Po > /dev/null 2>&1 &&
-       ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
-      # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
-      # that says an option was ignored or not supported.
-      # When given -MP, icc 7.0 and 7.1 complain thusly:
-      #   icc: Command line warning: ignoring option '-M'; no argument required
-      # The diagnosis changed in icc 8.0:
-      #   icc: Command line remark: option '-MP' not supported
-      if (grep 'ignoring option' conftest.err ||
-          grep 'not supported' conftest.err) >/dev/null 2>&1; then :; else
-        am_cv_CC_dependencies_compiler_type=$depmode
-        break
-      fi
-    fi
-  done
-
-  cd ..
-  rm -rf conftest.dir
-else
-  am_cv_CC_dependencies_compiler_type=none
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_CC_dependencies_compiler_type" >&5
-$as_echo "$am_cv_CC_dependencies_compiler_type" >&6; }
-CCDEPMODE=depmode=$am_cv_CC_dependencies_compiler_type
-
- if
-  test "x$enable_dependency_tracking" != xno \
-  && test "$am_cv_CC_dependencies_compiler_type" = gcc3; then
-  am__fastdepCC_TRUE=
-  am__fastdepCC_FALSE='#'
-else
-  am__fastdepCC_TRUE='#'
-  am__fastdepCC_FALSE=
-fi
-
 
 
 
@@ -5188,7 +4966,7 @@ if test "x$ac_cv_lib_ssl_main" = xyes; then :
 $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
  LIBS="$LIBS -lssl -lcrypto" check_libssl="true"
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** OpenSSL library required for SSL support. ***
+  as_fn_error $? " *** OpenSSL library required for SSL support. ***
 
       Many of the Medusa modules depend on the OpenSSL library and header files. If
       multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -5198,23 +4976,12 @@ else
       If the headers are installed in a non-standard location, specify the path with
       \"--with-ssl\".
 
-    " >&5
-$as_echo "$as_me: WARNING:  *** OpenSSL library required for SSL support. ***
-
-      Many of the Medusa modules depend on the OpenSSL library and header files. If
-      multiple modules are unexpectedly disabled, this is likely the cause. Make sure
-      to install libssl-dev, openssl-devel or whatever package your distribution uses
-      to distribute these files.
-
-      If the headers are installed in a non-standard location, specify the path with
-      \"--with-ssl\".
-
-    " >&2;}
+    " "$LINENO" 5
 
 fi
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** OpenSSL header files required for SSL support. ***
+  as_fn_error $? " *** OpenSSL header files required for SSL support. ***
 
     Many of the Medusa modules depend on the OpenSSL library and header files. If
     multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -5224,18 +4991,7 @@ else
     If the headers are installed in a non-standard location, specify the path with
     \"--with-ssl\".
 
-  " >&5
-$as_echo "$as_me: WARNING:  *** OpenSSL header files required for SSL support. ***
-
-    Many of the Medusa modules depend on the OpenSSL library and header files. If
-    multiple modules are unexpectedly disabled, this is likely the cause. Make sure
-    to install libssl-dev, openssl-devel or whatever package your distribution uses
-    to distribute these files.
-
-    If the headers are installed in a non-standard location, specify the path with
-    \"--with-ssl\".
-
-  " >&2;}
+  " "$LINENO" 5
 
 fi
 
@@ -5851,222 +5607,14 @@ check_module_rdp="false"
 module_rdp_headers="false"
 
 
-
-
-
-
-
-
-if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
-	if test -n "$ac_tool_prefix"; then
-  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
-set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_PKG_CONFIG+:} false; then :
-  $as_echo_n "(cached) " >&6
+# Check whether --with-freerdp was given.
+if test "${with_freerdp+set}" = set; then :
+  withval=$with_freerdp; freerdp_prefix="$withval"
 else
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-$as_echo "$PKG_CONFIG" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
+  freerdp_prefix="/usr"
 fi
 
-
-fi
-if test -z "$ac_cv_path_PKG_CONFIG"; then
-  ac_pt_PKG_CONFIG=$PKG_CONFIG
-  # Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_path_ac_pt_PKG_CONFIG+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  case $ac_pt_PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
-if test -n "$ac_pt_PKG_CONFIG"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
-$as_echo "$ac_pt_PKG_CONFIG" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-  if test "x$ac_pt_PKG_CONFIG" = x; then
-    PKG_CONFIG=""
-  else
-    case $cross_compiling:$ac_tool_warned in
-yes:)
-{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-$as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
-ac_tool_warned=yes ;;
-esac
-    PKG_CONFIG=$ac_pt_PKG_CONFIG
-  fi
-else
-  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
-fi
-
-fi
-if test -n "$PKG_CONFIG"; then
-	_pkg_min_version=0.9.0
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
-$as_echo_n "checking pkg-config is at least version $_pkg_min_version... " >&6; }
-	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-	else
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-		PKG_CONFIG=""
-	fi
-fi
-
-pkg_failed=no
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for freerdp2" >&5
-$as_echo_n "checking for freerdp2... " >&6; }
-
-if test -n "$FREERDP2_CFLAGS"; then
-    pkg_cv_FREERDP2_CFLAGS="$FREERDP2_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"freerdp2\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "freerdp2") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_FREERDP2_CFLAGS=`$PKG_CONFIG --cflags "freerdp2" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$FREERDP2_LIBS"; then
-    pkg_cv_FREERDP2_LIBS="$FREERDP2_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"freerdp2\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "freerdp2") 2>&5
-  ac_status=$?
-  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_FREERDP2_LIBS=`$PKG_CONFIG --libs "freerdp2" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        FREERDP2_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "freerdp2" 2>&1`
-        else
-	        FREERDP2_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "freerdp2" 2>&1`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$FREERDP2_PKG_ERRORS" >&5
-
-	as_fn_error $? "Package requirements (freerdp2) were not met:
-
-$FREERDP2_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables FREERDP2_CFLAGS
-and FREERDP2_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details." "$LINENO" 5
-elif test $pkg_failed = untried; then
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables FREERDP2_CFLAGS
-and FREERDP2_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
-See \`config.log' for more details" "$LINENO" 5; }
-else
-	FREERDP2_CFLAGS=$pkg_cv_FREERDP2_CFLAGS
-	FREERDP2_LIBS=$pkg_cv_FREERDP2_LIBS
-        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-
-fi
-CPPFLAGS="$CPPFLAGS $FREERDP2_CFLAGS"
-
-if test -d "/opt/freerdp-nightly"; then
-  CPPFLAGS="$CPPFLAGS -I/opt/freerdp-nightly/include"
-  LDFLAGS="$LDFLAGS -L/opt/freerdp-nightly/lib"
-fi
+CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp2 -I${freerdp_prefix}/include/winpr2"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for FreeRDP Library and Header files..." >&5
 $as_echo "$as_me: checking for FreeRDP Library and Header files..." >&6;}
@@ -6105,20 +5653,22 @@ $as_echo "$ac_cv_lib_freerdp2_main" >&6; }
 if test "x$ac_cv_lib_freerdp2_main" = xyes; then :
 
 $as_echo "#define HAVE_LIBFREERDP2 1" >>confdefs.h
- MODULE_LIBS="$MODULE_LIBS $FREERDP2_LIBS" check_module_rdp="true"
+ MODULE_LIBS="$MODULE_LIBS -lfreerdp2" check_module_rdp="true"
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** FreeRDP2 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
       includes both the library and header files. Your distribution may offer
-      packages such as freerdp2-dev, which will provide these files.
+      packages such as freerdp2-dev/libfreerdp2, which will provide these
+      files.
 
     " >&5
 $as_echo "$as_me: WARNING:  *** FreeRDP2 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
       includes both the library and header files. Your distribution may offer
-      packages such as freerdp2-dev, which will provide these files.
+      packages such as freerdp2-dev/libfreerdp2, which will provide these
+      files.
 
     " >&2;}
 
@@ -6129,14 +5679,16 @@ else
 
     The FreeRDP package must be installed for RDP module to function. This
     includes both the library and header files. Your distribution may offer
-    packages such as freerdp2-dev, which will provide these files.
+    packages such as freerdp2-dev/libwinpr2-dev, which will provide these
+    files.
 
   " >&5
 $as_echo "$as_me: WARNING:  *** FreeRDP2 header files required for RDP module. ***
 
     The FreeRDP package must be installed for RDP module to function. This
     includes both the library and header files. Your distribution may offer
-    packages such as freerdp2-dev, which will provide these files.
+    packages such as freerdp2-dev/libwinpr2-dev, which will provide these
+    files.
 
   " >&2;}
 
@@ -7200,6 +6752,9 @@ $as_echo "$as_me: *******************************************************" >&6;}
 { $as_echo "$as_me:${as_lineno-$LINENO}: " >&5
 $as_echo "$as_me: " >&6;}
 
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
+
 for ac_func in strcasestr
 do :
   ac_fn_c_check_func "$LINENO" "strcasestr" "ac_cv_func_strcasestr"
@@ -7441,14 +6996,6 @@ else
   am__EXEEXT_FALSE=
 fi
 
-if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
-  as_fn_error $? "conditional \"AMDEP\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
-  as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
 if test -z "${BUILD_MODULE_AFP_TRUE}" && test -z "${BUILD_MODULE_AFP_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_MODULE_AFP\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -7981,7 +7528,6 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 # Files that config.status was made for.
 config_files="$ac_config_files"
 config_headers="$ac_config_headers"
-config_commands="$ac_config_commands"
 
 _ACEOF
 
@@ -8010,9 +7556,6 @@ $config_files
 
 Configuration headers:
 $config_headers
-
-Configuration commands:
-$config_commands
 
 Report bugs to the package provider."
 
@@ -8136,11 +7679,6 @@ _ASBOX
 
 _ACEOF
 cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
-#
-# INIT-COMMANDS
-#
-AMDEP_TRUE="$AMDEP_TRUE" MAKE="${MAKE-make}"
-
 _ACEOF
 
 cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
@@ -8150,7 +7688,6 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
-    "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/modsrc/Makefile") CONFIG_FILES="$CONFIG_FILES src/modsrc/Makefile" ;;
@@ -8167,7 +7704,6 @@ done
 if $ac_need_defaults; then
   test "${CONFIG_FILES+set}" = set || CONFIG_FILES=$config_files
   test "${CONFIG_HEADERS+set}" = set || CONFIG_HEADERS=$config_headers
-  test "${CONFIG_COMMANDS+set}" = set || CONFIG_COMMANDS=$config_commands
 fi
 
 # Have a temporary directory for convenience.  Make it in the build tree
@@ -8464,7 +8000,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 fi # test -n "$CONFIG_HEADERS"
 
 
-eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS    :C $CONFIG_COMMANDS"
+eval set X "  :F $CONFIG_FILES  :H $CONFIG_HEADERS    "
 shift
 for ac_tag
 do
@@ -8742,111 +8278,9 @@ $as_echo X"$_am_arg" |
 	  s/.*/./; q'`/stamp-h$_am_stamp_count
  ;;
 
-  :C)  { $as_echo "$as_me:${as_lineno-$LINENO}: executing $ac_file commands" >&5
-$as_echo "$as_me: executing $ac_file commands" >&6;}
- ;;
-  esac
-
-
-  case $ac_file$ac_mode in
-    "depfiles":C) test x"$AMDEP_TRUE" != x"" || {
-  # Older Autoconf quotes --file arguments for eval, but not when files
-  # are listed without --file.  Let's play safe and only enable the eval
-  # if we detect the quoting.
-  # TODO: see whether this extra hack can be removed once we start
-  # requiring Autoconf 2.70 or later.
-  case $CONFIG_FILES in #(
-  *\'*) :
-    eval set x "$CONFIG_FILES" ;; #(
-  *) :
-    set x $CONFIG_FILES ;; #(
-  *) :
-     ;;
-esac
-  shift
-  # Used to flag and report bootstrapping failures.
-  am_rc=0
-  for am_mf
-  do
-    # Strip MF so we end up with the name of the file.
-    am_mf=`$as_echo "$am_mf" | sed -e 's/:.*$//'`
-    # Check whether this is an Automake generated Makefile which includes
-    # dependency-tracking related rules and includes.
-    # Grep'ing the whole file directly is not great: AIX grep has a line
-    # limit of 2048, but all sed's we know have understand at least 4000.
-    sed -n 's,^am--depfiles:.*,X,p' "$am_mf" | grep X >/dev/null 2>&1 \
-      || continue
-    am_dirpart=`$as_dirname -- "$am_mf" ||
-$as_expr X"$am_mf" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
-	 X"$am_mf" : 'X\(//\)[^/]' \| \
-	 X"$am_mf" : 'X\(//\)$' \| \
-	 X"$am_mf" : 'X\(/\)' \| . 2>/dev/null ||
-$as_echo X"$am_mf" |
-    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
-	    s//\1/
-	    q
-	  }
-	  /^X\(\/\/\)[^/].*/{
-	    s//\1/
-	    q
-	  }
-	  /^X\(\/\/\)$/{
-	    s//\1/
-	    q
-	  }
-	  /^X\(\/\).*/{
-	    s//\1/
-	    q
-	  }
-	  s/.*/./; q'`
-    am_filepart=`$as_basename -- "$am_mf" ||
-$as_expr X/"$am_mf" : '.*/\([^/][^/]*\)/*$' \| \
-	 X"$am_mf" : 'X\(//\)$' \| \
-	 X"$am_mf" : 'X\(/\)' \| . 2>/dev/null ||
-$as_echo X/"$am_mf" |
-    sed '/^.*\/\([^/][^/]*\)\/*$/{
-	    s//\1/
-	    q
-	  }
-	  /^X\/\(\/\/\)$/{
-	    s//\1/
-	    q
-	  }
-	  /^X\/\(\/\).*/{
-	    s//\1/
-	    q
-	  }
-	  s/.*/./; q'`
-    { echo "$as_me:$LINENO: cd "$am_dirpart" \
-      && sed -e '/# am--include-marker/d' "$am_filepart" \
-        | $MAKE -f - am--depfiles" >&5
-   (cd "$am_dirpart" \
-      && sed -e '/# am--include-marker/d' "$am_filepart" \
-        | $MAKE -f - am--depfiles) >&5 2>&5
-   ac_status=$?
-   echo "$as_me:$LINENO: \$? = $ac_status" >&5
-   (exit $ac_status); } || am_rc=$?
-  done
-  if test $am_rc -ne 0; then
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "Something went wrong bootstrapping makefile fragments
-    for automatic dependency tracking.  If GNU make was not used, consider
-    re-running the configure script with MAKE=\"gmake\" (or whatever is
-    necessary).  You can also try re-running configure with the
-    '--disable-dependency-tracking' option to at least be able to build
-    the package (albeit without support for automatic dependency tracking).
-See \`config.log' for more details" "$LINENO" 5; }
-  fi
-  { am_dirpart=; unset am_dirpart;}
-  { am_filepart=; unset am_filepart;}
-  { am_mf=; unset am_mf;}
-  { am_rc=; unset am_rc;}
-  rm -f conftest-deps.mk
-}
- ;;
 
   esac
+
 done # for ac_tag
 
 
