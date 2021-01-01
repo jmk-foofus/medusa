@@ -347,7 +347,7 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
 SUBDIRS = src
 man_MANS = doc/medusa.1
-EXTRA_DIST = doc/medusa.1 doc/*.html misc/net-analyzer/medusa-2.2.ebuild misc/zsh/_medusa
+EXTRA_DIST = doc/medusa.1 $(EXTRA_DIST_HTML) misc/net-analyzer/medusa-2.2.ebuild misc/zsh/_medusa
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -876,6 +876,8 @@ uninstall-man: uninstall-man1
 
 .PRECIOUS: Makefile
 
+
+EXTRA_DIST_HTML != ls $(srcdir)/doc/*.html
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

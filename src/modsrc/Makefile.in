@@ -607,7 +607,7 @@ web_form_mod_LDFLAGS = -fPIC
 wrapper_mod_LDFLAGS = -fPIC
 LDADD = @MODULE_LIBS@
 noinst_HEADERS = module.h d3des.h sha1.h hmacmd5.h http-digest.h ntlm.h
-EXTRA_DIST = wrapper/*.pl
+EXTRA_DIST = $(EXTRA_DIST_WRAPPER)
 all: all-am
 
 .SUFFIXES:
@@ -1138,6 +1138,7 @@ uninstall-am: uninstall-modulesPROGRAMS
 
 .PRECIOUS: Makefile
 
+EXTRA_DIST_WRAPPER != ls $(srcdir)/wrapper/*.pl 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
