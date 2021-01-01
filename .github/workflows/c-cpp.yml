@@ -11,6 +11,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: install dependencies 
+      run: sudo apt-get install autoconf automake 
     - name: configure
       run: ./configure
     - name: make
