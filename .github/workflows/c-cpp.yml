@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install dependencies 
-      run: autoreconf -i 
+      run: autoreconf -if 
     - name: configure
       run: ./configure
     - name: make
