@@ -11,17 +11,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: install dependencies 
+    - name: prepare autoconf
       run: autoreconf -if 
-    - name: --- minimal build ---
-    - name: install dependencies 
+    - name: install dependencies (minimal build) 
       run: sudo apt install build-essential autoconf libssl-dev 
     - name: configure
       run: ./configure
     - name: make
       run: make
-    - name: --- full build ---
-    - name: install dependencies 
+    - name: install dependencies (full build) 
       run: sudo apt install libpq5 libpq-dev libssh2-1 libssh2-1-dev libsvn-dev freerdp2-dev
     - name: configure
       run: ./configure
