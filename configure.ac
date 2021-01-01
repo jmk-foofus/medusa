@@ -752,12 +752,16 @@ else
 fi
 
 if test x"$check_module_svn" = "xtrue"; then
+  AC_CHECK_LIB(svn_client-1, svn_client_list4,
+    [AC_DEFINE(HAVE_SVN_CLIENT_LIST4, 1, [Found SVN Library version 1.10 or greater])],
+    [AC_MSG_WARN([Found SVN Library older than version 1.10])]
+  )
+
   AC_CHECK_LIB(svn_client-1, svn_client_list3,
     [AC_DEFINE(HAVE_SVN_CLIENT_LIST3, 1, [Found SVN Library version 1.8 or greater])],
     [AC_MSG_WARN([Found SVN Library older than version 1.8])]
   )
 fi
-    
 
 AC_MSG_CHECKING(whether to enable SVN module)
 AC_ARG_ENABLE(module-svn, 

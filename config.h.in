@@ -78,6 +78,9 @@
 /* Found SVN Library version 1.8 or greater */
 #undef HAVE_SVN_CLIENT_LIST3
 
+/* Found SVN Library version 1.10 or greater */
+#undef HAVE_SVN_CLIENT_LIST4
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
