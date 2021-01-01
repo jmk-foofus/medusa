@@ -38,7 +38,8 @@ if test -d "/usr/local/lib"
   then LDFLAGS="$LDFLAGS -L/usr/local/lib"
 fi
 
-CPPFLAGS="$CPPFLAGS -fPIC"
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -fPIC -D_GNU_SOURCE"
 CPPFLAGS="$CPPFLAGS -I/usr/include -I/usr/local/include -I${postgresql_prefix}/include/postgresql -I${postgresql_prefix}/include/pgsql -I${afpfsng_prefix}/include/afpfs-ng"
 
 AS_MESSAGE([checking for pthread support...])
@@ -97,7 +98,7 @@ AC_CHECK_LIB(crypto, CRYPTO_lock, [], [AC_MSG_WARN([ *** LibCrypto may be requir
 AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h, 
   [AC_CHECK_LIB(ssl, main,
     [AC_DEFINE(HAVE_LIBSSL, 1, [Found OpenSSL Library]) LIBS="$LIBS -lssl -lcrypto" check_libssl="true"],
-    [AC_MSG_WARN([ *** OpenSSL library required for SSL support. ***
+    [AC_MSG_ERROR([ *** OpenSSL library required for SSL support. ***
 
       Many of the Medusa modules depend on the OpenSSL library and header files. If
       multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -109,7 +110,7 @@ AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h,
 
     ])]
   )],
-  [AC_MSG_WARN([ *** OpenSSL header files required for SSL support. ***
+  [AC_MSG_ERROR([ *** OpenSSL header files required for SSL support. ***
   
     Many of the Medusa modules depend on the OpenSSL library and header files. If
     multiple modules are unexpectedly disabled, this is likely the cause. Make sure

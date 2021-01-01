@@ -4822,7 +4822,8 @@ if test -d "/usr/local/lib"
   then LDFLAGS="$LDFLAGS -L/usr/local/lib"
 fi
 
-CPPFLAGS="$CPPFLAGS -fPIC"
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -fPIC -D_GNU_SOURCE"
 CPPFLAGS="$CPPFLAGS -I/usr/include -I/usr/local/include -I${postgresql_prefix}/include/postgresql -I${postgresql_prefix}/include/pgsql -I${afpfsng_prefix}/include/afpfs-ng"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread support..." >&5
@@ -5172,7 +5173,7 @@ if test "x$ac_cv_lib_ssl_main" = xyes; then :
 $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
  LIBS="$LIBS -lssl -lcrypto" check_libssl="true"
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** OpenSSL library required for SSL support. ***
+  as_fn_error $? " *** OpenSSL library required for SSL support. ***
 
       Many of the Medusa modules depend on the OpenSSL library and header files. If
       multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -5182,23 +5183,12 @@ else
       If the headers are installed in a non-standard location, specify the path with
       \"--with-ssl\".
 
-    " >&5
-$as_echo "$as_me: WARNING:  *** OpenSSL library required for SSL support. ***
-
-      Many of the Medusa modules depend on the OpenSSL library and header files. If
-      multiple modules are unexpectedly disabled, this is likely the cause. Make sure
-      to install libssl-dev, openssl-devel or whatever package your distribution uses
-      to distribute these files.
-
-      If the headers are installed in a non-standard location, specify the path with
-      \"--with-ssl\".
-
-    " >&2;}
+    " "$LINENO" 5
 
 fi
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:  *** OpenSSL header files required for SSL support. ***
+  as_fn_error $? " *** OpenSSL header files required for SSL support. ***
 
     Many of the Medusa modules depend on the OpenSSL library and header files. If
     multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -5208,18 +5198,7 @@ else
     If the headers are installed in a non-standard location, specify the path with
     \"--with-ssl\".
 
-  " >&5
-$as_echo "$as_me: WARNING:  *** OpenSSL header files required for SSL support. ***
-
-    Many of the Medusa modules depend on the OpenSSL library and header files. If
-    multiple modules are unexpectedly disabled, this is likely the cause. Make sure
-    to install libssl-dev, openssl-devel or whatever package your distribution uses
-    to distribute these files.
-
-    If the headers are installed in a non-standard location, specify the path with
-    \"--with-ssl\".
-
-  " >&2;}
+  " "$LINENO" 5
 
 fi
 
@@ -8611,9 +8590,7 @@ $as_echo X/"$am_mf" |
     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "Something went wrong bootstrapping makefile fragments
-    for automatic dependency tracking.  If GNU make was not used, consider
-    re-running the configure script with MAKE=\"gmake\" (or whatever is
-    necessary).  You can also try re-running configure with the
+    for automatic dependency tracking.  Try re-running configure with the
     '--disable-dependency-tracking' option to at least be able to build
     the package (albeit without support for automatic dependency tracking).
 See \`config.log' for more details" "$LINENO" 5; }
