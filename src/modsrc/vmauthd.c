@@ -140,8 +140,8 @@ int initModule(sLogin* psLogin)
     params.nPort = psLogin->psServer->psAudit->iPortOverride;
   else
     params.nPort = PORT_VMAUTHD;
-   params.nSSLVersion = 3; /* VMware Authentication Daemon requires SSLv3 */
-   initConnectionParams(psLogin, &params);
+
+  initConnectionParams(psLogin, &params);
 
   while (nState != MSTATE_COMPLETE)
   {  

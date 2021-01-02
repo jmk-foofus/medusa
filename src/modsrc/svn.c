@@ -343,7 +343,11 @@ int tryLogin(sLogin** psLogin, _SVN_DATA* _psSessionData, char* szLogin, char* s
   revision.kind = svn_opt_revision_head;
 
   /* Main call into libsvn_client does all the work. */
-#ifdef HAVE_SVN_CLIENT_LIST3
+#ifdef HAVE_SVN_CLIENT_LIST4
+  canonical = svn_uri_canonicalize(_psSessionData->szURL, pool);
+  writeError(ERR_DEBUG_MODULE, "[%s] Canonicalized URL: %s", MODULE_NAME, canonical);
+  err = svn_client_list4(canonical, &revision, &revision, NULL, svn_depth_empty, SVN_DIRENT_ALL, FALSE, FALSE, print_dirent, &ctx->auth_baton, ctx, pool);
+#elif HAVE_SVN_CLIENT_LIST3
   canonical = svn_uri_canonicalize(_psSessionData->szURL, pool);
   writeError(ERR_DEBUG_MODULE, "[%s] Canonicalized URL: %s", MODULE_NAME, canonical);
   err = svn_client_list3(canonical, &revision, &revision, svn_depth_empty, SVN_DIRENT_ALL, FALSE, FALSE, print_dirent, &ctx->auth_baton, ctx, pool);

@@ -172,9 +172,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szMethod = malloc(strlen(pOpt) + 1);
-          memset(psSessionData->szMethod, 0, strlen(pOpt) + 1);
-          strncpy(psSessionData->szMethod, pOpt, strlen(pOpt) + 1);
+          psSessionData->szMethod = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method METHOD requires value to be set.");
@@ -204,8 +202,8 @@ int go(sLogin* logins, int argc, char *argv[])
             psSessionData->szCustomHeader = realloc(psSessionData->szCustomHeader, nCustomHeadersSize + strlen(pOpt) + 3);
 
           memset(psSessionData->szCustomHeader + nCustomHeadersSize, 0, strlen(pOpt) + 3);
-          strncpy(psSessionData->szCustomHeader + nCustomHeadersSize, pOpt, strlen(pOpt));
-          strncpy(psSessionData->szCustomHeader + nCustomHeadersSize + strlen(pOpt), "\r\n", 2);
+          strcpy(psSessionData->szCustomHeader + nCustomHeadersSize, pOpt);
+          strcpy(psSessionData->szCustomHeader + nCustomHeadersSize + strlen(pOpt), "\r\n");
           nCustomHeadersSize = strlen(psSessionData->szCustomHeader);
         }
         else

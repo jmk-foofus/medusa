@@ -39,9 +39,8 @@
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
 #define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
 
-#define BUF_SIZE 300
-
 #define PORT_RSH 514
+#define RECEIVE_DELAY 1000000 /* Response wait time (usec) */
 
 // Tells us whether we are to continue processing or not
 enum MODULE_STATE
@@ -217,44 +216,37 @@ int initModule(sLogin* psLogin)
 int tryLogin(int hSocket, sLogin** psLogin, char* szLogin, char* szPassword)
 {
   int iRet;
-  unsigned char bufSend[BUF_SIZE];
+  unsigned char* bufSend;
   unsigned char* bufReceive;
   int nReceiveBufferSize = 0;
+  int nSendBufferSize = 0;
   
-  /* Rsh could care less what the password is */
-  szPassword=szLogin;
+  /* NOTE: No password required for rsh/rlogin */
+  szPassword = szLogin;
 
-  /* send username */
-  memset(bufSend, 0, sizeof(bufSend));
-  bufSend[0]=0x00;
-  strncpy((char *)bufSend+1, szLogin, strlen(szLogin));
-  bufSend[strlen(szLogin)+1]=0x00;
-  strncpy((char *)bufSend+2+strlen(szLogin), szPassword, strlen(szPassword));
-  bufSend[strlen(szLogin)+1+strlen(szPassword)+1]=0x00;
-  strncpy((char *)bufSend+1+strlen(szLogin)+1+strlen(szPassword)+1, "id", 3);
-  bufSend[strlen(szLogin)+1+strlen(szPassword)+1+3]=0x00;
+  /* send: 0x00/username/0x00/username/0x00/id/0x00 */
+  nSendBufferSize = 1 + strlen(szLogin) + 1 + strlen(szLogin) + 1 + 2 + 1;
+  bufSend = malloc(nSendBufferSize);
+  memset(bufSend, 0, nSendBufferSize);
+  memcpy(bufSend + 1, szLogin, strlen(szLogin));
+  memcpy(bufSend + 1 + strlen(szLogin) + 1, szLogin, strlen(szLogin));
+  strcpy(bufSend + 1 + strlen(szLogin) + 1 + strlen(szLogin) + 1, "id");
 
-  if (medusaSend(hSocket, bufSend, strlen(szLogin)+1+strlen(szPassword)+1+4 , 0) < 0)
+  if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
   }
+  FREE(bufSend);
  
   nReceiveBufferSize = 0;
-  /* this is the port that the client should listen to for
-     stderr. We should really check this but we're going to skip */
-  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
-  if (bufReceive == NULL)
-  {
-    writeError(ERR_ERROR, "%s failed: medusaReceive returned no data. Which ends rsh test.", MODULE_NAME);
-    return FAILURE;
-  }
-  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  bufReceive = medusaReceiveRawDelay(hSocket, &nReceiveBufferSize, RECEIVE_DELAY, RECEIVE_DELAY);
   if (bufReceive == NULL)
   {
     writeError(ERR_ERROR, "%s failed: medusaReceive returned no data. Exiting...", MODULE_NAME);
     return FAILURE;
   }
-  else if (strstr((char *)bufReceive, "uid") != NULL)
+  /* response starts with null */
+  else if ((nReceiveBufferSize > 1) && (strstr((char *)bufReceive + 1, "uid") != NULL))
   {
     writeError(ERR_DEBUG_MODULE, "%s : Login attempt successful.", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;

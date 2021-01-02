@@ -485,7 +485,7 @@ int MySQLPrepareAuthOld(_MYSQL_DATA *_psSessionData, char* szLogin, char* szPass
   response[7] = 0x00;
   response[8] = 0x00;
   
-  strncpy((char*)response + 9, szLogin, login_len);
+  memcpy((char*)response + 9, szLogin, login_len);
 
   response[9 + login_len] = '\0';       /* null terminate login */
   
@@ -562,7 +562,7 @@ int MySQLPrepareAuth(_MYSQL_DATA *_psSessionData, char* szLogin, char* szPasswor
   
   response[12] = 0x21;                /* charset utf8 */
 
-  strncpy((char*)response + 36, szLogin, login_len);  /* NULL terminated username */
+  memcpy((char*)response + 36, szLogin, login_len);  /* NULL terminated username */
 
   if ( strcmp(szPassword, "") == 0 ) /* no password set */
   {

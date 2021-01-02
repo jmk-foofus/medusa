@@ -861,11 +861,11 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
   memset(ms_user, 0, 256);
   memset(ms_passwd, 0, 64);
 
-  if ((_psSessionData->szDomain) && (strlen(_psSessionData->szDomain) + 1 + strlen(szLogin) < 256))
+  if ((_psSessionData->szDomain) && ((strlen(_psSessionData->szDomain) + 1 + strlen(szLogin)) < 256))
   { 
-    strncpy((char *)ms_user, _psSessionData->szDomain, strlen(_psSessionData->szDomain));
-    strncat((char *)ms_user, "\\", 1);
-    strncat((char *)ms_user, szLogin, strlen(szLogin));
+    strcpy((char *)ms_user, _psSessionData->szDomain);
+    strcat((char *)ms_user, "\\");
+    strcat((char *)ms_user, szLogin);
   }
   else
     strncpy((char *)ms_user, szLogin, 256);

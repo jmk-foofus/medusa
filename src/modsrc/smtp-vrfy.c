@@ -176,8 +176,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szHELO = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szHELO, pOpt, strlen(pOpt));
+          psSessionData->szHELO =strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method HELODOMAIN requires value to be set.");
@@ -189,8 +188,7 @@ int go(sLogin* logins, int argc, char *argv[])
 
         if ( pOpt )
         {
-          psSessionData->szMAILFROM = malloc(strlen(pOpt));
-          strncpy((char *) psSessionData->szMAILFROM, pOpt, strlen(pOpt));
+          psSessionData->szMAILFROM = strdup(pOpt);
         }
         else
           writeError(ERR_WARNING, "Method MAILFROM requires value to be set.");
@@ -432,7 +430,6 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
     {
       FREE(bufReceive);
      
-      params->nSSLVersion = 3.1; /* Force the use of TLSv1 */ 
       if (medusaConnectSocketSSL(params, hSocket) < 0)
       {
         writeError(ERR_ERROR, "[%s] Failed to establish SSLv3 connection.", MODULE_NAME);
