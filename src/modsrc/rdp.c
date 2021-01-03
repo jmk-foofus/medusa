@@ -52,6 +52,7 @@
 typedef struct __MODULE_DATA {
   char* szDomain;
   int isPassTheHash;
+  int isBlankPassword;
 } _MODULE_DATA;
 
 // Tells us whether we are to continue processing or not
@@ -198,6 +199,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
   enum MODULE_STATE nState = MSTATE_NEW;
   sCredentialSet *psCredSet = NULL;
   freerdp* instance;
+  wLog *root;
 
   /* Retrieve next available credential set to test */
   psCredSet = malloc( sizeof(sCredentialSet) );
@@ -223,6 +225,13 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
     switch (nState)
     {
       case MSTATE_NEW:
+        /* Suppress FreeRDP library FreeRDP output */
+        root = WLog_GetRoot();
+        if ((iVerboseLevel <= 5) && (iErrorLevel <= 5))
+          WLog_SetStringLogLevel(root, "OFF");
+        else
+          WLog_SetStringLogLevel(root, "INFO");
+
         instance = freerdp_new();
         instance->PreConnect = (signed int (*)(struct rdp_freerdp *))tf_pre_connect;
         instance->PostConnect = (signed int (*)(struct rdp_freerdp *))tf_post_connect;
@@ -266,6 +275,12 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
           }
           else
             writeError(ERR_DEBUG_MODULE, "[%s] Next credential set - user: %s password: %s", MODULE_NAME, psCredSet->psUser->pUser, psCredSet->pPass);
+
+            /* FreeRDP session needs to be reset following blank password logon attempt. */ 
+            if (_psSessionData->isBlankPassword) {
+              _psSessionData->isBlankPassword = FALSE;
+              nState = MSTATE_NEW;
+            }
         }
 
         break;
@@ -450,27 +465,10 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     instance->settings->ConsoleSession = TRUE;
     instance->settings->RestrictedAdminModeRequired = TRUE;
     instance->settings->PasswordHash = NTLM_HASH_BLANK;
+    _psSessionData->isBlankPassword = TRUE;
   }
 
-  /* Suppress FreeRDP library FreeRDP output */
-  if ((iVerboseLevel <= 5) && (iErrorLevel <= 5))
-  {
-    pthread_mutex_lock(&(*psLogin)->psServer->psAudit->ptmMutex);
-    old_stderr = dup(1);
-    old_stdout = dup(1);
-    (void)(freopen("/dev/null", "w", stderr) + 1); /* ignore return code */
-    (void)(freopen("/dev/null", "w", stdout) + 1); /* ignore return code */
-
-    nRet = freerdp_connect(instance);
-
-    fclose(stderr);
-    fclose(stdout);
-    stderr = fdopen(old_stderr, "w");
-    stdout = fdopen(old_stdout, "w");
-    pthread_mutex_unlock(&(*psLogin)->psServer->psAudit->ptmMutex);
-  }
-  else
-    nRet = freerdp_connect(instance);
+  nRet = freerdp_connect(instance);
 
   writeError(ERR_DEBUG_MODULE, "[%s] freerdp_connect exit code: %d", MODULE_NAME, nRet);
   if (nRet == 1)
