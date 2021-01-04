@@ -6,7 +6,7 @@ dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
@@ -97,7 +97,7 @@ AC_CHECK_LIB(crypto, CRYPTO_lock, [], [AC_MSG_WARN([ *** LibCrypto may be requir
 AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h, 
   [AC_CHECK_LIB(ssl, main,
     [AC_DEFINE(HAVE_LIBSSL, 1, [Found OpenSSL Library]) LIBS="$LIBS -lssl -lcrypto" check_libssl="true"],
-    [AC_MSG_WARN([ *** OpenSSL library required for SSL support. ***
+    [AC_MSG_ERROR([ *** OpenSSL library required for SSL support. ***
 
       Many of the Medusa modules depend on the OpenSSL library and header files. If
       multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -109,7 +109,7 @@ AC_CHECK_HEADERS(openssl/ssl.h openssl/crypto.h,
 
     ])]
   )],
-  [AC_MSG_WARN([ *** OpenSSL header files required for SSL support. ***
+  [AC_MSG_ERROR([ *** OpenSSL header files required for SSL support. ***
   
     Many of the Medusa modules depend on the OpenSSL library and header files. If
     multiple modules are unexpectedly disabled, this is likely the cause. Make sure
@@ -923,6 +923,9 @@ AC_MSG_NOTICE([ disabled. To enable non-default modules, use the ])
 AC_MSG_NOTICE([ "--enable-module-MODULE_NAME" configure option.])
 AC_MSG_NOTICE([*******************************************************])
 AC_MSG_NOTICE([])
+
+# strcasestr() is a nonstandard extension and requires _GNU_SOURCE (https://linux.die.net/man/3/strcasestr)
+CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
 
 AC_CHECK_FUNCS(strcasestr)
 AC_CHECK_FUNCS(asprintf)

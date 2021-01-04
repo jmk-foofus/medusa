@@ -43,7 +43,7 @@
 #define PORT_SMTP 25
 #define PORT_SMTPS 465
 
-#define BUF_SIZE 300
+#define BUF_SIZE 600 
 
 #define RECEIVE_DELAY_1 20 * 1000000
 #define RECEIVE_DELAY_2 0.5 * 1000000
