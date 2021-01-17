@@ -536,6 +536,47 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl ********** SMB2 Medusa Module ********** 
+check_module_smb2="false"
+module_smb2_headers="false"
+
+PKG_CHECK_MODULES(LIBSMB2, libsmb2)
+CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
+
+AS_MESSAGE([checking for libsmb2 Library and Header files...])
+AC_CHECK_HEADER([smb2/libsmb2.h],
+  [AC_CHECK_LIB(smb2, main,
+    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS $LIBSMB2_LIBS" check_module_smb2="true"],
+    [AC_MSG_WARN([ *** libsmb2 library required for SMB2 module. ***
+
+       https://github.com/sahlberg/libsmb2
+
+    ])]
+  )],
+  [AC_MSG_WARN([ *** libsmb2 header files required for SMB2 module. ***
+
+      https://github.com/sahlberg/libsmb2
+
+  ])]
+)
+
+AC_MSG_CHECKING(whether to enable SMB2 module)
+AC_ARG_ENABLE(module-smb2,
+              [  --enable-module-smb2=[no/yes]          Enable SMB2 module (default=yes)],
+              [case "${enableval}" in
+                yes) enable_module_smb2=true ;;
+                no)  enable_module_smb2=false ;;
+                *)   AC_MSG_ERROR([bad value ${enableval} for --enable-module-smb2]) ;;
+              esac],
+              [enable_module_smb2=$check_module_smb2])
+
+AM_CONDITIONAL(BUILD_MODULE_SMB2, test x"$enable_module_smb2" = "xtrue")
+if test x"$enable_module_smb2" = "xtrue"; then
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+
 dnl ********** SMTP Medusa Module ********** 
 AC_MSG_CHECKING(whether to enable SMTP module)
 AC_ARG_ENABLE(module-smtp, 
@@ -901,6 +942,7 @@ show_build_status "${enable_module_rexec}"      "    REXEC          "
 show_build_status "${enable_module_rlogin}"     "    RLOGIN         "
 show_build_status "${enable_module_rsh}"        "    RSH            "
 show_build_status "${enable_module_smbnt}"      "    SMBNT          "
+show_build_status "${enable_module_smb2}"       "    SMB2           "
 show_build_status "${enable_module_smtp}"       "    SMTP           "
 show_build_status "${enable_module_smtp_vrfy}"  "    SMTP-VRFY      "
 show_build_status "${enable_module_snmp}"       "    SNMP           "

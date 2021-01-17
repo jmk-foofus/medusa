@@ -2,8 +2,8 @@
 modulesdir = $(libdir)/medusa/modules
 
 EXTRA_PROGRAMS = afp.mod cvs.mod ftp.mod http.mod imap.mod mssql.mod mysql.mod ncp.mod nntp.mod pcanywhere.mod \
-                 pop3.mod postgres.mod rdp.mod rexec.mod rlogin.mod rsh.mod smbnt.mod smtp.mod smtp-vrfy.mod \
-                 snmp.mod ssh.mod svn.mod telnet.mod vmauthd.mod vnc.mod web-form.mod wrapper.mod 
+                 pop3.mod postgres.mod rdp.mod rexec.mod rlogin.mod rsh.mod smbnt.mod smb2.mod smtp.mod \
+                 smtp-vrfy.mod snmp.mod ssh.mod svn.mod telnet.mod vmauthd.mod vnc.mod web-form.mod wrapper.mod 
 
 modules_PROGRAMS = 
 if BUILD_MODULE_AFP
@@ -74,6 +74,10 @@ if BUILD_MODULE_SMBNT
   modules_PROGRAMS += smbnt.mod
 endif
 
+if BUILD_MODULE_SMB2
+  modules_PROGRAMS += smb2.mod
+endif
+
 if BUILD_MODULE_SMTP
   modules_PROGRAMS += smtp.mod
 endif
@@ -131,6 +135,7 @@ rexec_mod_SOURCES = rexec.c ../medusa-trace.c
 rlogin_mod_SOURCES = rlogin.c ../medusa-trace.c
 rsh_mod_SOURCES = rsh.c ../medusa-trace.c
 smbnt_mod_SOURCES = smbnt.c hmacmd5.c ../medusa-trace.c
+smb2_mod_SOURCES = smb2.c hmacmd5.c ../medusa-trace.c
 smtp_mod_SOURCES = smtp.c ntlm.c ../medusa-trace.c
 smtp_vrfy_mod_SOURCES = smtp-vrfy.c ../medusa-trace.c
 snmp_mod_SOURCES = snmp.c ../medusa-trace.c
@@ -160,6 +165,7 @@ rexec_mod_LDFLAGS = -fPIC
 rlogin_mod_LDFLAGS = -fPIC
 rsh_mod_LDFLAGS = -fPIC
 smbnt_mod_LDFLAGS = -fPIC
+smb2_mod_LDFLAGS = -fPIC
 smtp_mod_LDFLAGS = -fPIC 
 smtp_vrfy_mod_LDFLAGS = -fPIC 
 snmp_mod_LDFLAGS = -fPIC 
