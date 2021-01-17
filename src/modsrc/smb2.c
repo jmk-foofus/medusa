@@ -128,12 +128,12 @@
 #define AUTH_NTLM 13
 #define AUTH_LMv2 14
 #define AUTH_NTLMv2 15
-#define SMBv2 16 
+#define SMBv2 16
 
 #ifndef CHAR_BIT
 #define CHAR_BIT 8
 #endif
- 
+
 #ifndef TIME_T_MIN
 #define TIME_T_MIN ((time_t)0 < (time_t) -1 ? (time_t) 0 \
         : ~ (time_t) 0 << (sizeof (time_t) * CHAR_BIT - 1))
@@ -150,7 +150,7 @@
 #elif (SIZEOF_LONG_LONG == 8)
 #define TIME_FIXUP_CONSTANT_INT 11644473600LL
 #endif
-    
+
 /* libsmb2:include/libsmb2-private.h */
 #ifndef SMB2_SEC_NTLMSSP
 #define SMB2_SEC_UNDEFINED 0 /* use KRB if available, otherwise NTLM */
@@ -188,6 +188,7 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin);
 int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData);
 int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData);
 int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData);
+int SMB2NegProt(int hSocket, _SMBNT_DATA* _psSessionData);
 
 extern void hmac_md5_init_limK_to_64(const unsigned char* key, int key_len, HMACMD5Context *ctx);
 extern void hmac_md5_update(const unsigned char *text, int text_len, HMACMD5Context *ctx);
@@ -211,8 +212,8 @@ void summaryUsage(char **ppszSummary)
     *ppszSummary = (char*)malloc(iLength);
     memset(*ppszSummary, 0, iLength);
     snprintf(*ppszSummary, iLength, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION);
-  } 
-  else 
+  }
+  else
   {
     writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
   }
@@ -251,19 +252,19 @@ void showUsage()
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Usage examples:");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "1: Normal boring check..."); 
+  writeVerbose(VB_NONE, "1: Normal boring check...");
   writeVerbose(VB_NONE, "    medusa -M smbnt -h somehost -u someuser -p somepassword");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "2: Testing domain credentials against a client system..."); 
+  writeVerbose(VB_NONE, "2: Testing domain credentials against a client system...");
   writeVerbose(VB_NONE, "    medusa -M smbnt -h somehost -U users.txt -p password -m GROUP:DOMAIN");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "3: Testing each credential from a PwDump file against the target's domain via the target..."); 
+  writeVerbose(VB_NONE, "3: Testing each credential from a PwDump file against the target's domain via the target...");
   writeVerbose(VB_NONE, "    medusa -M smbnt -h somehost -C pwdump.txt -m PASS:HASH -m GROUP:DOMAIN");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "4: Testing each hash from a PwDump file against a specific user local to the target..."); 
+  writeVerbose(VB_NONE, "4: Testing each hash from a PwDump file against a specific user local to the target...");
   writeVerbose(VB_NONE, "    medusa -M smbnt -H hosts.txt -C pwdump.txt -u someuser -m PASS:HASH");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "5: Testing an individual NTLM hash..."); 
+  writeVerbose(VB_NONE, "5: Testing an individual NTLM hash...");
   writeVerbose(VB_NONE, "    medusa -M smbnt -H hosts.txt -u administrator -p 92D887C8010492C2944E2DF489A880E4:7A2EDE4F51BC5A03984C6BA2C239CF63::: -m PASS:HASH");
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Access level:");
@@ -286,7 +287,7 @@ int go(sLogin* logins, int argc, char *argv[])
   int i;
   char *strtok_ptr = NULL, *pOpt = NULL, *pOptTmp = NULL;
   _SMBNT_DATA *psSessionData = NULL;
-  psSessionData = malloc(sizeof(_SMBNT_DATA));  
+  psSessionData = malloc(sizeof(_SMBNT_DATA));
   memset(psSessionData, 0, sizeof(_SMBNT_DATA));
 
   if ((argc < 0) || (argc > 5))
@@ -294,10 +295,10 @@ int go(sLogin* logins, int argc, char *argv[])
     writeError(ERR_ERROR, "%s: Incorrect number of parameters passed to module (%d). Use \"-q\" option to display module usage.", MODULE_NAME, argc);
     return FAILURE;
   }
-  else 
+  else
   {
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
- 
+
     psSessionData->authLevel = AUTH_LMv2;
     psSessionData->accntFlag = LOCAL;
     psSessionData->hashFlag = PASSWORD;
@@ -308,7 +309,7 @@ int go(sLogin* logins, int argc, char *argv[])
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
       writeError(ERR_DEBUG_MODULE, "Processing option: %s", pOpt);
-      
+
       if (strcmp(pOpt, "GROUP") == 0)
       {
         pOpt = strtok_r(NULL, "\0", &strtok_ptr);
@@ -329,7 +330,7 @@ int go(sLogin* logins, int argc, char *argv[])
       {
         pOpt = strtok_r(NULL, "\0", &strtok_ptr);
         writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
-    
+
         if ( pOpt )
         {
           strncpy((char *) psSessionData->workgroup_other, pOpt, 16);
@@ -341,7 +342,7 @@ int go(sLogin* logins, int argc, char *argv[])
       else if (strcmp(pOpt, "PASS") == 0) {
         pOpt = strtok_r(NULL, "\0", &strtok_ptr);
         writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
-        
+
         if (pOpt == NULL)
           writeError(ERR_WARNING, "Method PASS requires value to be set.");
         else if (strcmp(pOpt, "PASSWORD") == 0)
@@ -356,7 +357,7 @@ int go(sLogin* logins, int argc, char *argv[])
       else if (strcmp(pOpt, "AUTH") == 0) {
         pOpt = strtok_r(NULL, "\0", &strtok_ptr);
         writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
-        
+
         if (pOpt == NULL)
           writeError(ERR_WARNING, "Method AUTH requires value to be set.");
         else if (strcmp(pOpt, "LM") == 0)
@@ -378,16 +379,16 @@ int go(sLogin* logins, int argc, char *argv[])
       {
         psSessionData->protoFlag = WIN_NETBIOSMODE;
       }
-      else 
+      else
       {
         writeError(ERR_WARNING, "Invalid method: %s.", pOpt);
       }
-    
+
       FREE(pOptTmp);
     }
- 
+
     initModule(logins, psSessionData);
-  }  
+  }
 
   FREE(psSessionData);
   return SUCCESS;
@@ -403,14 +404,14 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
 
   psCredSet = malloc( sizeof(sCredentialSet) );
   memset(psCredSet, 0, sizeof(sCredentialSet));
- 
+
   if (getNextCredSet(psLogin, psCredSet) == FAILURE)
   {
     writeError(ERR_ERROR, "[%s] Error retrieving next credential set to test.", MODULE_NAME);
     nState = MSTATE_COMPLETE;
   }
   else if (psCredSet->psUser)
-  {  
+  {
     writeError(ERR_DEBUG_MODULE, "[%s] module started for host: %s user: %s", MODULE_NAME, psLogin->psServer->pHostIP, psCredSet->psUser->pUser);
     szUser = parseFullyQualifiedUsername(_psSessionData, psCredSet->psUser->pUser);
   }
@@ -421,23 +422,23 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
   }
 
   memset(&params, 0, sizeof(sConnectParams));
-  
+
   if (psLogin->psServer->psAudit->iPortOverride > 0)
     params.nPort = psLogin->psServer->psAudit->iPortOverride;
   else
     params.nPort = PORT_SMBNT;
-  
+
   initConnectionParams(psLogin, &params);
 
   while (nState != MSTATE_COMPLETE)
-  {  
+  {
     switch (nState)
     {
       case MSTATE_NEW:
         // Already have an open socket - close it
         if (hSocket > 0)
           medusaDisconnect(hSocket);
-  
+
         if (params.nPort == PORT_SMBNT) {
           hSocket = medusaConnect(&params);
           if ( hSocket < 0 ) {
@@ -450,8 +451,8 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         else {
           hSocket = medusaConnect(&params);
         }
-        
-        if (hSocket < 0) 
+
+        if (hSocket < 0)
         {
           writeError(ERR_ERROR, "%s: failed to connect, port %d was not open on %s", MODULE_NAME, params.nPort, psLogin->psServer->pHostIP);
           psLogin->iResult = LOGIN_RESULT_UNKNOWN;
@@ -459,31 +460,45 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         }
 
         writeError(ERR_DEBUG_MODULE, "Connected");
- 
+
         if (NBSTATQuery(psLogin, _psSessionData) < 0) {
           writeError(ERR_ERROR, "NetBIOS Name Query Failed with host: %s (proceeding anyways).", psLogin->psServer->pHostIP);
         }
-        
+
         if (NBSSessionRequest(hSocket, _psSessionData) < 0) {
           writeError(ERR_ERROR, "Session Setup Failed with host: %s. Is the server service running?", psLogin->psServer->pHostIP);
           psLogin->iResult = LOGIN_RESULT_UNKNOWN;
           return FAILURE;
         }
-        
+
         if (SMBNegProt(hSocket, _psSessionData) < 0)
         {
-          writeError(ERR_ERROR, "SMB Protocol Negotiation Failed with host: %s", psLogin->psServer->pHostIP);
-          psLogin->iResult = LOGIN_RESULT_UNKNOWN;
-          return FAILURE;
+          writeError(ERR_DEBUG_MODULE, "[%s] SMBv1 protocol negotiation failed with host: %s. Attempting SMBv2 connection.", MODULE_NAME, psLogin->psServer->pHostIP);
+
+          if (hSocket > 0)
+            medusaDisconnect(hSocket);
+
+          hSocket = medusaConnect(&params);
+
+          if (SMB2NegProt(hSocket, _psSessionData) < 0)
+          {
+            writeError(ERR_ERROR, "SMBv2 protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
+            psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+
+            return FAILURE;
+          }
+          else {
+            nState = MSTATE_RUNNING;
+          }
         }
         else {
           nState = MSTATE_RUNNING;
         }
-        
+
         break;
       case MSTATE_RUNNING:
         nState = tryLogin(hSocket, &psLogin, _psSessionData, szUser, psCredSet->pPass);
-        
+
         if (psLogin->iResult != LOGIN_RESULT_UNKNOWN)
         {
           if (getNextCredSet(psLogin, psCredSet) == FAILURE)
@@ -525,24 +540,24 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         smb2_destroy_context(_psSessionData->smb2);
         psLogin->iResult = LOGIN_RESULT_UNKNOWN;
         return FAILURE;
-    }  
+    }
   }
 
   writeError(ERR_DEBUG_MODULE, "[%s] Exiting module...", MODULE_NAME);
- 
+
   FREE(psCredSet);
   FREE(szUser);
   return SUCCESS;
 }
 
 /* SMBNT Specific Functions */
- 
+
 /* Split DOMAIN\USER style usernames */
 char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin)
 {
   char *strtok_ptr = NULL, *pOpt = NULL, *pOptTmp = NULL;
   char *szUser = NULL;
- 
+
   if ( strstr(szLogin, "\\") || strstr(szLogin, "\\\\") )
   {
     if ((_psSessionData->accntFlag == NTDOMAIN) || (_psSessionData->accntFlag == OTHER))
@@ -553,10 +568,10 @@ char* parseFullyQualifiedUsername(_SMBNT_DATA *_psSessionData, char* szLogin)
     pOptTmp = strdup(szLogin);
     writeError(ERR_DEBUG_MODULE, "Processing domain and username: %s", pOptTmp);
 
-    pOpt = strtok_r(pOptTmp, "\\", &strtok_ptr); 
+    pOpt = strtok_r(pOptTmp, "\\", &strtok_ptr);
     strncpy((char *) _psSessionData->workgroup_other, pOpt, 16);
     writeError(ERR_DEBUG_MODULE, "Processing domain: %s", _psSessionData->workgroup_other);
-    
+
     pOpt = strtok_r(NULL, "\\", &strtok_ptr);
     szUser = strdup(pOpt);
     writeError(ERR_DEBUG_MODULE, "Processing username: %s", szUser);
@@ -655,7 +670,7 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
     }
     else if (*p == 'N') {
       writeError(ERR_DEBUG_MODULE, "Found \"NO PASSWORD\" for LM Hash.");
-      
+
       /* Generate 16-byte LM hash */
       DesEncrypt(magic, &password[0], &lm_hash[0]);
       DesEncrypt(magic, &password[7], &lm_hash[8]);
@@ -672,11 +687,11 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
 
           if (!(((HexChar >= 0x30) && (HexChar <= 0x39)) ||       /* 0 - 9 */
                 ((HexChar >= 0x61) && (HexChar <= 0x66)))) {      /* a - f */
-            
+
             writeError(ERR_ERROR, "Error invalid char (%c) for hash.", HexChar);
             return FAILURE;
           }
-  
+
           HexChar -= 0x30;
           if (HexChar > 0x09)     /* HexChar is "a" - "f" */
             HexChar -= 0x27;
@@ -695,7 +710,7 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
         pass = _psSessionData->machine_name;
       }
     }
-    
+
     /* convert lower case characters to upper case */
     strncpy((char *)password, (char *)pass, 14);
     for (i = 0; i < 14; i++) {
@@ -708,7 +723,7 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
     DesEncrypt(magic, &password[7], &lm_hash[8]);
   }
 
-  /* 
+  /*
     NULL-pad 16-byte LM hash to 21-bytes
     Split resultant value into three 7-byte thirds
     DES-encrypt challenge using each third as a key
@@ -725,7 +740,7 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
 
 /*
   MakeNTLM
-  Function: Create a NTLM hash from the password 
+  Function: Create a NTLM hash from the password
 */
 int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char *pass)
 {
@@ -760,7 +775,7 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
     else if (*p == 'N') {
       writeError(ERR_DEBUG_MODULE, "Found \"NO PASSWORD\" for NTLM Hash.");
       pass = NO_PASSWORD;
- 
+
       /* Initialize the Unicode version of the secret (== password). */
       /* This implicitly supports 8-bit ISO8859/1 characters. */
       bzero(unicodePassword, sizeof(unicodePassword));
@@ -784,11 +799,11 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
 
           if (!(((HexChar >= 0x30) && (HexChar <= 0x39)) ||       /* 0 - 9 */
                 ((HexChar >= 0x61) && (HexChar <= 0x66)))) {      /* a - f */
-            
+
             writeError(ERR_ERROR, "Error invalid char (%c) for hash.", HexChar);
             return FAILURE;
           }
-  
+
           HexChar -= 0x30;
           if (HexChar > 0x09)     /* HexChar is "a" - "f" */
             HexChar -= 0x27;
@@ -807,7 +822,7 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
         pass = _psSessionData->machine_name;
       }
     }
-   
+
     /* Initialize the Unicode version of the secret (== password). */
     /* This implicitly supports 8-bit ISO8859/1 characters. */
     bzero(unicodePassword, sizeof(unicodePassword));
@@ -860,7 +875,7 @@ int HashNTLM(_SMBNT_DATA *_psSessionData, unsigned char **ntlmhash, unsigned cha
 /*
   HashLMv2
 
-  This function implements the LMv2 response algorithm. The LMv2 response is used to 
+  This function implements the LMv2 response algorithm. The LMv2 response is used to
   provide pass-through authentication compatibility with older servers. The response
   is based on the NTLM password hash and is exactly 24 bytes.
 
@@ -916,21 +931,21 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
       unicodeUsername[i * 2] = (unsigned char) szLogin[i] - 0x20;
     else
       unicodeUsername[i * 2] = (unsigned char) szLogin[i];
-  } 
+  }
 
   bzero(unicodeTarget, sizeof(unicodeTarget));
   for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
     unicodeTarget[i * 2] = (unsigned char)_psSessionData->workgroup[i];
-  
+
   hmac_md5_init_limK_to_64(ntlm_hash, 16, &ctx);
   hmac_md5_update((const unsigned char *)unicodeUsername, 2 * strlen((char *)szLogin), &ctx);
   hmac_md5_update((const unsigned char *)unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup), &ctx);
   hmac_md5_final(kr_buf, &ctx);
- 
+
   /* --- HMAC #2 Calculations --- */
   /*
-    The challenge from the Type 2 message is concatenated with our fixed client nonce. The HMAC-MD5 
-    message authentication code algorithm is applied to this value using the 16-byte NTLMv2 hash 
+    The challenge from the Type 2 message is concatenated with our fixed client nonce. The HMAC-MD5
+    message authentication code algorithm is applied to this value using the 16-byte NTLMv2 hash
     (calculated above) as the key. This results in a 16-byte output value.
   */
   hmac_md5_init_limK_to_64(kr_buf, 16, &ctx);
@@ -940,7 +955,7 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
 
   /* --- 24-byte LMv2 Response Complete --- */
   *LMv2hash = malloc(24);
-  memset(*LMv2hash, 0, 24); 
+  memset(*LMv2hash, 0, 24);
   memcpy(*LMv2hash, lmv2_response, 16);
   memcpy(*LMv2hash + 16, client_challenge, 8);
 
@@ -954,9 +969,9 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
   This function implements the NTLMv2 response algorithm. Support for this algorithm
   was added with Microsoft Windows with NT 4.0 SP4. It should be noted that code doesn't
   currently work with Microsoft Vista. While NTLMv2 authentication with Samba and Windows
-  2003 functions as expected, Vista systems respond with the oh-so-helpful 
-  "INVALID_PARAMETER" error code. LMv2-only authentication appears to work against Vista 
-  in cases where LM and NTLM are refused. 
+  2003 functions as expected, Vista systems respond with the oh-so-helpful
+  "INVALID_PARAMETER" error code. LMv2-only authentication appears to work against Vista
+  in cases where LM and NTLM are refused.
 
   The below code is based heavily on the following two resources:
 
@@ -965,7 +980,7 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
 
   NTLMv2 network authentication is required when attempting to authenticated to
   a system which has the following policy enforced:
-  
+
   GPO:     "Network Security: LAN Manager authentication level"
   Setting: "Send NTLMv2 response only\refuse LM & NTLM"
 */
@@ -984,7 +999,7 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   /*
     -- Example NTLMv2 Response Data --
 
-    [0]       HMAC: (16 bytes) 
+    [0]       HMAC: (16 bytes)
 
     [16]      Header: Blob Signature [01 01 00 00] (4 bytes)
     [20]      Reserved: [00 00 00 00] (4 bytes)
@@ -992,11 +1007,11 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
                     tenths of a microsecond since January 1, 1601. (8 bytes)
     [32]      Client Nonce: (8 bytes)
     [40]      Unknown: 00 00 00 00 (4 bytes)
-    [44]      Target Information (from the Type 2 message)    
+    [44]      Target Information (from the Type 2 message)
               NetBIOS domain/workgroup:
                 Type: domain 02 00 (2 bytes)
                 Length: 12 00 (2 bytes)
-                Name: WORKGROUP [NULL spacing -> 57 00 4f 00 ...] (18 bytes)  
+                Name: WORKGROUP [NULL spacing -> 57 00 4f 00 ...] (18 bytes)
                 End-of-list: 00 00 00 00 (4 bytes)
               Termination: 00 00 00 00 (4 bytes)
   */
@@ -1037,25 +1052,25 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
       unicodeUsername[i * 2] = (unsigned char) szLogin[i] - 0x20;
     else
       unicodeUsername[i * 2] = (unsigned char) szLogin[i];
-  } 
+  }
 
   bzero(unicodeTarget, sizeof(unicodeTarget));
   for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
     unicodeTarget[i * 2] = (unsigned char)_psSessionData->workgroup[i];
-  
+
   hmac_md5_init_limK_to_64(ntlm_hash, 16, &ctx);
   hmac_md5_update((const unsigned char *)unicodeUsername, 2 * strlen((char *)szLogin), &ctx);
   hmac_md5_update((const unsigned char *)unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup), &ctx);
   hmac_md5_final(kr_buf, &ctx);
 
   /* --- Blob Construction --- */
- 
+
   memset(ntlmv2_response + 16, 1, 2); /* Blob Signature 0x01010000 */
   memset(ntlmv2_response + 18, 0, 2);
   memset(ntlmv2_response + 20, 0, 4); /* Reserved */
-  
+
   /* Time -- Take a Unix time and convert to an NT TIME structure:
-     Little-endian, 64-bit signed value representing the number of tenths of a 
+     Little-endian, 64-bit signed value representing the number of tenths of a
      microsecond since January 1, 1601.
   */
   struct timespec ts;
@@ -1071,7 +1086,7 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   else if (ts.tv_sec == (time_t)-1)
     nt = (unsigned long)-1;
   else
-  { 
+  {
     nt = ts.tv_sec;
     nt += TIME_FIXUP_CONSTANT_INT;
     nt *= 1000*1000*10; /* nt is now in the 100ns units */
@@ -1091,7 +1106,7 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
     0x0200 Domain name
     0x0300 Fully-qualified DNS host name
     0x0400 DNS domain name
-  
+
     TODO: Need to rework negotiation code to correctly extract target information
   */
 
@@ -1099,8 +1114,8 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   memset(ntlmv2_response + 45, 0x00, 1);
   memset(ntlmv2_response + 46, iTargetLen, 1); /* Length */
   memset(ntlmv2_response + 47, 0x00, 1);
- 
-  /* Name of domain or workgroup */ 
+
+  /* Name of domain or workgroup */
   for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
     ntlmv2_response[48 + i * 2] = (unsigned char)_psSessionData->workgroup[i];
 
@@ -1109,8 +1124,8 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   /* --- HMAC #2 Caculations --- */
 
   /*
-    The challenge from the Type 2 message is concatenated with the blob. The HMAC-MD5 message 
-    authentication code algorithm is applied to this value using the 16-byte NTLMv2 hash 
+    The challenge from the Type 2 message is concatenated with the blob. The HMAC-MD5 message
+    authentication code algorithm is applied to this value using the 16-byte NTLMv2 hash
     (calculated above) as the key. This results in a 16-byte output value.
   */
 
@@ -1121,7 +1136,7 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
 
   *iByteCount = 48 + iTargetLen + 4;
   *NTLMv2hash = malloc(*iByteCount);
-  memset(*NTLMv2hash, 0, *iByteCount); 
+  memset(*NTLMv2hash, 0, *iByteCount);
   memcpy(*NTLMv2hash, ntlmv2_response, *iByteCount);
 
   return SUCCESS;
@@ -1141,7 +1156,7 @@ int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData)
   unsigned char *buf = NULL;
   unsigned char *bufReceive = NULL;
   int nReceiveBufferSize = 0;
-  int i = 0;  
+  int i = 0;
 
   /* if we are running in native mode (aka port 445) don't do netbios */
   if (_psSessionData->protoFlag == WIN2000_NATIVEMODE)
@@ -1167,7 +1182,7 @@ int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData)
   writeVerbose(VB_GENERAL, "%s: NetBIOS calling name: %s (encoded)", MODULE_NAME, nb_name);
 
   memcpy(nb_local, "ENEFEEFFFDEBCACACACACACACACACACA", 32);     /* MEDUSA */
-  
+
   buf = malloc(100);
   memset(buf, 0, 100);
   memcpy(buf, (char *) rqbuf, 5);
@@ -1214,10 +1229,10 @@ int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData)
     0x41, 0x41, 0x41, 0x41, 0x41, 0x00, 0x00, 0x21,
     0x00, 0x01
   };
-  
+
   unsigned char *bufReceive = NULL;
   int nReceiveBufferSize = 0;
-  
+
   /* if we are running in native mode (aka port 445) don't do netbios */
   if (_psSessionData->protoFlag == WIN2000_NATIVEMODE)
     return 0;
@@ -1244,7 +1259,7 @@ int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData)
   bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
   if ((bufReceive == NULL) || (nReceiveBufferSize < iResponseOffset + 1))
     return FAILURE;
- 
+
   /* Find the primary domain/workgroup name */
   /* name (15 bytes) + type (1 byte) + flages (2 bytes) */
   iNameCount = bufReceive[iResponseOffset];
@@ -1311,6 +1326,129 @@ int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData)
 */
 int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData)
 {
+  unsigned char buf[168] = {
+    0x00, 0x00, 0x00, 0xa4, 0xff, 0x53, 0x4d, 0x42,
+    0x72, 0x00, 0x00, 0x00, 0x00, 0x08, 0x01, 0x40,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x7d,
+    0x00, 0x00, 0x01, 0x00, 0x00, 0x81, 0x00, 0x02,
+    0x50, 0x43, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+    0x52, 0x4b, 0x20, 0x50, 0x52, 0x4f, 0x47, 0x52,
+    0x41, 0x4d, 0x20, 0x31, 0x2e, 0x30, 0x00, 0x02,
+    0x4d, 0x49, 0x43, 0x52, 0x4f, 0x53, 0x4f, 0x46,
+    0x54, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f, 0x52,
+    0x4b, 0x53, 0x20, 0x31, 0x2e, 0x30, 0x33, 0x00,
+    0x02, 0x4d, 0x49, 0x43, 0x52, 0x4f, 0x53, 0x4f,
+    0x46, 0x54, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+    0x52, 0x4b, 0x53, 0x20, 0x33, 0x2e, 0x30, 0x00,
+    0x02, 0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x31,
+    0x2e, 0x30, 0x00, 0x02, 0x4c, 0x4d, 0x31, 0x2e,
+    0x32, 0x58, 0x30, 0x30, 0x32, 0x00, 0x02, 0x53,
+    0x61, 0x6d, 0x62, 0x61, 0x00, 0x02, 0x4e, 0x54,
+    0x20, 0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x20,
+    0x31, 0x2e, 0x30, 0x00, 0x02, 0x4e, 0x54, 0x20,
+    0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32, 0x00
+  };
+
+  unsigned char* bufReceive;
+  int nReceiveBufferSize = 0;
+  int iLength = 168;
+  int i = 0, j = 0;
+  int iResponseOffset = 73;
+
+  if (_psSessionData->authLevel == AUTH_LM)
+  {
+    writeError(ERR_DEBUG_MODULE, "[%s] Setting Negotiate Protocol Response for LM.", MODULE_NAME);
+    buf[3] = 0x89;    /* Set message length */
+    buf[37] = 0x66;   /* Set byte count for dialects */
+    iLength = 141;
+    iResponseOffset = 65;
+  }
+
+  if (medusaSend(hSocket, buf, iLength, 0) < 0)
+  {
+    writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
+  }
+
+  nReceiveBufferSize = 0;
+  bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
+  if (bufReceive == NULL)
+    return FAILURE;
+
+  /* retrieve the security mode */
+  /*
+    [0] Mode:       (0) ?                                 (1) USER security mode
+    [1] Password:   (0) PLAINTEXT password                (1) ENCRYPTED password. Use challenge/response
+    [2] Signatures: (0) Security signatures NOT enabled   (1) ENABLED
+    [3] Sig Req:    (0) Security signatures NOT required  (1) REQUIRED
+
+    SAMBA: 0x01 (default)
+    WinXP: 0x0F (default)
+    WinXP: 0x07 (Windows 2003 / DC)
+  */
+  switch (bufReceive[39])
+  {
+    case 0x01:
+      writeVerbose(VB_GENERAL, "%s: Server requested PLAINTEXT password.", MODULE_NAME);
+      _psSessionData->security_mode = PLAINTEXT;
+
+      if (_psSessionData->hashFlag == HASH)
+      {
+        writeError(ERR_ERROR, "%s: Server requested PLAINTEXT password. HASH password mode not supported for this configuration.", MODULE_NAME);
+        return FAILURE;
+      }
+      if (_psSessionData->hashFlag == MACHINE_NAME)
+      {
+        writeError(ERR_ERROR, "%s: Server requested PLAINTEXT password. MACHINE password mode not supported for this configuration.", MODULE_NAME);
+        return FAILURE;
+      }
+
+      break;
+    case 0x03:
+      writeVerbose(VB_GENERAL, "%s: Server requested ENCRYPTED password without security signatures.", MODULE_NAME);
+      _psSessionData->security_mode = ENCRYPTED;
+      break;
+    case 0x07:
+    case 0x0F:
+      writeVerbose(VB_GENERAL, "%s: Server requested ENCRYPTED password.", MODULE_NAME);
+      _psSessionData->security_mode = ENCRYPTED;
+      break;
+    default:
+      writeError(ERR_ERROR, "%s: Unknown security mode request: %2.2X. Proceeding using ENCRYPTED password mode.", MODULE_NAME, bufReceive[39]);
+      _psSessionData->security_mode = ENCRYPTED;
+      break;
+  }
+
+  /* Retrieve the challenge */
+  memcpy(_psSessionData->challenge, (char *) bufReceive + iResponseOffset, sizeof(_psSessionData->challenge));
+
+  /* Find the primary domain/workgroup name */
+  while ((bufReceive[iResponseOffset + 8 + i * 2] != 0) && (i < 16)) {
+    _psSessionData->workgroup[i] = bufReceive[iResponseOffset + 8 + i * 2];
+    i++;
+  }
+
+  while ((bufReceive[iResponseOffset + 8 + (i + j + 1) * 2] != 0) && (j < 16)) {
+    _psSessionData->machine_name[j] = bufReceive[iResponseOffset + 8 + (i + j + 1) * 2];
+    j++;
+  }
+
+  writeVerbose(VB_GENERAL, "%s: Server machine name: %s", MODULE_NAME, _psSessionData->machine_name);
+  writeVerbose(VB_GENERAL, "%s: Server primary domain: %s", MODULE_NAME, _psSessionData->workgroup);
+
+  FREE(bufReceive);
+
+  return SUCCESS;
+}
+
+/*
+  https://docs.microsoft.com/en-us/windows-server/storage/file-server/troubleshoot/smbv1-not-installed-by-default-in-windows
+  * 2020/07/01
+  * New installations of Windows 10 and Server 2016 or later no longer support SMBv1.
+*/
+int SMB2NegProt(int hSocket, _SMBNT_DATA* _psSessionData)
+{
+  /* Dialect: SMB 2.??? (highest) */
   unsigned char buf[179] = {
     0x00, 0x00, 0x00, 0xaf, 0xff, 0x53, 0x4d, 0x42,
     0x72, 0x00, 0x00, 0x00, 0x00, 0x08, 0x01, 0x40,
@@ -1339,20 +1477,8 @@ int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData)
 
   unsigned char* bufReceive;
   int nReceiveBufferSize = 0;
-  int i = 0, j = 0;
-  int iLength = 179;
-  int iResponseOffset = 73;
 
-  if (_psSessionData->authLevel == AUTH_LM)
-  {
-    writeError(ERR_DEBUG_MODULE, "[%s] Setting Negotiate Protocol Response for LM.", MODULE_NAME);
-    buf[3] = 0x89;    /* Set message length */
-    buf[37] = 0x66;   /* Set byte count for dialects */
-    iLength = 141;
-    iResponseOffset = 65;
-  }
-
-  if (medusaSend(hSocket, buf, iLength, 0) < 0)
+  if (medusaSend(hSocket, buf, sizeof(buf), 0) < 0)
   {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
   }
@@ -1362,11 +1488,11 @@ int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData)
   if (bufReceive == NULL)
     return FAILURE;
 
-  /* SMBv2 negotiation -- 0xff == SMBv1 */
+  /* SMBv2 negotiation (SMBv1: 0xff) */
   if (bufReceive[4] == 0xfe) {
     writeVerbose(VB_GENERAL, "%s: Server negotiated SMBv2", MODULE_NAME);
     _psSessionData->smbVersion = SMBv2;
-   
+
     _psSessionData->smb2 = smb2_init_context();
     if (_psSessionData->smb2 == NULL) {
       writeError(ERR_ERROR, "[%s] Failed to initialize context.", MODULE_NAME);
@@ -1375,76 +1501,12 @@ int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData)
 
     smb2_set_authentication(_psSessionData->smb2, SMB2_SEC_NTLMSSP);
     smb2_set_security_mode(_psSessionData->smb2, SMB2_NEGOTIATE_SIGNING_ENABLED);
- 
+
     return SUCCESS;
-  } 
-
-  /* retrieve the security mode */
-  /*
-    [0] Mode:       (0) ?                                 (1) USER security mode 
-    [1] Password:   (0) PLAINTEXT password                (1) ENCRYPTED password. Use challenge/response
-    [2] Signatures: (0) Security signatures NOT enabled   (1) ENABLED
-    [3] Sig Req:    (0) Security signatures NOT required  (1) REQUIRED
-  
-    SAMBA: 0x01 (default)
-    WinXP: 0x0F (default)
-    WinXP: 0x07 (Windows 2003 / DC)
-  */
-  switch (bufReceive[39])
-  {
-    case 0x01:
-      writeVerbose(VB_GENERAL, "%s: Server requested PLAINTEXT password.", MODULE_NAME);
-      _psSessionData->security_mode = PLAINTEXT;
-      
-      if (_psSessionData->hashFlag == HASH)
-      {
-        writeError(ERR_ERROR, "%s: Server requested PLAINTEXT password. HASH password mode not supported for this configuration.", MODULE_NAME);
-        return FAILURE;
-      }
-      if (_psSessionData->hashFlag == MACHINE_NAME)
-      {
-        writeError(ERR_ERROR, "%s: Server requested PLAINTEXT password. MACHINE password mode not supported for this configuration.", MODULE_NAME);
-        return FAILURE;
-      }
-      
-      break;
-    case 0x03:
-      writeVerbose(VB_GENERAL, "%s: Server requested ENCRYPTED password without security signatures.", MODULE_NAME);
-      _psSessionData->security_mode = ENCRYPTED;
-      break;
-    case 0x07:
-    case 0x0F:
-      writeVerbose(VB_GENERAL, "%s: Server requested ENCRYPTED password.", MODULE_NAME);
-      _psSessionData->security_mode = ENCRYPTED;
-      break;
-    default:
-      writeError(ERR_ERROR, "%s: Unknown security mode request: %2.2X. Proceeding using ENCRYPTED password mode.", MODULE_NAME, bufReceive[39]);
-      _psSessionData->security_mode = ENCRYPTED;
-      break;
   }
 
-  /* Retrieve the challenge */
-  memcpy(_psSessionData->challenge, (char *) bufReceive + iResponseOffset, sizeof(_psSessionData->challenge));
-
-  /* Find the primary domain/workgroup name */
-  while ((bufReceive[iResponseOffset + 8 + i * 2] != 0) && (i < 16)) {
-    _psSessionData->workgroup[i] = bufReceive[iResponseOffset + 8 + i * 2];
-    i++;
-  }
-  
-  while ((bufReceive[iResponseOffset + 8 + (i + j + 1) * 2] != 0) && (j < 16)) {
-    _psSessionData->machine_name[j] = bufReceive[iResponseOffset + 8 + (i + j + 1) * 2];
-    j++;
-  }
-      
-  writeVerbose(VB_GENERAL, "%s: Server machine name: %s", MODULE_NAME, _psSessionData->machine_name);
-  writeVerbose(VB_GENERAL, "%s: Server primary domain: %s", MODULE_NAME, _psSessionData->workgroup);
-
-  FREE(bufReceive);
-
-  return SUCCESS;
+  return FAILURE;
 }
-
 
 /*
   SMBSessionSetup
@@ -1466,7 +1528,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   int iOffset = 0;
   unsigned char szPath[256];
   unsigned long SMBSessionRet;
-  
+
   if (_psSessionData->accntFlag == LOCAL) {
     strcpy((char *) _psSessionData->workgroup, "localhost");
   } else if (_psSessionData->accntFlag == BOTH) {
@@ -1537,13 +1599,13 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
         return FAILURE;
 
       memcpy(buf + iOffset, LMhash, 24);
-      FREE(LMhash); 
-   
+      FREE(LMhash);
+
     }
     else if (_psSessionData->authLevel == AUTH_NTLM)
     {
       writeError(ERR_DEBUG_MODULE, "[%s] Attempting NTLM password authentication.", MODULE_NAME);
-    
+
       unsigned char szSessionRequest[29] = {
         0x0d,                             /* Word Count */
         0x75,                             /* AndXCommand: Tree Connect */
@@ -1581,7 +1643,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
     else if (_psSessionData->authLevel == AUTH_LMv2)
     {
       writeError(ERR_DEBUG_MODULE, "[%s] Attempting LMv2 password authentication.", MODULE_NAME);
-    
+
       unsigned char szSessionRequest[29] = {
         0x0d,                             /* Word Count */
         0x75,                             /* AndXCommand: Tree Connect */
@@ -1615,7 +1677,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
     else if (_psSessionData->authLevel == AUTH_NTLMv2)
     {
       writeError(ERR_DEBUG_MODULE, "[%s] Attempting LMv2/NTLMv2 password authentication.", MODULE_NAME);
-    
+
       unsigned char szSessionRequest[29] = {
         0x0d,                             /* Word Count */
         0x75,                             /* AndXCommand: Tree Connect */
@@ -1641,7 +1703,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
       ret = HashLMv2(_psSessionData, &LMv2hash, (unsigned char *) szLogin, (unsigned char *) szPassword);
       if (ret == FAILURE)
         return FAILURE;
-      
+
       memcpy(buf + iOffset, LMv2hash, 24);
       FREE(LMv2hash);
 
@@ -1688,17 +1750,17 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
     iByteCount = 2 * strlen(szPassword) + 2;
     buf[iOffset - 8] = (iByteCount) % 256;
     buf[iOffset - 7] = (iByteCount) / 256;
- 
+
     /* set ANSI password */
     /*
       Depending on the SAMBA server configuration, multiple passwords may be successful
       when dealing with mixed-case values. The SAMBA parameter "password level" appears
-      to determine how many characters within a password are tested by the server both  
-      upper and lower case. For example, assume a SAMBA account has a password of "Fred" 
+      to determine how many characters within a password are tested by the server both
+      upper and lower case. For example, assume a SAMBA account has a password of "Fred"
       and the server is configured with "password level = 2". Medusa sends the password
       "FRED". The SAMBA server will brute-force test this value for us with values
       like: "FRed", "FrEd", "FreD", "fREd", "fReD", "frED", ... The default setting
-      is "password level = 0". This results in only two attempts to being made by the 
+      is "password level = 0". This results in only two attempts to being made by the
       remote server; the password as is and the password in all-lower case.
     */
     strncpy((char *)buf + iOffset, szPassword, 256);
@@ -1708,17 +1770,17 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
     writeError(ERR_ERROR, "%s: security_mode was not properly set. This should not happen.", MODULE_NAME);
     return FAILURE;
   }
-    
-  /* Set account and workgroup values */ 
+
+  /* Set account and workgroup values */
   memcpy(buf + iOffset + iByteCount, szLogin, strlen(szLogin));
   iByteCount += strlen(szLogin) + 1; /* NULL pad account name */
   memcpy(buf + iOffset + iByteCount, _psSessionData->workgroup, strlen((char *) _psSessionData->workgroup));
   iByteCount += strlen((char *) _psSessionData->workgroup) + 1; /* NULL pad workgroup name */
 
   /* Set native OS and LAN Manager values */
-  sprintf((char *)buf + iOffset + iByteCount, "Unix"); 
+  sprintf((char *)buf + iOffset + iByteCount, "Unix");
   iByteCount += strlen("Unix") + 1; /* NULL pad OS name */
-  sprintf((char *)buf + iOffset + iByteCount, "Samba"); 
+  sprintf((char *)buf + iOffset + iByteCount, "Samba");
   iByteCount += strlen("Samba") + 1; /* NULL pad LAN Manager name */
 
   /* Set data byte count */
@@ -1755,7 +1817,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   /* Set password field */
   memset(buf + iOffset, 0, 1);
   iOffset++;
- 
+
   /* Set target path -- e.g., \\192.168.0.1\ADMIN$ */
   memset(szPath, 0, 256);
   snprintf((char *)szPath, sizeof(szPath), "\\\\%s\\ADMIN$", (*psLogin)->psServer->pHostIP);
@@ -1768,7 +1830,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   memcpy(buf + iOffset, szService, 6);
   iOffset += 6;
   /* End Chained Tree AndX Request */
-  
+
   /* Set the header length */
   buf[2] = (iOffset - 4) / 256;
   buf[3] = (iOffset - 4) % 256;
@@ -1783,7 +1845,7 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   bufReceive = medusaReceiveRaw(hSocket, &nReceiveBufferSize);
   if ((bufReceive == NULL) || (nReceiveBufferSize == 0))
     return FAILURE;
- 
+
   /* 41 - Action (Guest/Non-Guest Account) */
   /*  9 - NT Status (Error code) */
   SMBSessionRet = ((bufReceive[41] & 0x01) << 24) | ((bufReceive[11] & 0xFF) << 16) | ((bufReceive[10] & 0xFF) << 8) | (bufReceive[9] & 0xFF);
@@ -1803,7 +1865,7 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
   char ErrorCode[10];
   int iRet;
   unsigned int i;
-  
+
   regex_t preg;
   int errcode = REG_NOMATCH;
   char errmsg[512];
@@ -1815,14 +1877,14 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
   smb2_set_password(_psSessionData->smb2, szPassword);
   smb2_set_domain(_psSessionData->smb2, _psSessionData->workgroup);
   //smb2_set_workstation(_psSessionData->smb2, xxx);
-    
+
   writeError(ERR_DEBUG_MODULE, "[%s] smb_connect_share()", MODULE_NAME);
   if (smb2_connect_share(_psSessionData->smb2, (*psLogin)->psServer->pHostIP, "ADMIN$", NULL) < 0) {
 
     pErrorMsg = smb2_get_error(_psSessionData->smb2);
     writeError(ERR_DEBUG_MODULE, "[%s] Failed to connect to ADMIN$: %s", MODULE_NAME, pErrorMsg);
 
-    /* Extract error code from libsmb2 error message: 
+    /* Extract error code from libsmb2 error message:
        ERROR: [smb2.mod] Failed to connect to ADMIN$: Session setup failed with (0xc000006d) STATUS_LOGON_FAILURE
     */
     errcode = regcomp(&preg, "0x[a-fA-F0-9]+", REG_EXTENDED|REG_ICASE);
@@ -1846,7 +1908,7 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
       memset(errmsg, 0, 512);
       memcpy(errmsg, pErrorMsg + pmatch[0].rm_so, pmatch[0].rm_eo - pmatch[0].rm_so);
       SMBSessionRet = (int)strtol(errmsg, NULL, 0);
-      
+
       writeError(ERR_DEBUG_MODULE, "[%s] smb2_connect_share session return code: 0x%6.6X", MODULE_NAME, SMBSessionRet);
     }
   }
@@ -1936,7 +1998,7 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
   SMBaction = ((unsigned long) SMBSessionRet & 0xFF000000) >> 24;
 
   writeError(ERR_DEBUG_MODULE, "SMBSessionRet: %8.8X SMBerr: %4.4X SMBaction: %2.2X", SMBSessionRet, SMBerr, SMBaction);
- 
+
   /* Locate appropriate SMB code message */
   pErrorMsg = smbErrorMsg[0]; /* UNKNOWN_ERROR_CODE */
   for (i = 0; i < sizeof(smbErrorCode)/4; i++) {
@@ -1952,7 +2014,7 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
       /*
         Non-domain connected XP and 2003 hosts map non-existant accounts to
         the anonymous user and return SUCCESS during password checks. Medusa
-        will check the value of the ACTION flag in the target's response to 
+        will check the value of the ACTION flag in the target's response to
         determine if the account is a legitimate or anonymous success.
       */
       if (SMBaction == 0x01) {
@@ -1967,14 +2029,14 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
         memset((*psLogin)->pErrorMsg, 0, 23 + 1 );
         sprintf((*psLogin)->pErrorMsg, "ADMIN$ - Access Allowed");
         (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
-      }      
+      }
 
       iRet = MSTATE_EXITING;
       break;
     case 0x00006F:  /* STATUS_INVALID_LOGON_HOURS - Valid password */
     case 0xC10002:  /* STATUS_INVALID_LOGON_HOURS - Valid password (LM) */
-    case 0x000064:  /* Valid password, "The machine you are logging onto is protected by an 
-                       authentication firewall. The specificed account is not allowed to 
+    case 0x000064:  /* Valid password, "The machine you are logging onto is protected by an
+                       authentication firewall. The specificed account is not allowed to
                        authenticate to the machine." */
     case 0x000070:  /* STATUS_INVALID_WORKSTATION - Valid password */
     case 0xC00002:  /* STATUS_INVALID_WORKSTATION - Valid password (LM) */
@@ -2031,14 +2093,14 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
       break;
   }
 
-  if (_psSessionData->hashFlag == MACHINE_NAME) { 
+  if (_psSessionData->hashFlag == MACHINE_NAME) {
     setPassResult((*psLogin), (char *)_psSessionData->machine_name);
     iRet = MSTATE_EXITING;
   }
   else {
     setPassResult((*psLogin), szPassword);
   }
- 
+
   return(iRet);
 }
 
@@ -2079,4 +2141,3 @@ int go(sLogin* logins, int argc, char *argv[])
 }
 
 #endif
-
