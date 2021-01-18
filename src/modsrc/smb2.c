@@ -707,8 +707,8 @@ int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *p
       for (i = 0; i < 16; i++) {
         if (_psSessionData->machine_name[i] > 0x39)
           _psSessionData->machine_name[i] = _psSessionData->machine_name[i] | 0x20;     /* convert upper case to lower */
-        pass = _psSessionData->machine_name;
       }
+      pass = _psSessionData->machine_name;
     }
 
     /* convert lower case characters to upper case */
@@ -819,8 +819,9 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
       for (i = 0; i < 16; i++) {
         if (_psSessionData->machine_name[i] > 0x39)
           _psSessionData->machine_name[i] = _psSessionData->machine_name[i] | 0x20;     /* convert upper case to lower */
-        pass = _psSessionData->machine_name;
       }
+
+      pass = _psSessionData->machine_name;
     }
 
     /* Initialize the Unicode version of the secret (== password). */
@@ -1141,7 +1142,6 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
 
   return SUCCESS;
 }
-
 
 /*
    NBS Session Request
@@ -1854,6 +1854,52 @@ unsigned long SMBSessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSes
   return SMBSessionRet;
 }
 
+
+/*
+  SMB2ConvertPassword
+  Function: Prepare NTLM password hash for libsmb2.
+*/
+int SMB2ConvertPassword(_SMBNT_DATA *_psSessionData, unsigned char* szPassword, unsigned char** szPassword2)
+{
+  unsigned int i = 0;
+  unsigned char *p = NULL;
+  unsigned char NO_PASSWORD[1] = "";
+
+  /* Use NTLM Hash instead of password */
+  /* D42E35E1A1E4C22BD32E2170E4857C20:5E20780DD45857A68402938C7629D3B2::: */
+  if (_psSessionData->hashFlag == HASH) {
+    p = szPassword;
+    while ((*p != '\0') && (i < 1)) {
+      if (*p == ':')
+        i++;
+      p++;
+    }
+  }
+
+  /* If "-e ns" was used, don't treat these values as hashes. */
+  if ((_psSessionData->hashFlag == HASH) && (i >= 1)) {
+    if (*p == '\0') {
+      writeError(ERR_ERROR, "Error reading PwDump file.");
+      return FAILURE;
+    }
+    else if (*p == 'N') {
+      writeError(ERR_DEBUG_MODULE, "Found \"NO PASSWORD\" for NTLM Hash.");
+      *szPassword2 = NO_PASSWORD;
+    }
+    else {
+      memset(p + 32, '\0', 1);
+      writeError(ERR_DEBUG_MODULE, "Prepare ASCII PwDump NTLM Hash (%s).", p);
+      if (asprintf((char **)szPassword2, "ntlm:%s", p) < 0) { return FAILURE; }
+    }
+  } else {
+    *szPassword2 = szPassword;
+    writeError(ERR_DEBUG_MODULE, "[%s] Using standard password: %s", MODULE_NAME, *szPassword2);
+  }
+
+  return SUCCESS;
+}
+
+
 /*
   SMB2SessionSetup
 */
@@ -1865,6 +1911,7 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
   char ErrorCode[10];
   int iRet;
   unsigned int i;
+  unsigned char* szPassword2 = NULL;
 
   regex_t preg;
   int errcode = REG_NOMATCH;
@@ -1872,13 +1919,18 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
   size_t nmatch = 1;
   regmatch_t pmatch[1];
 
-  writeError(ERR_DEBUG_MODULE, "[%s] smb_set_user()", MODULE_NAME);
-  smb2_set_user(_psSessionData->smb2, szLogin);
-  smb2_set_password(_psSessionData->smb2, szPassword);
+  writeError(ERR_DEBUG_MODULE, "[%s] Set authentication request data.", MODULE_NAME);
   smb2_set_domain(_psSessionData->smb2, _psSessionData->workgroup);
-  //smb2_set_workstation(_psSessionData->smb2, xxx);
+  smb2_set_user(_psSessionData->smb2, szLogin);
 
-  writeError(ERR_DEBUG_MODULE, "[%s] smb_connect_share()", MODULE_NAME);
+  if (SMB2ConvertPassword(_psSessionData, szPassword, &szPassword2) == FAILURE) {
+    writeError(ERR_ERROR, "Failed to prepare libsmb2 password.");
+    return FAILURE;
+  }
+
+  smb2_set_password(_psSessionData->smb2, szPassword2);
+
+  writeError(ERR_DEBUG_MODULE, "[%s] Initiate SMB2 connection.", MODULE_NAME);
   if (smb2_connect_share(_psSessionData->smb2, (*psLogin)->psServer->pHostIP, "ADMIN$", NULL) < 0) {
 
     pErrorMsg = smb2_get_error(_psSessionData->smb2);
