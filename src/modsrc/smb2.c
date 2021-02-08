@@ -1,8 +1,8 @@
 /*
-**   SMB LAN Manager Password/HASH Checking Medusa Module
+**   SMB (Version 1/2/3) Password/HASH Checking Medusa Module
 **
 **   ------------------------------------------------------------------------
-**    Copyright (C) 2009 Joe Mondloch
+**    Copyright (C) 2021 Joe Mondloch
 **    JoMo-Kun / jmk@foofus.net
 **
 **    This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,9 @@
 **
 **   Based on code from: SMB Auditing Tool
 **   [Copyright (C) Patrik Karlsson 2001]
+**
+**   The SMB2 module natively supports testing SMBv1 servers. It uses the
+**   libsmb2 library to test SMBv2/3 servers.
 **
 **   This code allows Medusa to directly test NTLM hashes against
 **   a Windows host. This may be useful for an auditor who has aquired
