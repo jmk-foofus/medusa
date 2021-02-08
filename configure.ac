@@ -540,7 +540,7 @@ dnl ********** SMB2 Medusa Module **********
 check_module_smb2="false"
 module_smb2_headers="false"
 
-PKG_CHECK_MODULES(LIBSMB2, libsmb2)
+PKG_CHECK_MODULES(LIBSMB2, libsmb2,,[AC_MSG_WARN([*** libsmb2 pkg-config check failed ***])])
 CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
 
 AS_MESSAGE([checking for libsmb2 Library and Header files...])
