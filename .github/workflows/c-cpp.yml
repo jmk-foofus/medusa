@@ -1,6 +1,6 @@
 name: C/C++ CI
 
-on:
+on:snapchat 
   push:
   pull_request:
 
