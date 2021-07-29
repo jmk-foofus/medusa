@@ -1922,6 +1922,14 @@ unsigned long SMB2SessionSetup(int hSocket, sLogin** psLogin, _SMBNT_DATA *_psSe
   size_t nmatch = 1;
   regmatch_t pmatch[1];
 
+  if (_psSessionData->accntFlag == LOCAL) {
+    strcpy((char *) _psSessionData->workgroup, ".");
+  } else if (_psSessionData->accntFlag == BOTH) {
+    memset(_psSessionData->workgroup, 0, 16);
+  } else if (_psSessionData->accntFlag == OTHER) {
+    strncpy(_psSessionData->workgroup, _psSessionData->workgroup_other, 16);
+  }
+
   writeError(ERR_DEBUG_MODULE, "[%s] Set authentication request data.", MODULE_NAME);
   smb2_set_domain(_psSessionData->smb2, _psSessionData->workgroup);
   smb2_set_user(_psSessionData->smb2, szLogin);
