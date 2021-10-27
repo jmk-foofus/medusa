@@ -214,6 +214,7 @@ int initModule(sLogin* psLogin, _SSH2_DATA *_psSessionData)
   {
     writeError(ERR_ERROR, "%s: Failed initiating SSH library: Host: %s User: %s Pass: %s", MODULE_NAME, psLogin->psServer->pHostIP, psCredSet->psUser->pUser, psCredSet->pPass);
     psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+    pthread_mutex_unlock(&psLogin->psServer->psAudit->ptmMutex);
     return FAILURE;
   }
 
