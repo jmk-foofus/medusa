@@ -351,7 +351,7 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
   {
     err = ERR_get_error();
     writeError(ERR_ERROR, "SSL: Error allocating context: %s", ERR_error_string(err, NULL));
-
+    pthread_mutex_unlock(&ptmSSLMutex);
     return -1;
   }
 
@@ -363,13 +363,16 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
   SSL_CTX_set_verify(sslContext, SSL_VERIFY_NONE, NULL);
 
   if ((hSocket < 0) && ((hSocket = medusaConnect(pParams)) < 0))
+  {
+    pthread_mutex_unlock(&ptmSSLMutex);
     return -1;
+  }
 
   if ((ssl = SSL_new(sslContext)) == NULL)
   {
     err = ERR_get_error();
     writeError(ERR_ERROR, "Error preparing an SSL context: %s", ERR_error_string(err, NULL));
-
+    pthread_mutex_unlock(&ptmSSLMutex);
     return -1;
   }
 
@@ -378,7 +381,7 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
   {
     err = ERR_get_error();
     writeError(ERR_ERROR, "Could not create an SSL session: %s", ERR_error_string(err, NULL));
-
+    pthread_mutex_unlock(&ptmSSLMutex);
     return -1;
   }
 
