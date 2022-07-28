@@ -1853,7 +1853,7 @@ void sigint_handler(int sig __attribute__((unused)))
   sigprocmask(SIG_UNBLOCK, &sig_action.sa_mask, 0);
 
   /* notify threads that they should be exiting and then wait for them to finish */
-  writeError(ERR_ALERT, "Medusa received SIGINT - Sending notification to login threads that we are are aborting.");
+  writeError(ERR_ALERT, "Medusa received SIGINT - Sending notification to login threads that we are aborting.");
   psAudit->iStatus = AUDIT_ABORT; 
 
   writeError(ERR_INFO, "Waiting for login threads to terminate...");
