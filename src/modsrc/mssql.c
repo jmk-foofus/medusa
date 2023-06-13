@@ -167,6 +167,9 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
     switch (nState)
     {
       case MSTATE_NEW:
+        if (hSocket > 0)
+          medusaDisconnect(hSocket);
+        hSocket = -1;
 
         if ((hSocket = connectMSSQL(psLogin, _psSessionData)) < 0)
         {
