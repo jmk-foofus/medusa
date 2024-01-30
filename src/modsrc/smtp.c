@@ -344,7 +344,7 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
   /* Retrieve SMTP banner */
   writeError(ERR_DEBUG_MODULE, "[%s] Retrieving SMTP banner.", MODULE_NAME);  
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^220 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^220[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
     writeError(ERR_DEBUG_MODULE, "[%s] failed: Server did not respond with '220'. Exiting...", MODULE_NAME);
     FREE(bufReceive);  
@@ -367,7 +367,7 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
   FREE(bufSend); 
  
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "250 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "250[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
     writeError(ERR_ERROR, "[%s] failed: Server did not respond with '250'. Exiting...", MODULE_NAME);
     FREE(bufReceive);
@@ -393,7 +393,7 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
     FREE(bufSend);
   
     nReceiveBufferSize = 0;
-    if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^220 .*\r\n") == FAILURE) || (bufReceive == NULL))
+    if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^220[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
     {
       writeError(ERR_ERROR, "[%s] failed: Server did not respond with '220'. Exiting...", MODULE_NAME);
       FREE(bufReceive);
@@ -425,7 +425,7 @@ int initConnection(_MODULE_DATA *_psSessionData, int hSocket, sConnectParams *pa
       FREE(bufSend); 
  
       nReceiveBufferSize = 0;
-      if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "250 .*\r\n") == FAILURE) || (bufReceive == NULL))
+      if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "250[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
       {
         writeError(ERR_ERROR, "[%s] failed: Server did not respond with '250'. Exiting...", MODULE_NAME);
         FREE(bufReceive);
@@ -509,9 +509,9 @@ int sendAuthPLAIN(int hSocket, char* szLogin, char* szPassword)
 
   /* Server should respond with a 334 response code */
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
-    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334 \" to AUTH PLAIN request.", MODULE_NAME);
+    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334\" to AUTH PLAIN request.", MODULE_NAME);
     FREE(bufReceive);
     return FAILURE;
   }
@@ -579,14 +579,14 @@ int sendAuthLOGIN(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char
 
   /* Server should respond with a base64-encoded username prompt */
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
-    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334 \" to AUTH LOGIN request.", MODULE_NAME);
+    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334\" to AUTH LOGIN request.", MODULE_NAME);
     FREE(bufReceive);
     return FAILURE;
   }
 
-  if (((szTmpBuf = (unsigned char *)strstr((char *)bufReceive, "334 ")) == NULL) || ((szTmpBuf2 = (unsigned char *)index((char *)szTmpBuf, '\r')) == NULL))
+  if (((szTmpBuf = (unsigned char *)strstr((char *)bufReceive, "334")) == NULL) || ((szTmpBuf2 = (unsigned char *)index((char *)szTmpBuf, '\r')) == NULL))
   {
     writeError(ERR_ERROR, "[%s] SMTP server sent unexpected response to AUTH LOGIN request.", MODULE_NAME);
     return FAILURE;
@@ -634,14 +634,14 @@ int sendAuthLOGIN(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char
 
   /* Server should respond with a base64-encoded password prompt */
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
-    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334 \" to AUTH LOGIN request.", MODULE_NAME);
+    writeError(ERR_ERROR, "[%s] SMTP server did not respond with \"334\" to AUTH LOGIN request.", MODULE_NAME);
     FREE(bufReceive);  
     return FAILURE;
   }
 
-  if (((szTmpBuf = (unsigned char *)strstr((char *)bufReceive, "334 ")) == NULL) || ((szTmpBuf2 = (unsigned char *)index((char *)szTmpBuf, '\r')) == NULL))
+  if (((szTmpBuf = (unsigned char *)strstr((char *)bufReceive, "334")) == NULL) || ((szTmpBuf2 = (unsigned char *)index((char *)szTmpBuf, '\r')) == NULL))
   {
     writeError(ERR_ERROR, "[%s] SMTP server sent unexpected response to AUTH LOGIN request.", MODULE_NAME);
     return FAILURE;
@@ -719,7 +719,7 @@ int sendAuthNTLM(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char*
   /* Server should respond with a Base-64 encoded Type-2 challenge message. The challenge response format is 
      "334", followed by a space, followed by the challenge message. */
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334 .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^334[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
     writeError(ERR_ERROR, "[%s] Server did not send valid Type-2 challenge response.", MODULE_NAME);
     FREE(bufReceive);
@@ -795,34 +795,34 @@ int tryLogin(int hSocket, sLogin** psLogin, _MODULE_DATA* _psSessionData, char* 
   writeError(ERR_DEBUG_MODULE, "[%s] Retrieving server response.", MODULE_NAME);
 
   nReceiveBufferSize = 0;
-  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^[0-9]{3,3} .*\r\n") == FAILURE) || (bufReceive == NULL))
+  if ((medusaReceiveRegex(hSocket, &bufReceive, &nReceiveBufferSize, "^[0-9]{3,3}[ -].*\r\n") == FAILURE) || (bufReceive == NULL))
   {
     writeError(ERR_ERROR, "[%s] Unknown SMTP server response: %s", MODULE_NAME, bufReceive);
     (*psLogin)->iResult = LOGIN_RESULT_ERROR;
     nRet = MSTATE_EXITING;
   }
 
-  if (strstr((char *)bufReceive, "235 ") != NULL)
+  if (strstr((char *)bufReceive, "235") != NULL)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt successful.", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
     nRet = MSTATE_EXITING;
   }
   /* 435 Unable to authenticate at present: Authentication Failure */
-  else if (strstr((char *)bufReceive, "435 ") != NULL)
+  else if (strstr((char *)bufReceive, "435") != NULL)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt failed (435).", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_FAIL;
     nRet = MSTATE_RUNNING;
   }
   /* GroupWise - 501 Authentication failed! */
-  else if (strstr((char *)bufReceive, "501 ") != NULL)
+  else if (strstr((char *)bufReceive, "501") != NULL)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt failed (501).", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_FAIL;
     nRet = MSTATE_RUNNING;
   }
-  else if (strstr((char *)bufReceive, "535 ") != NULL)
+  else if (strstr((char *)bufReceive, "535") != NULL)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt failed (535).", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_FAIL;
