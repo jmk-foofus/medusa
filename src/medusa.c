@@ -1179,6 +1179,11 @@ int getNextNormalCredSet(sLogin *_psLogin, sCredentialSet *_psCredSet)
       {
         _psLogin->psUser = NULL;
       }
+      /* if another thread has already selected the next user, process that user */
+      else if ((_psLogin->psServer->psHost->psUserCurrent->iPassStatus != PL_DONE) && (_psLogin->psServer->psHost->psUserCurrent->iPassStatus != PASS_AUDIT_COMPLETE))
+      {
+        _psLogin->psUser = _psLogin->psServer->psHost->psUserCurrent;
+      }
       else
       {
         _psLogin->psUser = _psLogin->psServer->psHost->psUserCurrent->psUserNext;
