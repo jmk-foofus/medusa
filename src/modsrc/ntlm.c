@@ -1237,25 +1237,25 @@ void buildAuthResponse(tSmbNtlmAuthChallenge *challenge, tSmbNtlmAuthResponse *r
     have an effect on the response calculations 
   */
   if (challenge->flags & 0x00080000) {
-    EVP_MD_CTX *mdctx;
-    unsigned char *sessionNonce;
-    unsigned int sessionNonceLength = 16;
+    EVP_MD_CTX *Md5Ctx;
+    unsigned char *md5_digest;
+    unsigned int md5_digest_len = 16;
     
     /* MD5_Init */
-    mdctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+    Md5Ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
 
     /* MD5_Update */
-    EVP_DigestUpdate(mdctx, challenge->challengeData, 8);
-    EVP_DigestUpdate(mdctx, clientNonce, 8);
+    EVP_DigestUpdate(Md5Ctx, challenge->challengeData, 8);
+    EVP_DigestUpdate(Md5Ctx, clientNonce, 8);
 
     /* MD5_Final */
-    sessionNonce = (unsigned char *)OPENSSL_malloc(sessionNonceLength);
-    EVP_DigestFinal_ex(mdctx, sessionNonce, &sessionNonceLength);
-    EVP_MD_CTX_free(mdctx);
+    md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+    EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+    EVP_MD_CTX_free(Md5Ctx);
 
-    /* sessionNonce is truncated to 8 bytes to form the NTLM2 session hash */
-    memcpy(sessionHash, sessionNonce, 8);
+    /* session nonce (md5_digest) is truncated to 8 bytes to form the NTLM2 session hash */
+    memcpy(sessionHash, md5_digest, 8);
 
     memcpy(lmRespData, clientNonce, 8);
     SMBNTencrypt((unsigned char*)password, sessionHash, ntRespData);
