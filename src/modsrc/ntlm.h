@@ -37,6 +37,7 @@
 #define _MEDUSA_NTLM_H_
 
 #include <openssl/md5.h>
+#include <openssl/evp.h>
 #include "../medusa-trace.h"
 
 /* 
