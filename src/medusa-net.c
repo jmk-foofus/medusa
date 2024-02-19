@@ -386,7 +386,6 @@ int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
 
   return hSocket;
 }
-#endif
 
 int medusaReceiveInternal(int socket, unsigned char *buf, int length)
 {
