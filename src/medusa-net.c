@@ -319,20 +319,6 @@ int medusaConnectInternal(unsigned long nHost, int nPort, int nProtocol, int nTy
   return ret;
 }
 
-#ifdef HAVE_LIBSSL
-RSA *sslTempRSACallback(SSL * ssl __attribute__((unused)), int export __attribute__((unused)), int keylength __attribute__((unused)))
-{
-  /* "rsa" was previously global... do we ever need to return a previously
-     generated value? */
-  RSA *rsa = NULL;
-
-  if (rsa == NULL)
-    /* https://openssl.org/docs/manmaster/crypto/RSA_generate_key.html */
-    RSA_generate_key_ex(rsa, 512, (BIGNUM*) RSA_F4, NULL);
-
-  return rsa;
-}
-
 int medusaConnectSSLInternal(sConnectParams* pParams, int hSocket)
 {
   int err;
