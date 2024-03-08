@@ -231,7 +231,9 @@ static void _getHeaderValue(const char * header, char * src, char ** dst) {
   // Find the location header position in src, determine its length. 10 is the
   // length of "Location: " which places the pointer at the beginning of the
   // value
-  char * locationPtr = (char *) (sizeof(header) + (long) strstr(src, header) - 1);
+  //
+  // TODO: strlen should be bounded, but by how much?
+  char * locationPtr = (char *) (strlen(header) + (long) strstr(src, header) - 1);
   char * crPtr     = strchr(locationPtr, '\r');
 
   // Copy the string to the destination, add the '\0' terminator at the end
