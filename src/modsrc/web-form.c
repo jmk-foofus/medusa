@@ -272,7 +272,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
   else if (_psLogin->psServer->psHost->iUseSSL > 0)
     params.nPort = HTTPS_PORT;
   else
-    params.nPort = HTTP_PORT; 
+    params.nPort = HTTP_PORT;
   initConnectionParams(_psLogin, &params);
 
   while (nState != MSTATE_COMPLETE)
@@ -314,11 +314,11 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
         if (!_psSessionData->szFormData) {
           _psSessionData->szFormRest = malloc(1);
           memset(_psSessionData->szFormRest, 0, 1);
-          
+
           _psSessionData->szFormUser = malloc(10);
           memset(_psSessionData->szFormUser, 0, 10);
           sprintf(_psSessionData->szFormUser, "username=");
-          
+
           _psSessionData->szFormPass = malloc(10);
           memset(_psSessionData->szFormPass, 0, 10);
           sprintf(_psSessionData->szFormPass, "password=");
@@ -326,16 +326,16 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
           _psSessionData->nFormType = FORM_POST;
         }
         else {
-          /* Only set user-supplied form data on first pass */  
+          /* Only set user-supplied form data on first pass */
           if (_psSessionData->szFormUser == NULL)
           {
             pTemp = strtok_r(_psSessionData->szFormData, "?", &pStrtokSavePtr);
             writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Action Method: %s", MODULE_NAME, pTemp);
-            if(strncasecmp(pTemp, "POST", 4) == 0) 
+            if(strncasecmp(pTemp, "POST", 4) == 0)
               _psSessionData->nFormType=FORM_POST;
-            else if(strncasecmp(pTemp, "GET", 3) == 0) 
+            else if(strncasecmp(pTemp, "GET", 3) == 0)
               _psSessionData->nFormType=FORM_GET;
-            else 
+            else
               _psSessionData->nFormType=FORM_UNKNOWN;
 
             pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
@@ -360,13 +360,13 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
           writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form User Field: %s", MODULE_NAME, _psSessionData->szFormUser);
           writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Pass Field: %s", MODULE_NAME, _psSessionData->szFormPass);
           writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Rest Field: %s", MODULE_NAME, _psSessionData->szFormRest);
-          
-          if ((_psSessionData->nFormType == FORM_UNKNOWN) || (_psSessionData->szFormUser == NULL) || (_psSessionData->szFormPass == NULL)) 
+
+          if ((_psSessionData->nFormType == FORM_UNKNOWN) || (_psSessionData->szFormUser == NULL) || (_psSessionData->szFormPass == NULL))
           {
             writeError(ERR_WARNING, "Invalid FORM-DATA format. Using default format: \"post?username=&password=\"");
             _psSessionData->szFormRest = malloc(1);
             memset(_psSessionData->szFormRest, 0, 1);
-            
+
             _psSessionData->szFormUser = malloc(10);
             memset(_psSessionData->szFormUser, 0, 10);
             sprintf(_psSessionData->szFormUser, "username=");
@@ -446,10 +446,10 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
   FREE(_psSessionData->szFormData);
   FREE(_psSessionData->szFormRest);
   FREE(_psSessionData->szFormUser);
-  FREE(_psSessionData->szFormPass); 
-  FREE(_psSessionData->szCustomHeader); 
+  FREE(_psSessionData->szFormPass);
+  FREE(_psSessionData->szCustomHeader);
   FREE(psCredSet);
-  
+
   return SUCCESS;
 }
 
@@ -464,7 +464,7 @@ char *urlencodeup(char* szStr){
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "0123456789";
-  
+
   for(i=0;i<iLen;i++){
     if(strchr(safechars,szStr[i])){
       szRet[j++] = szStr[i];
@@ -486,18 +486,18 @@ int sendPost(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char* szP
   int nRet = SUCCESS;
 
   if ((_psSessionData->szFormRest == NULL) || (_psSessionData->szFormRest[0] == 0))
-    nFormBufferSize = asprintf(&bufForm, "%s%s&%s%s", _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword); 
+    nFormBufferSize = asprintf(&bufForm, "%s%s&%s%s", _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword);
   else
-    nFormBufferSize = asprintf(&bufForm, "%s%s&%s%s&%s", _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword, _psSessionData->szFormRest); 
+    nFormBufferSize = asprintf(&bufForm, "%s%s&%s%s&%s", _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword, _psSessionData->szFormRest);
 
   nSendBufferSize = asprintf((char **)&bufSend, "POST /%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: %s\r\n%sConnection: close\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %i\r\n\r\n%s", _psSessionData->szDir, _psSessionData->szHostHeader, _psSessionData->szUserAgent, _psSessionData->szCustomHeader, nFormBufferSize, bufForm);
 
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
-    nRet = FAILURE;  
+    nRet = FAILURE;
   }
-  
+
   free(bufSend);
   free(bufForm);
   return nRet;
@@ -513,13 +513,13 @@ int sendGet(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char* szPa
     nSendBufferSize = asprintf((char **)&bufSend, "GET /%s?%s%s&%s%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: %s\r\n%sConnection: close\r\n\r\n", _psSessionData->szDir, _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword, _psSessionData->szHostHeader, _psSessionData->szUserAgent, _psSessionData->szCustomHeader);
   else
     nSendBufferSize = asprintf((char **)&bufSend, "GET /%s?%s%s&%s%s&%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: %s\r\n%sConnection: close\r\n\r\n", _psSessionData->szDir, _psSessionData->szFormUser, szLogin, _psSessionData->szFormPass, szPassword, _psSessionData->szFormRest, _psSessionData->szHostHeader, _psSessionData->szUserAgent, _psSessionData->szCustomHeader);
-  
+
   if (medusaSend(hSocket, bufSend, nSendBufferSize, 0) < 0)
   {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
-    nRet = FAILURE;  
+    nRet = FAILURE;
   }
-  
+
   free(bufSend);
   return nRet;
 }
@@ -531,7 +531,7 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
   int nRet = FAILURE;
   char* pTemp = NULL;
   char* szPasswordEncoded = NULL;
-  
+
   szPasswordEncoded = urlencodeup(szPassword);
 
   switch(_psSessionData->nFormType)
@@ -553,7 +553,7 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
     writeError(ERR_ERROR, "[%s] Failed during sending of authentication data.", MODULE_NAME);
     (*login)->iResult = LOGIN_RESULT_UNKNOWN;
     setPassResult(*login, szPassword);
-    return MSTATE_EXITING;  
+    return MSTATE_EXITING;
   }
 
   writeError(ERR_DEBUG_MODULE, "[%s] Retrieving server response.", MODULE_NAME);
@@ -564,10 +564,10 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
     writeError(ERR_ERROR, "[%s] No data received", MODULE_NAME);
     (*login)->iResult = LOGIN_RESULT_UNKNOWN;
     setPassResult(*login, szPassword);
-    return MSTATE_EXITING;  
+    return MSTATE_EXITING;
   }
 
-  pTemp = (char*)index((char *)pReceiveBuffer, ' ');
+  pTemp = (char*)strchr((char *)pReceiveBuffer, ' ');
   if ( !pTemp || strncmp(pTemp + 1, "200 OK", 6) != 0 )
   {
     writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying %s %s: error code %.4s", szLogin, szPassword, pTemp);
@@ -588,11 +588,11 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
     setPassResult(*login, szPassword);
     return MSTATE_NEW;
   }
-   
+
   writeError(ERR_DEBUG_MODULE, "Login Successful");
   (*login)->iResult = LOGIN_RESULT_SUCCESS;
   setPassResult(*login, szPassword);
-  return MSTATE_NEW;   
+  return MSTATE_NEW;
 }
 
 #else
