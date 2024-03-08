@@ -12,6 +12,8 @@
  *   CHANGE LOG                                                            *
  *   08/10/2007 - Created by Luciano Bello (luciano@debian.org)            *
  *   08/24/2007 - Minor modification by JoMo-Kun                           *
+ *   03/05/2024 - Added support for custom HTTP response codes by Martijn  *
+ *                Fleuren. Also cleaned up the code a bit                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2,       *
@@ -42,12 +44,14 @@
 
 #ifdef HAVE_LIBSSL
 
-#define HTTP_PORT 80
+#define HTTP_PORT   80
 #define HTTPS_PORT 443
 
-#define FORM_UNKNOWN 0
-#define FORM_GET 1
-#define FORM_POST 2
+typedef enum FormType {
+    FORM_UNKNOWN
+  , FORM_GET
+  , FORM_POST
+} FormTypeT;
 
 typedef struct __MODULE_DATA {
   char *szDir;
@@ -64,63 +68,139 @@ typedef struct __MODULE_DATA {
 } _MODULE_DATA;
 
 // Tells us whether we are to continue processing or not
-enum MODULE_STATE
-{
+enum MODULE_STATE {
   MSTATE_NEW,
   MSTATE_RUNNING,
   MSTATE_EXITING,
   MSTATE_COMPLETE
 };
 
+// Incomplete list of HTTP status codes
+typedef enum HttpStatusCode {
+    HTTP_STATUS_PARSE_ERR   = -1  // This is not elegant but it works
+  , HTTP_STATUS_NOT_IMPL    = -2  // This is not elegant but it works
+
+  // Group 2xx
+  , HTTP_OK                 = 200
+
+  // Group 3xx
+  , HTTP_MOVED_PERMANENTLY  = 301
+  , HTTP_FOUND              = 302
+  , HTTP_TEMPORARY_REDIRECT = 307
+  , HTTP_PERMANENT_REDIRECT = 308
+
+  // Group 4xx
+  , HTTP_BAD_REQUEST        = 400
+  , HTTP_UNAUTHORIZE        = 401
+  , HTTP_FORBIDDEN          = 403
+  , HTTP_NOT_FOUND          = 404
+
+} HttpStatusCodeT;
+
+/**
+ * Given a string, attempt to parse the Http reponse code from it. We assume
+ * that the string contains a HTTP response similar to
+ *
+ * HTTP/1.1 200 OK
+ *
+ * Or
+ *
+ * HTTP/<version> <statuscode> <statusname>
+ *
+ * NOTE: We can also use strtok() to perform parsing but it is MT-Unsafe so
+ * therefore we avoid it.
+ */
+static HttpStatusCodeT parseHttpStatusCode(char * buf) {
+  HttpStatusCodeT tmp = HTTP_STATUS_PARSE_ERR; // default is to error
+
+  char * ptr = buf;
+
+  if (buf != NULL) {
+    // Find the first space and error out if the space was not found. Convert
+    // the found ptr to a status code.
+    ptr = strchr(buf, ' ');
+    if (!ptr) return tmp;
+    tmp = (HttpStatusCodeT) strtol(ptr, NULL, 10);
+
+    // Basically a switch to either implement custom code per status code AND to
+    // check whether we have actually defined the status code.
+    switch (tmp) {
+      // group 2xx
+      case HTTP_OK:
+
+      // group 3xx
+      case HTTP_FOUND:
+      case HTTP_TEMPORARY_REDIRECT:
+      case HTTP_PERMANENT_REDIRECT:
+
+      //group 4xx
+      case HTTP_BAD_REQUEST:
+      case HTTP_UNAUTHORIZE:
+      case HTTP_FORBIDDEN:
+      case HTTP_NOT_FOUND:
+        break;
+
+      // The last one for if we have not implemented the status code.
+      default:
+        tmp = HTTP_STATUS_NOT_IMPL;
+        break;
+    }
+  }
+
+  return tmp;
+}
+
+/**
+ * Attempt to parse the value of the Location header field from a string,
+ * contained at any position.
+ *
+ * Assumes that the location header format is: "Location: <string>\r\n" with
+ * exactly one space.
+ */
+static void parseLocationHeaderValue(char * src, char ** dst) {
+
+  // Find the location header position in src, determine its length. 10 is the
+  // length of "Location: " which places the pointer at the beginning of the
+  // value
+  char * locationPtr = (char *) (10 + (long) strstr(src, "Location: "));
+  char * crPtr     = strchr(locationPtr, '\r');
+
+  // Copy the string to the destination, add the '\0' terminator at the end
+  memcpy(*dst, locationPtr, crPtr - locationPtr + 1);
+  (*dst)[crPtr - locationPtr] = '\0';
+}
+
 // Forward declarations
 int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* szLogin, char* szPassword);
 int initModule(_MODULE_DATA* _psSessionData, sLogin* login);
 
-// Tell medusa how many parameters this module allows
-int getParamNumber()
-{
-  return 0;    // we don't need no stinking parameters
+/**
+ * Tell medusa how many parameters this module allows, which is 0.
+ */
+int getParamNumber() {
+  return 0;
 }
 
-// Displays information about the module and how it must be used
-void summaryUsage(char **ppszSummary)
-{
-  // Memory for ppszSummary will be allocated here - caller is responsible for freeing it
-  int  iLength = 0;
-
-  if (*ppszSummary == NULL)
-  {
-    iLength = strlen(MODULE_SUMMARY_USAGE) + strlen(MODULE_VERSION) + strlen(MODULE_SUMMARY_FORMAT) + 1;
-    *ppszSummary = (char*)malloc(iLength);
-    memset(*ppszSummary, 0, iLength);
-    snprintf(*ppszSummary, iLength, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION);
-  }
-  else
-  {
-    writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
-  }
-
-}
-
-/* Display module usage information */
-void showUsage()
-{
+/**
+ * Display module usage information
+ */
+void showUsage() {
   writeVerbose(VB_NONE, "%s (%s) %s :: %s\n", MODULE_NAME, MODULE_VERSION, MODULE_AUTHOR, MODULE_SUMMARY_USAGE);
-  writeVerbose(VB_NONE, "Available module options:");
-  writeVerbose(VB_NONE, "  USER-AGENT:?       User-agent value. Default: \"I'm not Mozilla, I'm Ming Mong\".");
-  writeVerbose(VB_NONE, "  FORM:?             Target form to request. Default: \"/\"");
-  writeVerbose(VB_NONE, "  DENY-SIGNAL:?      Authentication failure message. Attempt flagged as successful if text is not present in");
-  writeVerbose(VB_NONE, "                     server response. Default: \"Login incorrect\"");
-  writeVerbose(VB_NONE, "  CUSTOM-HEADER:?    Custom HTTP header.");
-  writeVerbose(VB_NONE, "                     More headers can be defined by using this option several times.");
-  writeVerbose(VB_NONE, "  FORM-DATA:<METHOD>?<FIELDS>");
-  writeVerbose(VB_NONE, "                     Methods and fields to send to web service. Valid methods are GET and POST. The actual form");
-  writeVerbose(VB_NONE, "                     data to be submitted should also be defined here. Specifically, the fields: username and");
-  writeVerbose(VB_NONE, "                     password. The username field must be the first, followed by the password field.");
-  writeVerbose(VB_NONE, "                     Default: \"post?username=&password=\"");
-  writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "Usage example: \"-M web-form -m USER-AGENT:\"g3rg3 gerg\" -m FORM:\"webmail/index.php\" -m DENY-SIGNAL:\"deny!\"");
-  writeVerbose(VB_NONE, "                 -m FORM-DATA:\"post?user=&pass=&submit=True\" -m CUSTOM-HEADER:\"Cookie: name=value\"");
+  writeVerbose(VB_NONE, "Available module options:\n"
+                        "  USER-AGENT:?       User-agent value. Default: \"I'm not Mozilla, I'm Ming Mong\".\n"
+                        "  FORM:?             Target form to request. Default: \"/\"\n"
+                        "  DENY-SIGNAL:?      Authentication failure message. Attempt flagged as successful if text is not present in\n"
+                        "                     server response. Default: \"Login incorrect\"\n"
+                        "  CUSTOM-HEADER:?    Custom HTTP header.\n"
+                        "                     More headers can be defined by using this option several times.\n"
+                        "  FORM-DATA:<METHOD>?<FIELDS>\n"
+                        "                     Methods and fields to send to web service. Valid methods are GET and POST. The actual form\n"
+                        "                     data to be submitted should also be defined here. Specifically, the fields: username and\n"
+                        "                     password. The username field must be the first, followed by the password field.\n"
+                        "                     Default: \"post?username=&password=\"\n"
+                        "\n"
+                        "Usage example: \"-M web-form -m USER-AGENT:\"g3rg3 gerg\" -m FORM:\"webmail/index.php\" -m DENY-SIGNAL:\"deny!\"\n"
+                        "                 -m FORM-DATA:\"post?user=&pass=&submit=True\" -m CUSTOM-HEADER:\"Cookie: name=value\"\n");
 }
 
 // The "main" of the medusa module world - this is what gets called to actually do the work
@@ -142,7 +222,7 @@ int go(sLogin* logins, int argc, char *argv[])
     // Parameters are good - make module go now
     writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME);
 
-    for (i=0; i<argc; i++) {
+    for (i = 0; i<argc; i++) {
       pOptTmp = strdup(argv[i]);
       writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
       pOpt = strtok_r(pOptTmp, ":", &strtok_ptr);
@@ -234,7 +314,7 @@ int go(sLogin* logins, int argc, char *argv[])
     initModule(psSessionData, logins);
   }
 
-  FREE(psSessionData);
+  free(psSessionData);
   return SUCCESS;
 }
 
@@ -243,7 +323,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
   int hSocket = -1;
   enum MODULE_STATE nState = MSTATE_NEW;
   char *pStrtokSavePtr = NULL;
-  char *pTemp;
+  char * pTemp = NULL;
   int nBufLength = 0;
   sCredentialSet *psCredSet = NULL;
   sConnectParams params;
@@ -332,11 +412,11 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
             pTemp = strtok_r(_psSessionData->szFormData, "?", &pStrtokSavePtr);
             writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Action Method: %s", MODULE_NAME, pTemp);
             if(strncasecmp(pTemp, "POST", 4) == 0)
-              _psSessionData->nFormType=FORM_POST;
+              _psSessionData->nFormType = FORM_POST;
             else if(strncasecmp(pTemp, "GET", 3) == 0)
-              _psSessionData->nFormType=FORM_GET;
+              _psSessionData->nFormType = FORM_GET;
             else
-              _psSessionData->nFormType=FORM_UNKNOWN;
+              _psSessionData->nFormType = FORM_UNKNOWN;
 
             pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
             if (pTemp != NULL)
@@ -375,7 +455,7 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
             memset(_psSessionData->szFormPass, 0, 10);
             sprintf(_psSessionData->szFormPass, "password=");
 
-            _psSessionData->nFormType=FORM_POST;
+            _psSessionData->nFormType = FORM_POST;
           }
         }
 
@@ -439,41 +519,55 @@ int initModule(_MODULE_DATA *_psSessionData, sLogin* _psLogin)
   }
 
   /* clean up memory */
-  FREE(_psSessionData->szDir);
-  FREE(_psSessionData->szHostHeader);
-  FREE(_psSessionData->szUserAgent);
-  FREE(_psSessionData->szDenySignal);
-  FREE(_psSessionData->szFormData);
-  FREE(_psSessionData->szFormRest);
-  FREE(_psSessionData->szFormUser);
-  FREE(_psSessionData->szFormPass);
-  FREE(_psSessionData->szCustomHeader);
-  FREE(psCredSet);
+  free(_psSessionData->szDir);
+  free(_psSessionData->szHostHeader);
+  free(_psSessionData->szUserAgent);
+  free(_psSessionData->szDenySignal);
+  free(_psSessionData->szFormData);
+  free(_psSessionData->szFormRest);
+  free(_psSessionData->szFormUser);
+  free(_psSessionData->szFormPass);
+  free(_psSessionData->szCustomHeader);
+  free(psCredSet);
 
   return SUCCESS;
 }
 
 /* Module Specific Functions */
 
-char *urlencodeup(char* szStr){
-  unsigned int i=0,j=0;
-  size_t iLen=strlen(szStr);
-  char * szRet = (char*)malloc(sizeof(char)*((iLen*3) + 1));
 
-  static char safechars[] =
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "0123456789";
+/**
+ * URL-encode a string. Returns a heap-allocated buffer containing the encoded
+ * string. The caller is responsible for freeing that buffer when it's no longer
+ * needed.
+ */
+char * urlencodeup(char * szStr){
+  size_t iLen = strlen(szStr);
 
-  for(i=0;i<iLen;i++){
-    if(strchr(safechars,szStr[i])){
-      szRet[j++] = szStr[i];
-    }else{
-      sprintf(szRet+j,"%%%02x", (unsigned int)szStr[i]);
-      j+=3;
+  // Assume the worst case scenario for buffer allocation, which is 3S+1 where S
+  // is the length of the input string.
+  char * szRet = (char *) calloc(((iLen * 3) + 1), sizeof(char));
+  char c = szStr[0];
+
+  size_t j = 0;
+  for(size_t i = 0; i < iLen; ++i) {
+
+    c = szStr[i];
+
+#define BETWEEN(LO,X,HI) ((LO) <= (X) && (X) <= (HI))
+    if (  BETWEEN('a', c, 'z')
+       || BETWEEN('A', c, 'Z')
+       || BETWEEN('0', c, '9')) {
+      szRet[j] = c;
+      j += 1;
+    } else {
+      snprintf(szRet+j, 4, "%%%02x", (unsigned long) c);
+      j += 3;
     }
   }
+
   szRet[j] = '\0';
+
   return szRet;
 }
 
@@ -524,18 +618,13 @@ int sendGet(int hSocket, _MODULE_DATA* _psSessionData, char* szLogin, char* szPa
   return nRet;
 }
 
-int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* szLogin, char* szPassword)
-{
-  unsigned char* pReceiveBuffer = NULL;
-  int nReceiveBufferSize;
+static enum MODULE_STATE _request(int hSocket, _MODULE_DATA* _psSessionData, sLogin ** login, char * szLogin, unsigned char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
+
   int nRet = FAILURE;
-  char* pTemp = NULL;
-  char* szPasswordEncoded = NULL;
 
-  szPasswordEncoded = urlencodeup(szPassword);
+  char * szPasswordEncoded = urlencodeup(szPassword);
 
-  switch(_psSessionData->nFormType)
-  {
+  switch(_psSessionData->nFormType) {
     case FORM_GET:
       writeError(ERR_DEBUG_MODULE, "[%s] Sending Web Form Authentication (GET).", MODULE_NAME);
       nRet = sendGet(hSocket, _psSessionData, szLogin, szPasswordEncoded);
@@ -548,8 +637,7 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
       break;
   }
 
-  if (nRet == FAILURE)
-  {
+  if (nRet == FAILURE) {
     writeError(ERR_ERROR, "[%s] Failed during sending of authentication data.", MODULE_NAME);
     (*login)->iResult = LOGIN_RESULT_UNKNOWN;
     setPassResult(*login, szPassword);
@@ -557,9 +645,9 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
   }
 
   writeError(ERR_DEBUG_MODULE, "[%s] Retrieving server response.", MODULE_NAME);
-  pReceiveBuffer = medusaReceiveLine(hSocket, &nReceiveBufferSize);
+  *pReceiveBuffer = medusaReceiveLine(hSocket, nReceiveBufferSize);
 
-  if ((pReceiveBuffer == NULL) || (pReceiveBuffer[0] == '\0'))
+  if ((*pReceiveBuffer == NULL) || (*pReceiveBuffer[0] == '\0'))
   {
     writeError(ERR_ERROR, "[%s] No data received", MODULE_NAME);
     (*login)->iResult = LOGIN_RESULT_UNKNOWN;
@@ -567,13 +655,54 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
     return MSTATE_EXITING;
   }
 
-  pTemp = (char*)strchr((char *)pReceiveBuffer, ' ');
-  if ( !pTemp || strncmp(pTemp + 1, "200 OK", 6) != 0 )
-  {
-    writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying %s %s: error code %.4s", szLogin, szPassword, pTemp);
-    (*login)->iResult = LOGIN_RESULT_UNKNOWN;
-    setPassResult(*login, szPassword);
-    return MSTATE_EXITING;
+  free(szPasswordEncoded);
+}
+
+int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* szLogin, char* szPassword)
+{
+  unsigned char * pReceiveBuffer = NULL;
+  int nReceiveBufferSize;
+  int nRet = FAILURE;
+
+  // Perform the request, error out when request failed
+  enum MODULE_STATE requestState;
+	requestState = _request(hSocket, _psSessionData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
+  if (requestState == MSTATE_EXITING) return requestState;
+
+  HttpStatusCodeT statusCode = parseHttpStatusCode(pReceiveBuffer);
+  writeError(ERR_DEBUG_MODULE, "[%s] HTTP Response code was %3d.", MODULE_NAME, statusCode);
+
+  switch (statusCode) {
+    // In this case we can continue as we used to because the 200 OK was
+    // expected from the previous code.
+    case HTTP_OK:
+      break;
+
+    // In this case we have to redo the request, this time requesting the page
+    // that is specified in the Location header
+    case HTTP_MOVED_PERMANENTLY:
+    case HTTP_FOUND:
+    case HTTP_TEMPORARY_REDIRECT:
+    case HTTP_PERMANENT_REDIRECT:
+      writeError(ERR_DEBUG_MODULE, "[%s] Following redicrect.", MODULE_NAME);
+
+      // Get the value of the location header and set the directory to that
+      // location, then perform the request again.
+      parseLocationHeaderValue(pReceiveBuffer, &_psSessionData->szDir);
+      _request(hSocket, _psSessionData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
+
+      if (requestState == MSTATE_EXITING)
+        return requestState;
+
+      break;
+
+    // The default error case from the old code
+    default:
+        writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying: user: \"%s\", pass: \"%s\", HTTP status code: %3d", szLogin, szPassword, statusCode);
+        (*login)->iResult = LOGIN_RESULT_UNKNOWN;
+        setPassResult(*login, szPassword);
+        return MSTATE_EXITING;
+      break;
   }
 
   while (pReceiveBuffer != NULL && (strcasestr((char *)pReceiveBuffer, _psSessionData->szDenySignal) == NULL) && (pReceiveBuffer[0] != '\0'))
@@ -592,42 +721,41 @@ int tryLogin(int hSocket, _MODULE_DATA* _psSessionData, sLogin** login, char* sz
   writeError(ERR_DEBUG_MODULE, "Login Successful");
   (*login)->iResult = LOGIN_RESULT_SUCCESS;
   setPassResult(*login, szPassword);
+
   return MSTATE_NEW;
 }
 
 #else
 
-void summaryUsage(char **ppszSummary)
-{
-  // Memory for ppszSummary will be allocated here - caller is responsible for freeing it
-  int  iLength = 0;
+/**
+ * Memory for ppszSummary will be allocated here - caller is responsible for freeing it
+ */
 
-  if (*ppszSummary == NULL)
-  {
-    iLength = strlen(MODULE_SUMMARY_USAGE) + strlen(MODULE_VERSION) + strlen(MODULE_SUMMARY_FORMAT) + strlen(OPENSSL_WARNING) + 1;
-    *ppszSummary = (char*)malloc(iLength);
-    memset(*ppszSummary, 0, iLength);
-    snprintf(*ppszSummary, iLength, MODULE_SUMMARY_FORMAT_WARN, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
-  }
-  else
-  {
-    writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
-  }
-}
-
-void showUsage()
-{
+void showUsage() {
   writeVerbose(VB_NONE, "%s (%s) %s :: %s\n", MODULE_NAME, MODULE_VERSION, MODULE_AUTHOR, MODULE_SUMMARY_USAGE);
   writeVerbose(VB_NONE, "** Module was not properly built. Is OPENSSL installed correctly? **");
   writeVerbose(VB_NONE, "");
 }
 
-int go(sLogin* logins, int argc, char *argv[])
-{
+int go(sLogin* logins, int argc, char *argv[]) {
   writeVerbose(VB_NONE, "%s (%s) %s :: %s\n", MODULE_NAME, MODULE_VERSION, MODULE_AUTHOR, MODULE_SUMMARY_USAGE);
   writeVerbose(VB_NONE, "** Module was not properly built. Is OPENSSL installed correctly? **");
   writeVerbose(VB_NONE, "");
+
   return FAILURE;
 }
 
 #endif
+
+void summaryUsage(char **ppszSummary) {
+  int  iLength = 0;
+
+  if (*ppszSummary == NULL) {
+    iLength = strlen(MODULE_SUMMARY_USAGE MODULE_VERSION MODULE_SUMMARY_FORMAT OPENSSL_WARNING) + 1;
+    *ppszSummary = (char *) calloc(iLength, sizeof(char));
+    memset(*ppszSummary, 0, iLength);
+    snprintf(*ppszSummary, iLength, MODULE_SUMMARY_FORMAT_WARN, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
+  } else {
+    writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
+  }
+}
