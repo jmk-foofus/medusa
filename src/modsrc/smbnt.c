@@ -99,6 +99,7 @@
 
 #ifdef HAVE_LIBSSL
 
+#include <openssl/evp.h>
 #include <openssl/md5.h>
 #include <openssl/md4.h>
 #include <openssl/des.h>
@@ -571,6 +572,9 @@ static unsigned char Get7Bits(unsigned char *input, int startBit)
 /* Make the key */
 static void MakeKey(unsigned char *key, unsigned char *des_key)
 {
+  unsigned char byte;
+  unsigned char parity = 0;
+
   des_key[0] = Get7Bits(key, 0);
   des_key[1] = Get7Bits(key, 7);
   des_key[2] = Get7Bits(key, 14);
@@ -580,18 +584,30 @@ static void MakeKey(unsigned char *key, unsigned char *des_key)
   des_key[6] = Get7Bits(key, 42);
   des_key[7] = Get7Bits(key, 49);
 
-  DES_set_odd_parity((DES_cblock *) des_key);
+  for (size_t i = 0; i < 8; i++) {
+    byte = des_key[i];
+
+    while (byte) {
+        parity ^= byte & 1;
+        byte >>= 1;
+    }
+
+    /* Set the least significant bit to the opposite of the calculated parity */
+    des_key[i] = (des_key[i] & 0xFE) | (parity ^ 1);
+  }
 }
 
 /* Do the DesEncryption */
 void DesEncrypt(unsigned char *clear, unsigned char *key, unsigned char *cipher)
 {
-  DES_cblock des_key;
-  DES_key_schedule key_schedule;
-
+  unsigned char des_key[8];
   MakeKey(key, des_key);
-  DES_set_key(&des_key, &key_schedule);
-  DES_ecb_encrypt((DES_cblock *) clear, (DES_cblock *) cipher, &key_schedule, 1);
+  int len;
+
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+  EVP_EncryptInit_ex(ctx, EVP_des_ecb(), NULL, des_key, NULL);
+  EVP_EncryptUpdate(ctx, cipher, &len, clear, 8);
+  EVP_CIPHER_CTX_free(ctx);
 }
 
 /*
