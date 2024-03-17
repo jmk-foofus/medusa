@@ -34,11 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/param_build.h>
-#include <openssl/core_names.h>
-#include <openssl/bn.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
 #include "module.h"
 #include "d3des.h"
 
@@ -786,192 +781,14 @@ int sendAuthVNC(int hSocket, _VNC_DATA* _psSessionData, char* szPassword)
 */
 int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char* szPassword)
 {
-  unsigned char ms_user[256], ms_passwd[64];
-  unsigned char key[8];
-  int i = 0;
-  
-  int client_priv = 31337; /* arbitrary value -- client would typically randomly generate */ 
-  //uint64_t g, p, resp;
-  BIGNUM* g;
-  BIGNUM* p;
-  BIGNUM* resp;
-  char client_pub[8];
-  BIGNUM* server_pub;
-  unsigned long err;
-
-  DH *dh_struct;
-  int dh_error;
-  unsigned char *dh_secret;
-
-  unsigned char *bufSend = NULL;
-
-  writeError(ERR_DEBUG_MODULE, "[%s] VNC Authentication - UltraVNC Microsoft Logon", MODULE_NAME);
-  
-  /* parse server challenge -- g, p (mod) and server public key */
-  g = BN_bin2bn(_psSessionData->szChallenge, 8, NULL);
-  p = BN_bin2bn(_psSessionData->szChallenge + 8, 8, NULL);
-  resp = BN_bin2bn(_psSessionData->szChallenge + 16, 8, NULL);
-
-  writeError(ERR_DEBUG_MODULE, "[%s] Server DH values: g: %s p/mod: %s public key: %s", MODULE_NAME, BN_bn2hex(g), BN_bn2hex(p), BN_bn2hex(resp));
-
-  /* https://stackoverflow.com/questions/71551116/openssl-3-diffie-hellman-key-exchange-c */
-
-  /* Create EVP_PKEY */
-
-  /* Create the OSSL_PARAM_BLD */
-  OSSL_PARAM_BLD* paramBuild = OSSL_PARAM_BLD_new();
-  if (!paramBuild) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (OSSL_PARAM_BLD_new())", MODULE_NAME);
-  }
-
-  /* Set the prime and generator */
-  writeError(ERR_DEBUG_MODULE, "[%s] set prime (%d bits) / generator (%d bits)", MODULE_NAME, BN_num_bits(p), BN_num_bits(g));
-  
-  if (!OSSL_PARAM_BLD_push_BN(paramBuild, OSSL_PKEY_PARAM_FFC_P, p) ||
-      !OSSL_PARAM_BLD_push_BN(paramBuild, OSSL_PKEY_PARAM_FFC_G, g)) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (set prime/generator)", MODULE_NAME);
-  }
-  
-  //BN_free(p);
-  //BN_free(g);
-  writeError(ERR_DEBUG_MODULE, "[%s] FOO", MODULE_NAME);
-
-  /* Convert to OSSL_PARAM */
-  OSSL_PARAM* param = OSSL_PARAM_BLD_to_param(paramBuild);
-  if (!param) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (convert to OSSL_PARAM)", MODULE_NAME);
-  }
-  
-  writeError(ERR_DEBUG_MODULE, "[%s] FOO1", MODULE_NAME);
-
-  /* Create the context. The name is DHX not DH. */
-  //EVP_PKEY_CTX* domainParamKeyCtx = EVP_PKEY_CTX_new_from_name(NULL, "DHX", NULL);
-  EVP_PKEY_CTX* domainParamKeyCtx = EVP_PKEY_CTX_new_from_name(NULL, "DH", NULL);
-  if (!domainParamKeyCtx) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (create context)", MODULE_NAME);
-  }
-
-  /* Initialize the context */
-  if (EVP_PKEY_fromdata_init(domainParamKeyCtx) <= 0) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize context)", MODULE_NAME);
-  }
-
-  /* Create the domain parameter key */
-  EVP_PKEY* domainParamKey = NULL;
-  if (EVP_PKEY_fromdata(domainParamKeyCtx, &domainParamKey, EVP_PKEY_KEY_PARAMETERS, param) <= 0) {
-    writeError(ERR_ERROR, "[%s] Failed to generate key (create domain parameter key)", MODULE_NAME);
-  }
-
-  /* Generate key pair */
-  EVP_PKEY_CTX* keyGenerationCtx = EVP_PKEY_CTX_new_from_pkey(NULL, domainParamKey, NULL);
-  if (!keyGenerationCtx) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (create keypair context): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  if (EVP_PKEY_keygen_init(keyGenerationCtx) <= 0) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize keypair context): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  EVP_PKEY* keyPair = NULL;
-  if (EVP_PKEY_generate(keyGenerationCtx, &keyPair) <= 0) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (keypair generation): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  /* Generate shared secret using private DH key and server's public key */
-  size_t shared_secret_length = 9;
-  if (EVP_PKEY_derive_init(keyGenerationCtx) <= 0) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize shared secret): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  /////
-  /* Convert server public key */
-  size_t pub_key_len = BN_num_bytes(resp);
-  unsigned char *pub_key_data = malloc(pub_key_len);
-  EVP_PKEY *peer_key = EVP_PKEY_new_raw_public_key(EVP_PKEY_HKDF, NULL, pub_key_data, pub_key_len);
-  FREE(pub_key_data);
-  /////
- 
-  int res;
-  //ERR_clear_error();
-  if ((res=EVP_PKEY_derive_set_peer(keyGenerationCtx, peer_key)) <= -1) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (set peer): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  EVP_PKEY_free(peer_key);
-
-  if (EVP_PKEY_derive(keyGenerationCtx, NULL, &shared_secret_length) <= 0) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (derive key): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  //memory to s_key has been assigned before function call.
-  memset(key, 0, 8);
-  if (EVP_PKEY_derive(keyGenerationCtx, key, &shared_secret_length) <= 0) {
-    err = ERR_get_error();
-    writeError(ERR_ERROR, "[%s] Failed to generate key (set key): %s", MODULE_NAME, ERR_error_string(err, NULL));
-  }
-
-  /* OpenSSLs DH implementation is compliant with the SSL/TLS requirements that skip
-     leading zeroes on the output. We need our key to be exactly 8 bytes long, so
-     let's prepend it with the necessary number of zeros. */
-  //memset(key, 0, 8);
-  //if (DH_size(dh_struct) < 8)
-  //  for (i=0; i < DH_size(dh_struct); i++)
-  //    key[8 - DH_size(dh_struct) + i] = dh_secret[i];
-  
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  writeErrorBin(ERR_DEBUG_MODULE, "Shared secret key: ", key, 8);
-
-  memset(ms_user, 0, 256);
-  memset(ms_passwd, 0, 64);
-
-  if ((_psSessionData->szDomain) && ((strlen(_psSessionData->szDomain) + 1 + strlen(szLogin)) < 256))
-  { 
-    strcpy((char *)ms_user, _psSessionData->szDomain);
-    strcat((char *)ms_user, "\\");
-    strcat((char *)ms_user, szLogin);
-  }
-  else
-    strncpy((char *)ms_user, szLogin, 256);
-
-  strncpy((char *)ms_passwd, szPassword, 64);
-
-  writeError(ERR_DEBUG_MODULE, "Username: %s Password: %s", ms_user, ms_passwd);
-  writeErrorBin(ERR_DEBUG_MODULE, "Username: ", ms_user, 255);
-  writeErrorBin(ERR_DEBUG_MODULE, "Password: ", ms_passwd, 64);
-
-  vncEncryptBytes2((unsigned char*) &ms_user, sizeof(ms_user), key);
-  vncEncryptBytes2((unsigned char*) &ms_passwd, sizeof(ms_passwd), key);
-
-  writeErrorBin(ERR_DEBUG_MODULE, "Encrypted username: ", ms_user, 256);
-  writeErrorBin(ERR_DEBUG_MODULE, "Encrypted password: ", ms_passwd, 64);
-
-  /* send client public key, encrypted username, and encrypted password */
-  bufSend = malloc(8 + sizeof(ms_user) + sizeof(ms_passwd) + 1);
-  memset(bufSend, 0, 8 + sizeof(ms_user) + sizeof(ms_passwd) + 1);
-
   /*
-    For extra fun, set client_pub to a value of 0x80000000 or greater. No more server...
-    memset(client_pub, 0x0000000080, 5);
+    2024/03/16
+    - Functions previously used have been deprecated in OpenSSL v3.0.
+    - New EVP_PKEY* function do not appear to support 64-bit modulus used by UltraVNC (too small).
+    - Removing code until someone finds new solution.
   */
-  memcpy(bufSend, client_pub, 8);
-  memcpy(bufSend + 8, ms_user, sizeof(ms_user));
-  memcpy(bufSend + 8 + sizeof(ms_user), ms_passwd, sizeof(ms_passwd));
 
-  if (medusaSend(hSocket, bufSend, 8 + sizeof(ms_user) + sizeof(ms_passwd), 0) < 0)
-  {
-    writeError(ERR_ERROR, "[%s] failed: medusaSend was not successful", MODULE_NAME);
-    return FAILURE;
-  }
-
-  return SUCCESS;
+  writeError(ERR_FATAL, "[%s] UltraVNC MS-Logon I/II support removed (OpenSSL functions deprecated).", MODULE_NAME);
 }
 
 int sendExit(int hSocket)
