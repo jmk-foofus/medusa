@@ -34,13 +34,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
+#include <openssl/bn.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
 #include "module.h"
 #include "d3des.h"
 
 #define MODULE_NAME    "vnc.mod"
 #define MODULE_AUTHOR  "JoMo-Kun <jmk@foofus.net>"
 #define MODULE_SUMMARY_USAGE  "Brute force module for VNC sessions"
-#define MODULE_VERSION    "2.1"
+#define MODULE_VERSION    "2.2"
 #define MODULE_VERSION_SVN "$Id: vnc.c 9217 2015-05-07 18:07:03Z jmk $"
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
 #define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
@@ -786,9 +791,13 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
   int i = 0;
   
   int client_priv = 31337; /* arbitrary value -- client would typically randomly generate */ 
-  uint64_t g, p, resp;
+  //uint64_t g, p, resp;
+  BIGNUM* g;
+  BIGNUM* p;
+  BIGNUM* resp;
   char client_pub[8];
   BIGNUM* server_pub;
+  unsigned long err;
 
   DH *dh_struct;
   int dh_error;
@@ -799,62 +808,124 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
   writeError(ERR_DEBUG_MODULE, "[%s] VNC Authentication - UltraVNC Microsoft Logon", MODULE_NAME);
   
   /* parse server challenge -- g, p (mod) and server public key */
-  g = bytesToInt64(_psSessionData->szChallenge);
-  p = bytesToInt64(_psSessionData->szChallenge + 8);
-  resp = bytesToInt64(_psSessionData->szChallenge + 16);
+  g = BN_bin2bn(_psSessionData->szChallenge, 8, NULL);
+  p = BN_bin2bn(_psSessionData->szChallenge + 8, 8, NULL);
+  resp = BN_bin2bn(_psSessionData->szChallenge + 16, 8, NULL);
 
-  writeError(ERR_DEBUG_MODULE, "[%s] Server DH values: g: %d p/mod: %d public key: %d", MODULE_NAME, g, p, resp);
+  writeError(ERR_DEBUG_MODULE, "[%s] Server DH values: g: %s p/mod: %s public key: %s", MODULE_NAME, BN_bn2hex(g), BN_bn2hex(p), BN_bn2hex(resp));
 
-  /* create and populate DH structure */ 
-  dh_struct = DH_new();
+  /* https://stackoverflow.com/questions/71551116/openssl-3-diffie-hellman-key-exchange-c */
 
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
-  DH_set0_pqg(dh_struct, (BIGNUM*) &p, (BIGNUM*) &client_priv, (BIGNUM*) &g);
-#else 
-  dh_struct->g = BN_new();
-  BN_set_word(dh_struct->g, g);
+  /* Create EVP_PKEY */
+
+  /* Create the OSSL_PARAM_BLD */
+  OSSL_PARAM_BLD* paramBuild = OSSL_PARAM_BLD_new();
+  if (!paramBuild) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (OSSL_PARAM_BLD_new())", MODULE_NAME);
+  }
+
+  /* Set the prime and generator */
+  writeError(ERR_DEBUG_MODULE, "[%s] set prime (%d bits) / generator (%d bits)", MODULE_NAME, BN_num_bits(p), BN_num_bits(g));
   
-  dh_struct->p = BN_new();
-  BN_set_word(dh_struct->p, p);
+  if (!OSSL_PARAM_BLD_push_BN(paramBuild, OSSL_PKEY_PARAM_FFC_P, p) ||
+      !OSSL_PARAM_BLD_push_BN(paramBuild, OSSL_PKEY_PARAM_FFC_G, g)) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (set prime/generator)", MODULE_NAME);
+  }
   
-  dh_struct->priv_key = BN_new();
-  BN_set_word(dh_struct->priv_key, client_priv);
-#endif
+  //BN_free(p);
+  //BN_free(g);
+  writeError(ERR_DEBUG_MODULE, "[%s] FOO", MODULE_NAME);
 
-  if (DH_generate_key(dh_struct) == 0)
-    writeError(ERR_ERROR, "[%s] Failed to generate key", MODULE_NAME);
+  /* Convert to OSSL_PARAM */
+  OSSL_PARAM* param = OSSL_PARAM_BLD_to_param(paramBuild);
+  if (!param) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (convert to OSSL_PARAM)", MODULE_NAME);
+  }
   
-  DH_check(dh_struct, &dh_error);
-  if (dh_error & DH_CHECK_P_NOT_SAFE_PRIME)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_CHECK_P_NOT_SAFE_PRIME", MODULE_NAME);
-  if (dh_error & DH_NOT_SUITABLE_GENERATOR)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_NOT_SUITABLE_GENERATOR", MODULE_NAME);
-  if (dh_error & DH_UNABLE_TO_CHECK_GENERATOR)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_UNABLE_TO_CHECK_GENERATOR", MODULE_NAME);
+  writeError(ERR_DEBUG_MODULE, "[%s] FOO1", MODULE_NAME);
 
-  /* convert client public key into proper format for sending */
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
-  DH_set0_key(dh_struct, (BIGNUM*) &client_pub, (BIGNUM*) &client_priv);
-#else
-  int64ToBytes(BN_get_word(dh_struct->pub_key), client_pub);
-#endif
+  /* Create the context. The name is DHX not DH. */
+  //EVP_PKEY_CTX* domainParamKeyCtx = EVP_PKEY_CTX_new_from_name(NULL, "DHX", NULL);
+  EVP_PKEY_CTX* domainParamKeyCtx = EVP_PKEY_CTX_new_from_name(NULL, "DH", NULL);
+  if (!domainParamKeyCtx) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (create context)", MODULE_NAME);
+  }
 
-  /* generate shared secret using private DH key and server's public key */
-  server_pub = BN_new();
-  BN_set_word(server_pub, resp);
-  
-  dh_secret = malloc( DH_size(dh_struct) );
-  DH_compute_key(dh_secret, server_pub, dh_struct);
-  
+  /* Initialize the context */
+  if (EVP_PKEY_fromdata_init(domainParamKeyCtx) <= 0) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize context)", MODULE_NAME);
+  }
+
+  /* Create the domain parameter key */
+  EVP_PKEY* domainParamKey = NULL;
+  if (EVP_PKEY_fromdata(domainParamKeyCtx, &domainParamKey, EVP_PKEY_KEY_PARAMETERS, param) <= 0) {
+    writeError(ERR_ERROR, "[%s] Failed to generate key (create domain parameter key)", MODULE_NAME);
+  }
+
+  /* Generate key pair */
+  EVP_PKEY_CTX* keyGenerationCtx = EVP_PKEY_CTX_new_from_pkey(NULL, domainParamKey, NULL);
+  if (!keyGenerationCtx) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (create keypair context): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  if (EVP_PKEY_keygen_init(keyGenerationCtx) <= 0) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize keypair context): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  EVP_PKEY* keyPair = NULL;
+  if (EVP_PKEY_generate(keyGenerationCtx, &keyPair) <= 0) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (keypair generation): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  /* Generate shared secret using private DH key and server's public key */
+  size_t shared_secret_length = 9;
+  if (EVP_PKEY_derive_init(keyGenerationCtx) <= 0) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (initialize shared secret): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  /////
+  /* Convert server public key */
+  size_t pub_key_len = BN_num_bytes(resp);
+  unsigned char *pub_key_data = malloc(pub_key_len);
+  EVP_PKEY *peer_key = EVP_PKEY_new_raw_public_key(EVP_PKEY_HKDF, NULL, pub_key_data, pub_key_len);
+  FREE(pub_key_data);
+  /////
+ 
+  int res;
+  //ERR_clear_error();
+  if ((res=EVP_PKEY_derive_set_peer(keyGenerationCtx, peer_key)) <= -1) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (set peer): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  EVP_PKEY_free(peer_key);
+
+  if (EVP_PKEY_derive(keyGenerationCtx, NULL, &shared_secret_length) <= 0) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (derive key): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
+  //memory to s_key has been assigned before function call.
+  memset(key, 0, 8);
+  if (EVP_PKEY_derive(keyGenerationCtx, key, &shared_secret_length) <= 0) {
+    err = ERR_get_error();
+    writeError(ERR_ERROR, "[%s] Failed to generate key (set key): %s", MODULE_NAME, ERR_error_string(err, NULL));
+  }
+
   /* OpenSSLs DH implementation is compliant with the SSL/TLS requirements that skip
      leading zeroes on the output. We need our key to be exactly 8 bytes long, so
      let's prepend it with the necessary number of zeros. */
-  memset(key, 0, 8);
-  if (DH_size(dh_struct) < 8)
-    for (i=0; i < DH_size(dh_struct); i++)
-      key[8 - DH_size(dh_struct) + i] = dh_secret[i];
+  //memset(key, 0, 8);
+  //if (DH_size(dh_struct) < 8)
+  //  for (i=0; i < DH_size(dh_struct); i++)
+  //    key[8 - DH_size(dh_struct) + i] = dh_secret[i];
   
-  DH_free(dh_struct);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
   writeErrorBin(ERR_DEBUG_MODULE, "Shared secret key: ", key, 8);
 
@@ -873,7 +944,7 @@ int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char*
   strncpy((char *)ms_passwd, szPassword, 64);
 
   writeError(ERR_DEBUG_MODULE, "Username: %s Password: %s", ms_user, ms_passwd);
-  writeErrorBin(ERR_DEBUG_MODULE, "Username: ", ms_user, 256);
+  writeErrorBin(ERR_DEBUG_MODULE, "Username: ", ms_user, 255);
   writeErrorBin(ERR_DEBUG_MODULE, "Password: ", ms_passwd, 64);
 
   vncEncryptBytes2((unsigned char*) &ms_user, sizeof(ms_user), key);
