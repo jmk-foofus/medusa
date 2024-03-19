@@ -51,27 +51,47 @@ void DigestCalcHA1(
     OUT HASHHEX SessionKey
     )
 {
-      MD5_CTX Md5Ctx;
-      HASH HA1;
+      EVP_MD_CTX *Md5Ctx;
+      unsigned char *md5_digest;
+      unsigned int md5_digest_len = HASHLEN;
 
-      MD5_Init(&Md5Ctx);
-      MD5_Update(&Md5Ctx, pszUserName, strlen(pszUserName));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszRealm, strlen(pszRealm));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszPassword, strlen(pszPassword));
-      MD5_Final(HA1, &Md5Ctx);
+      /* MD5_Init */
+      Md5Ctx = EVP_MD_CTX_new();
+      EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
+
+      /* MD5_Update */
+      EVP_DigestUpdate(Md5Ctx, pszUserName, strlen(pszUserName));
+      EVP_DigestUpdate(Md5Ctx, ":", 1);
+      EVP_DigestUpdate(Md5Ctx, pszRealm, strlen(pszRealm));
+      EVP_DigestUpdate(Md5Ctx, ":", 1);
+      EVP_DigestUpdate(Md5Ctx, pszPassword, strlen(pszPassword));
+
+      /* MD5_Final */
+      md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+      EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+      EVP_MD_CTX_free(Md5Ctx);
+
       if (strcasecmp(pszAlg, "md5-sess") == 0) {
-            CvtHex(HA1, SessionKey);
-            MD5_Init(&Md5Ctx);
-            MD5_Update(&Md5Ctx, SessionKey, strlen(SessionKey));
-            MD5_Update(&Md5Ctx, ":", 1);
-            MD5_Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-            MD5_Update(&Md5Ctx, ":", 1);
-            MD5_Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-            MD5_Final(HA1, &Md5Ctx);
+            CvtHex(md5_digest, SessionKey);
+
+            /* MD5_Init */
+            Md5Ctx = EVP_MD_CTX_new();
+            EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
+
+            /* MD5_Update */
+            EVP_DigestUpdate(Md5Ctx, SessionKey, strlen(SessionKey));
+            EVP_DigestUpdate(Md5Ctx, ":", 1);
+            EVP_DigestUpdate(Md5Ctx, pszNonce, strlen(pszNonce));
+            EVP_DigestUpdate(Md5Ctx, ":", 1);
+            EVP_DigestUpdate(Md5Ctx, pszCNonce, strlen(pszCNonce));
+
+            /* MD5_Final */
+            md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+            EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+            EVP_MD_CTX_free(Md5Ctx);
       };
-      CvtHex(HA1, SessionKey);
+
+      CvtHex(md5_digest, SessionKey);
 };
 
 /* calculate request-digest/response-digest as per HTTP Digest spec */
@@ -87,41 +107,59 @@ void DigestCalcResponse(
     OUT HASHHEX Response      /* request-digest or response-digest */
     )
 {
-      MD5_CTX Md5Ctx;
-      HASH HA2;
-      HASH RespHash;
       HASHHEX HA2Hex;
-      
-      // calculate H(A2)
-      MD5_Init(&Md5Ctx);
-      MD5_Update(&Md5Ctx, pszMethod, strlen(pszMethod));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszDigestUri, strlen(pszDigestUri));
+      EVP_MD_CTX *Md5Ctx;
+      unsigned char *md5_digest;
+      unsigned int md5_digest_len = HASHLEN;
+
+      /* MD5_Init */
+      Md5Ctx = EVP_MD_CTX_new();
+      EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
+
+      /* MD5_Update */
+      EVP_DigestUpdate(Md5Ctx, pszMethod, strlen(pszMethod));
+      EVP_DigestUpdate(Md5Ctx, ":", 1);
+      EVP_DigestUpdate(Md5Ctx, pszDigestUri, strlen(pszDigestUri));
+
       if (strcasecmp(pszQop, "auth-int") == 0) {
-            MD5_Update(&Md5Ctx, ":", 1);
-            MD5_Update(&Md5Ctx, HEntity, HASHHEXLEN);
+            EVP_DigestUpdate(Md5Ctx, ":", 1);
+            EVP_DigestUpdate(Md5Ctx, HEntity, HASHHEXLEN);
       };
-      MD5_Final(HA2, &Md5Ctx);
-       CvtHex(HA2, HA2Hex);
+
+      /* MD5_Final */
+      md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+      EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+
+      CvtHex(md5_digest, HA2Hex);
 
       // calculate response
-      MD5_Init(&Md5Ctx);
-      MD5_Update(&Md5Ctx, HA1, HASHHEXLEN);
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-      MD5_Update(&Md5Ctx, ":", 1);
-      if (*pszQop) {
 
-          MD5_Update(&Md5Ctx, pszNonceCount, strlen(pszNonceCount));
-          MD5_Update(&Md5Ctx, ":", 1);
-          MD5_Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-          MD5_Update(&Md5Ctx, ":", 1);
-          MD5_Update(&Md5Ctx, pszQop, strlen(pszQop));
-          MD5_Update(&Md5Ctx, ":", 1);
+      /* MD5_Init */
+      Md5Ctx = EVP_MD_CTX_new();
+      EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
+
+      /* MD5_Update */
+      EVP_DigestUpdate(Md5Ctx, HA1, HASHHEXLEN);
+      EVP_DigestUpdate(Md5Ctx, ":", 1);
+      EVP_DigestUpdate(Md5Ctx, pszNonce, strlen(pszNonce));
+      EVP_DigestUpdate(Md5Ctx, ":", 1);
+
+      if (*pszQop) {
+          EVP_DigestUpdate(Md5Ctx, pszNonceCount, strlen(pszNonceCount));
+          EVP_DigestUpdate(Md5Ctx, ":", 1);
+          EVP_DigestUpdate(Md5Ctx, pszCNonce, strlen(pszCNonce));
+          EVP_DigestUpdate(Md5Ctx, ":", 1);
+          EVP_DigestUpdate(Md5Ctx, pszQop, strlen(pszQop));
+          EVP_DigestUpdate(Md5Ctx, ":", 1);
       };
-      MD5_Update(&Md5Ctx, HA2Hex, HASHHEXLEN);
-      MD5_Final(RespHash, &Md5Ctx);
-      CvtHex(RespHash, Response);
+
+      EVP_DigestUpdate(Md5Ctx, HA2Hex, HASHHEXLEN);
+
+      /* MD5_Final */
+      md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+      EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+
+      CvtHex(md5_digest, Response);
 };
 
 /*
