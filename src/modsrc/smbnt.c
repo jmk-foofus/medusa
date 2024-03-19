@@ -172,10 +172,6 @@ int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData);
 int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData);
 int SMBNegProt(int hSocket, _SMBNT_DATA* _psSessionData);
 
-extern void hmac_md5_init_limK_to_64(const unsigned char* key, int key_len, HMACMD5Context *ctx);
-extern void hmac_md5_update(const unsigned char *text, int text_len, HMACMD5Context *ctx);
-extern void hmac_md5_final(unsigned char *digest, HMACMD5Context *ctx);
-
 // Tell medusa how many parameters this module allows
 int getParamNumber()
 {
@@ -859,7 +855,6 @@ int HashNTLM(_SMBNT_DATA *_psSessionData, unsigned char **ntlmhash, unsigned cha
   return SUCCESS;
 }
 
-
 /*
   HashLMv2
 
@@ -876,22 +871,22 @@ int HashNTLM(_SMBNT_DATA *_psSessionData, unsigned char **ntlmhash, unsigned cha
 int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned char *szLogin, unsigned char *szPassword)
 {
   unsigned char ntlm_hash[16];
-  unsigned char lmv2_response[24];
   unsigned char unicodeUsername[20 * 2];
   unsigned char unicodeTarget[256 * 2];
-  HMACMD5Context ctx;
-  unsigned char kr_buf[16];
   int ret;
   unsigned int i;
   unsigned char client_challenge[8] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88 };
-
-  memset(ntlm_hash, 0, 16);
-  memset(lmv2_response, 0, 24);
-  memset(kr_buf, 0, 16);
+  unsigned char* message;
+  size_t message_len;
+  unsigned char* kr_buf;
+  size_t kr_buf_len = 16;
+  unsigned char* lmv2_response;
+  size_t lmv2_response_len = 16;
 
   /* --- HMAC #1 Caculations --- */
 
   /* Calculate and set NTLM password hash */
+  memset(ntlm_hash, 0, 16);
   ret = MakeNTLM(_psSessionData, (unsigned char *)&ntlm_hash, (unsigned char *) szPassword);
   if (ret == FAILURE)
     return FAILURE;
@@ -925,10 +920,17 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
   for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
     unicodeTarget[i * 2] = (unsigned char)_psSessionData->workgroup[i];
 
-  hmac_md5_init_limK_to_64(ntlm_hash, 16, &ctx);
-  hmac_md5_update((const unsigned char *)unicodeUsername, 2 * strlen((char *)szLogin), &ctx);
-  hmac_md5_update((const unsigned char *)unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup), &ctx);
-  hmac_md5_final(kr_buf, &ctx);
+  message_len = 2 * strlen((char *)szLogin) + 2 * strlen((char *)_psSessionData->workgroup);
+  message = malloc(message_len);
+  memset(message, 0, message_len);
+  memcpy(message, unicodeUsername, 2 * strlen((char *)szLogin));
+  memcpy(message + 2 * strlen((char *)szLogin), unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup));
+
+  kr_buf = malloc(kr_buf_len);
+  memset(kr_buf, 0, kr_buf_len);
+  hmac_md5(message, message_len, &kr_buf, &kr_buf_len, ntlm_hash, sizeof(ntlm_hash));
+
+  FREE(message);
 
   /* --- HMAC #2 Calculations --- */
   /*
@@ -936,16 +938,26 @@ int HashLMv2(_SMBNT_DATA *_psSessionData, unsigned char **LMv2hash, unsigned cha
     message authentication code algorithm is applied to this value using the 16-byte NTLMv2 hash
     (calculated above) as the key. This results in a 16-byte output value.
   */
-  hmac_md5_init_limK_to_64(kr_buf, 16, &ctx);
-  hmac_md5_update(_psSessionData->challenge, 8, &ctx);
-  hmac_md5_update(client_challenge, 8, &ctx);
-  hmac_md5_final(lmv2_response, &ctx);
+
+  message_len = 16;
+  message = malloc(message_len);
+  memset(message, 0, 16);
+  memcpy(message, _psSessionData->challenge, 8);
+  memcpy(message + 8, client_challenge, 8);
+
+  lmv2_response = malloc(lmv2_response_len);
+  memset(lmv2_response, 0, lmv2_response_len);
+  hmac_md5(message, message_len, &lmv2_response, &lmv2_response_len, kr_buf, kr_buf_len);
+
+  FREE(kr_buf);
 
   /* --- 24-byte LMv2 Response Complete --- */
   *LMv2hash = malloc(24);
   memset(*LMv2hash, 0, 24);
   memcpy(*LMv2hash, lmv2_response, 16);
   memcpy(*LMv2hash + 16, client_challenge, 8);
+
+  FREE(lmv2_response);
 
   return SUCCESS;
 }
@@ -978,7 +990,7 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   unsigned char ntlmv2_response[56 + 20 * 2 + 256 * 2];
   unsigned char unicodeUsername[20 * 2];
   unsigned char unicodeTarget[256 * 2];
-  HMACMD5Context ctx;
+  //HMACMD5Context ctx;
   unsigned char kr_buf[16];
   unsigned int i;
   int ret, iTargetLen;
@@ -1046,10 +1058,11 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
   for (i = 0; i < strlen((char *)_psSessionData->workgroup); i++)
     unicodeTarget[i * 2] = (unsigned char)_psSessionData->workgroup[i];
 
-  hmac_md5_init_limK_to_64(ntlm_hash, 16, &ctx);
-  hmac_md5_update((const unsigned char *)unicodeUsername, 2 * strlen((char *)szLogin), &ctx);
-  hmac_md5_update((const unsigned char *)unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup), &ctx);
-  hmac_md5_final(kr_buf, &ctx);
+  /* NTLMv2 disabled, use LMv2. Replace these with hmac_md() if ever trying to fix this. */
+  //hmac_md5_init_limK_to_64(ntlm_hash, 16, &ctx);
+  //hmac_md5_update((const unsigned char *)unicodeUsername, 2 * strlen((char *)szLogin), &ctx);
+  //hmac_md5_update((const unsigned char *)unicodeTarget, 2 * strlen((char *)_psSessionData->workgroup), &ctx);
+  //hmac_md5_final(kr_buf, &ctx);
 
   /* --- Blob Construction --- */
 
@@ -1117,10 +1130,11 @@ int HashNTLMv2(_SMBNT_DATA *_psSessionData, unsigned char **NTLMv2hash, int *iBy
     (calculated above) as the key. This results in a 16-byte output value.
   */
 
-  hmac_md5_init_limK_to_64(kr_buf, 16, &ctx);
-  hmac_md5_update(_psSessionData->challenge, 8, &ctx);
-  hmac_md5_update(ntlmv2_response + 16, 48 - 16 + iTargetLen + 4, &ctx);
-  hmac_md5_final(ntlmv2_response, &ctx);
+  /* NTLMv2 disabled, use LMv2. Replace these with hmac_md() if ever trying to fix this. */
+  //hmac_md5_init_limK_to_64(kr_buf, 16, &ctx);
+  //hmac_md5_update(_psSessionData->challenge, 8, &ctx);
+  //hmac_md5_update(ntlmv2_response + 16, 48 - 16 + iTargetLen + 4, &ctx);
+  //hmac_md5_final(ntlmv2_response, &ctx);
 
   *iByteCount = 48 + iTargetLen + 4;
   *NTLMv2hash = malloc(*iByteCount);
