@@ -32,7 +32,7 @@
 
 #define MODULE_NAME    "smbnt.mod"
 #define MODULE_AUTHOR  "JoMo-Kun <jmk@foofus.net>"
-#define MODULE_SUMMARY_USAGE  "Brute force module for SMBv[1-3] (LM/NTLM/LMv2/NTLMv2) sessions"
+#define MODULE_SUMMARY_USAGE  "Brute force module for SMB (SMBv1-3, Signing, LM/NTLM/LMv2/NTLMv2) sessions"
 #define MODULE_VERSION    "3.0"
 #define MODULE_VERSION_SVN "$Id: smbnt.c 9239 2015-05-22 15:03:03Z jmk $"
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
