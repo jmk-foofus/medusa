@@ -28,11 +28,7 @@
 #include <stdlib.h>
 #include <regex.h>
 #include "module.h"
-
-#include <smb2/smb2.h>
-#include <smb2/libsmb2.h>
-//#include <smb2/libsmb2-raw.h>
-//#include <smb2/libsmb2-dcerpc-srvsvc.h>
+#include "hmacmd5.h"
 
 #define MODULE_NAME    "smbnt.mod"
 #define MODULE_AUTHOR  "JoMo-Kun <jmk@foofus.net>"
@@ -47,7 +43,12 @@
 #include <openssl/evp.h>
 #endif
 
-#include "hmacmd5.h"
+#ifdef HAVE_LIBSMB2
+#include <smb2/smb2.h>
+#include <smb2/libsmb2.h>
+//#include <smb2/libsmb2-raw.h>
+//#include <smb2/libsmb2-dcerpc-srvsvc.h>
+#endif
 
 #define PORT_NBNS 137
 #define PORT_SMB 139
