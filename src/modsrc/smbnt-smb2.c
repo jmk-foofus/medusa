@@ -1,6 +1,6 @@
 #include "smbnt.h"
 
-#ifdef BUILD_MODULE_SMBNT_SMB2
+#ifdef SMBNT_SMB2_SUPPORT_ENABLED 
 
 #define SMBv2 16
 

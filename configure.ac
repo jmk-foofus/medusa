@@ -579,6 +579,7 @@ AC_ARG_ENABLE(module-smbnt-smb2,
 
 AM_CONDITIONAL(BUILD_MODULE_SMBNT_SMB2, test x"$enable_module_smbnt_smb2" = "xtrue")
 if test x"$enable_module_smbnt_smb2" = "xtrue"; then
+  AC_DEFINE(SMBNT_SMB2_SUPPORT_ENABLED, 1, [SMBNT SMBv2 Support Enabled])
   AC_MSG_RESULT(yes)
 else
   AC_MSG_RESULT(no)

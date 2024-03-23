@@ -420,7 +420,7 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         if (hSocket > 0)
           medusaDisconnect(hSocket);
         hSocket = -1;
-#ifdef BUILD_MODULE_SMBNT_SMB2        
+#ifdef SMBNT_SMB2_SUPPORT_ENABLED
         smb2_destroy_context(_psSessionData->smb2);
 #endif
         nState = MSTATE_COMPLETE;
@@ -430,7 +430,7 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         if (hSocket > 0)
           medusaDisconnect(hSocket);
         hSocket = -1;
-#ifdef BUILD_MODULE_SMBNT_SMB2        
+#ifdef SMBNT_SMB2_SUPPORT_ENABLED
         smb2_destroy_context(_psSessionData->smb2);
 #endif
         psLogin->iResult = LOGIN_RESULT_UNKNOWN;
@@ -517,7 +517,7 @@ int tryLogin(int hSocket, sLogin** psLogin, _SMBNT_DATA* _psSessionData, char* s
   } else {
     SMBSessionRet = SMBSessionSetup(hSocket, psLogin, _psSessionData, szLogin, szPassword);
   }
-  
+
   SMBerr = (unsigned long) SMBSessionRet & 0x00FFFFFF;
   SMBaction = ((unsigned long) SMBSessionRet & 0xFF000000) >> 24;
 
