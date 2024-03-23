@@ -2,10 +2,10 @@
 modulesdir = $(libdir)/medusa/modules
 
 EXTRA_PROGRAMS = afp.mod cvs.mod ftp.mod http.mod imap.mod mssql.mod mysql.mod ncp.mod nntp.mod pcanywhere.mod \
-                 pop3.mod postgres.mod rdp.mod rexec.mod rlogin.mod rsh.mod smbnt.mod smb2.mod smtp.mod \
-                 smtp-vrfy.mod snmp.mod ssh.mod svn.mod telnet.mod vmauthd.mod vnc.mod web-form.mod wrapper.mod 
+                 pop3.mod postgres.mod rdp.mod rexec.mod rlogin.mod rsh.mod smbnt.mod smtp.mod smtp-vrfy.mod \
+                 snmp.mod ssh.mod svn.mod telnet.mod vmauthd.mod vnc.mod web-form.mod wrapper.mod
 
-modules_PROGRAMS = 
+modules_PROGRAMS =
 if BUILD_MODULE_AFP
   modules_PROGRAMS += afp.mod
 endif
@@ -74,10 +74,6 @@ if BUILD_MODULE_SMBNT
   modules_PROGRAMS += smbnt.mod
 endif
 
-if BUILD_MODULE_SMB2
-  modules_PROGRAMS += smb2.mod
-endif
-
 if BUILD_MODULE_SMTP
   modules_PROGRAMS += smtp.mod
 endif
@@ -134,8 +130,7 @@ rdp_mod_SOURCES = rdp.c ../medusa-trace.c
 rexec_mod_SOURCES = rexec.c ../medusa-trace.c
 rlogin_mod_SOURCES = rlogin.c ../medusa-trace.c
 rsh_mod_SOURCES = rsh.c ../medusa-trace.c
-smbnt_mod_SOURCES = smbnt.c hmacmd5.c ../medusa-trace.c
-smb2_mod_SOURCES = smb2.c hmacmd5.c ../medusa-trace.c
+smbnt_mod_SOURCES = smbnt.c smbnt-smb1.c smbnt-smb2.c hmacmd5.c ../medusa-trace.c
 smtp_mod_SOURCES = smtp.c ntlm.c ../medusa-trace.c
 smtp_vrfy_mod_SOURCES = smtp-vrfy.c ../medusa-trace.c
 snmp_mod_SOURCES = snmp.c ../medusa-trace.c
@@ -148,37 +143,36 @@ web_form_mod_SOURCES = web-form.c ../medusa-trace.c
 wrapper_mod_SOURCES = wrapper.c ../medusa-trace.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(all_includes)
-afp_mod_LDFLAGS = -fPIC 
-cvs_mod_LDFLAGS = -fPIC 
+afp_mod_LDFLAGS = -fPIC
+cvs_mod_LDFLAGS = -fPIC
 ftp_mod_LDFLAGS = -fPIC
 http_mod_LDFLAGS = -fPIC
 imap_mod_LDFLAGS = -fPIC
 mssql_mod_LDFLAGS = -fPIC
 mysql_mod_LDFLAGS = -fPIC
-ncp_mod_LDFLAGS = -fPIC 
+ncp_mod_LDFLAGS = -fPIC
 nntp_mod_LDFLAGS = -fPIC
 pcanywhere_mod_LDFLAGS = -fPIC
 pop3_mod_LDFLAGS = -fPIC
-postgres_mod_LDFLAGS = -fPIC 
+postgres_mod_LDFLAGS = -fPIC
 rdp_mod_LDFLAGS = -fPIC
 rexec_mod_LDFLAGS = -fPIC
 rlogin_mod_LDFLAGS = -fPIC
 rsh_mod_LDFLAGS = -fPIC
 smbnt_mod_LDFLAGS = -fPIC
-smb2_mod_LDFLAGS = -fPIC
-smtp_mod_LDFLAGS = -fPIC 
-smtp_vrfy_mod_LDFLAGS = -fPIC 
-snmp_mod_LDFLAGS = -fPIC 
+smtp_mod_LDFLAGS = -fPIC
+smtp_vrfy_mod_LDFLAGS = -fPIC
+snmp_mod_LDFLAGS = -fPIC
 ssh_mod_LDFLAGS = -fPIC
-svn_mod_LDFLAGS = -fPIC 
+svn_mod_LDFLAGS = -fPIC
 telnet_mod_LDFLAGS = -fPIC
-vmauthd_mod_LDFLAGS = -fPIC 
+vmauthd_mod_LDFLAGS = -fPIC
 vnc_mod_LDFLAGS = -fPIC
 web_form_mod_LDFLAGS = -fPIC
 wrapper_mod_LDFLAGS = -fPIC
 
 LDADD = @MODULE_LIBS@
 
-noinst_HEADERS = module.h d3des.h sha1.h hmacmd5.h http-digest.h ntlm.h
-EXTRA_DIST_WRAPPER != ls $(srcdir)/wrapper/*.pl 
+noinst_HEADERS = module.h d3des.h sha1.h hmacmd5.h http-digest.h ntlm.h smbnt.h
+EXTRA_DIST_WRAPPER != ls $(srcdir)/wrapper/*.pl
 EXTRA_DIST = $(EXTRA_DIST_WRAPPER)
