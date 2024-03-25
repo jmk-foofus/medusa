@@ -40,7 +40,12 @@
 #define MODULE_VERSION              "3.0"
 #define MODULE_SUMMARY_FORMAT       "%s : version %s"
 #define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
+
+#ifdef HAVE_LIBSSL
+#define OPENSSL_WARNING             ""
+#else
 #define OPENSSL_WARNING             "No usable OPENSSL. Module disabled."
+#endif
 
 #define HTTP_PORT   80
 #define HTTPS_PORT 443
@@ -227,13 +232,15 @@ static HttpStatusCodeT parseHttpStatusCode(char * buf) {
  */
 static void _getHeaderValue(const char * header, char * src, char ** dst) {
 
-
-  // Find the location header position in src, determine its length. 10 is the
-  // length of "Location: " which places the pointer at the beginning of the
-  // value
+  // Find the header position in src, determine its length and skip over the
+  // header to the value which is then copied up to the newline.
   //
   // TODO: strlen should be bounded, but by how much?
-  char * locationPtr = (char *) (strlen(header) + (long) strstr(src, header) - 1);
+  // Location: /some/location\r\n
+  // ^         ^             ^
+  // x         x+strlen      y
+  // length = y - (x + strlen) + 1
+  char * locationPtr = (char *) ((long) strstr(src, header) + strlen(header));
   char * crPtr     = strchr(locationPtr, '\r');
 
   // Copy the string to the destination, add the '\0' terminator at the end
@@ -242,7 +249,8 @@ static void _getHeaderValue(const char * header, char * src, char ** dst) {
 }
 
 /**
- * Specific version of the _getHeaderValue for Location headers
+ * Specific version of the _getHeaderValue for Location headers. Mind the
+ * included space in the header field.
  */
 static void getLocationHeaderValue(char * src, char ** dst) {
   _getHeaderValue("Location: ", src, dst);
@@ -285,7 +293,18 @@ void showUsage() {
 #define setOption(X, MSG) _setOption(&strtokPtr, X, MSG)
 
 /**
- * Parse and set an option
+ * Set module command line options. This sets the values passed to the program
+ * with the -m option. These are one of
+ *
+ *  option            value stored in struct field
+ *  ----------------------------------------------
+ *  FORM              resourcePath
+ *  DENY-SIGNAL       denySignal
+ *  FORM-DATA         formData
+ *  USER-AGENT        userAgentHeader
+ *  CUSTOM-HEADER     customHeaders
+ *
+ *  CUSTOM-HEADER is allowed to be specified multiple times
  */
 static void _setOption(char ** strtokPtr, char ** dst, char * option) {
 
@@ -561,7 +580,6 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
         if (!_moduleData->customHeaders) {
           _moduleData->customHeaders = charcalloc(1);
           _moduleData->customHeaders[0] = '\0';
-
         }
 
         nState = MSTATE_RUNNING;
