@@ -38,13 +38,12 @@
 #define MODULE_AUTHOR               "Luciano Bello <luciano@linux.org.ar>"
 #define MODULE_SUMMARY_USAGE        "Brute force module for web forms"
 #define MODULE_VERSION              "3.0"
-#define MODULE_SUMMARY_FORMAT       "%s : version %s"
-#define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
+#define MODULE_SUMMARY_FORMAT       "%s : version %s%s"
 
 #ifdef HAVE_LIBSSL
 #define OPENSSL_WARNING             ""
 #else
-#define OPENSSL_WARNING             "No usable OPENSSL. Module disabled."
+#define OPENSSL_WARNING             " (No usable OPENSSL. Module disabled.)"
 #endif
 
 #define HTTP_PORT   80
@@ -958,18 +957,18 @@ int go(/*@unused@*/ sLogin* logins, /*@unused@*/ int argc, /*@unused@*/ char *ar
 /**
  * MODULE_SUMMARY_USAGE, MODULE_VERSION and, OPENSSL_WARNING have a statically
  * known length.
- * MODULE_SUMMARY_FORMAT_WARN has three unbouded string formatting characters
+ * MODULE_SUMMARY_FORMAT has three unbouded string formatting characters
  *
  * snprintf formats those strings to be the former three
  * so the length is
- *  MODULE_SUMMARY_FORMAT_WARN - 3 * 2 (for the %s)
+ *  MODULE_SUMMARY_FORMAT - 3 * 2 (for the %s)
  *    + MODULE_SUMMARY_USAGE
  *    + MODULE_VERSION
  *    + OPENSSL_WARNING
  *    + 1 (for the '\0')
  */
 
-#define ILENGTH (size_t) sizeof(MODULE_SUMMARY_FORMAT_WARN MODULE_SUMMARY_USAGE MODULE_VERSION OPENSSL_WARNING) - 3 * 2 + 1
+#define ILENGTH (size_t) sizeof(MODULE_SUMMARY_FORMAT MODULE_SUMMARY_USAGE MODULE_VERSION OPENSSL_WARNING) - 3 * 2 + 1
 
 void summaryUsage(char ** ppszSummary) {
 
@@ -979,6 +978,5 @@ void summaryUsage(char ** ppszSummary) {
 
   // this is a bounded `asprintf'
   *ppszSummary = charcalloc(ILENGTH);
-  snprintf(*ppszSummary, ILENGTH, MODULE_SUMMARY_FORMAT_WARN, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
-  free(*ppszSummary);
+  snprintf(*ppszSummary, ILENGTH, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
 }
