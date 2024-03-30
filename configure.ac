@@ -1,6 +1,6 @@
 AC_INIT([medusa],[2.3_devel])
 AC_CONFIG_SRCDIR([src/medusa.c])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -10,16 +10,6 @@ AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
-
-m4_warn([obsolete],
-[The preprocessor macro `STDC_HEADERS' is obsolete.
-  Except in unusual embedded environments, you can safely include all
-  ISO C90 headers unconditionally.])dnl
-# Autoupdate added the next two lines to ensure that your configure
-# script's behavior did not change.  They are probably safe to remove.
-AC_CHECK_INCLUDES_DEFAULT
-AC_PROG_EGREP
-
 
 AC_CHECK_SIZEOF(int,cross)
 AC_CHECK_SIZEOF(long,cross)
