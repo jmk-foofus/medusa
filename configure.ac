@@ -8,6 +8,8 @@ AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
+PKG_PROG_PKG_CONFIG
+
 AC_LANG([C])
 AC_PROG_CC
 
