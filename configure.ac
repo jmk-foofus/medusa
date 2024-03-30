@@ -8,8 +8,6 @@ AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
-PKG_PROG_PKG_CONFIG
-
 AC_LANG([C])
 AC_PROG_CC
 
@@ -538,6 +536,11 @@ fi
 
 dnl ********** SMBNT Medusa Module (SMBv2 Support) ********** 
 check_module_smbnt_smb2="false"
+
+PKG_PROG_PKG_CONFIG
+AS_IF([test "x$PKG_CONFIG" = "x"], [
+  AC_MSG_WARN([*** pkg-config is required to configure libsmb2 support. ***])
+])
 
 PKG_CHECK_MODULES(LIBSMB2, libsmb2,,[AC_MSG_WARN([*** libsmb2 pkg-config check failed ***])])
 CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
