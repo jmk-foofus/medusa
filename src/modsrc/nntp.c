@@ -267,7 +267,7 @@ int initConnection(int hSocket, sLogin** psLogin)
   /* 400 Too Many Connections */
   else if ((strstr((char*)bufReceive,"400") != NULL)) 
   {
-    writeError(ERR_DEBUG_MODULE, "[%s] Too many connections from host recieved by server.", MODULE_NAME);
+    writeError(ERR_DEBUG_MODULE, "[%s] Too many connections from host received by server.", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_UNKNOWN;
     return MSTATE_EXITING;
   }
