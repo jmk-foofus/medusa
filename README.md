@@ -15,5 +15,4 @@ Modular design. Each service module exists as an independent .mod file. This mea
 
 Multiple protocols supported. Many services are currently supported (e.g. SMB (SMBv1-3 w/ SMB signing), HTTP, MS-SQL, POP3, RDP, SSHv2, among others).
 
-See doc/medusa.html for Medusa documentation. For additional information:
-- https://jmk-foofus.github.io/medusa/medusa.html
+Medusa documentation: https://jmk-foofus.github.io/medusa/medusa.html
