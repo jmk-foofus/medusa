@@ -240,6 +240,7 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
   unsigned int i = 0, j = 0;
   int mdlen;
   unsigned char *p = NULL;
+  unsigned char *ntlm_hash = NULL;
   char HexChar;
   int HexValue;
   unsigned char NO_PASSWORD[1] = "";
@@ -254,15 +255,22 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
         i++;
       p++;
     }
+
+    if (*p == '\0') {
+      ntlm_hash = pass;
+    } else {
+      ntlm_hash = p;
+      memset(ntlm_hash + 32, '\0', 1);
+    }
   }
 
   /* If "-e ns" was used, don't treat these values as hashes. */
-  if ((_psSessionData->hashFlag == HASH) && (i >= 1)) {
-    if (*p == '\0') {
-      writeError(ERR_ERROR, "Error reading PwDump file.");
+  if ((_psSessionData->hashFlag == HASH)) {
+    if (*ntlm_hash == '\0') {
+      writeError(ERR_ERROR, "Error reading hash or PwDump file.");
       return FAILURE;
     }
-    else if (*p == 'N') {
+    else if (*ntlm_hash == 'N') {
       writeError(ERR_DEBUG_MODULE, "Found \"NO PASSWORD\" for NTLM Hash.");
       pass = NO_PASSWORD;
 
@@ -281,11 +289,11 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
       EVP_MD_CTX_free(md4Context);
     }
     else {
-      writeError(ERR_DEBUG_MODULE, "Convert ASCII PwDump NTLM Hash (%s).", p);
+      writeError(ERR_DEBUG_MODULE, "Convert ASCII PwDump NTLM Hash (%s).", ntlm_hash);
       for (i = 0; i < 16; i++) {
         HexValue = 0x0;
         for (j = 0; j < 2; j++) {
-          HexChar = (char) p[2 * i + j];
+          HexChar = (char) ntlm_hash[2 * i + j];
 
           if (HexChar > 0x39)
             HexChar = HexChar | 0x20;     /* convert upper case to lower */

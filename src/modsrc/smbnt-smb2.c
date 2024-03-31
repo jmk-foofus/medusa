@@ -114,6 +114,9 @@ int SMB2ConvertPassword(_SMBNT_DATA *_psSessionData, unsigned char* szPassword, 
       writeError(ERR_DEBUG_MODULE, "Prepare ASCII PwDump NTLM Hash (%s).", p);
       if (asprintf((char **)szPassword2, "ntlm:%s", p) < 0) { return FAILURE; }
     }
+  } else if ((_psSessionData->hashFlag == HASH)) {
+    writeError(ERR_DEBUG_MODULE, "Prepare ASCII PwDump NTLM Hash (%s).", szPassword);
+    if (asprintf((char **)szPassword2, "ntlm:%s", szPassword) < 0) { return FAILURE; }
   } else {
     *szPassword2 = szPassword;
     writeError(ERR_DEBUG_MODULE, "[%s] Using standard password: %s", MODULE_NAME, *szPassword2);
