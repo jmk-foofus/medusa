@@ -126,8 +126,6 @@ void showUsage()
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Note: This module does NOT work against Microsoft Windows 2003/XP and earlier.");
   writeVerbose(VB_NONE, "");
-  writeVerbose(VB_NONE, "*** There appears to be thread-safety issues within the FreeRDP library and/or this module. ***");
-  writeVerbose(VB_NONE, "*** It is recommended that you avoid using concurrent hosts/users (i.e., -T/-t).");
   writeVerbose(VB_NONE, "");
 }
 
@@ -379,6 +377,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   unsigned int i;
   int old_stderr;
   int old_stdout;
+  unsigned char *p = NULL;
+  unsigned char *ntlm_hash = NULL;
 
   /* Nessus Plugins: smb_header.inc */
   /* Note: we are currently only examining the lower 2 bytes of data */
@@ -447,9 +447,26 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   /* Pass-the-hash support added to FreeRDP 1.2.x development tree */
   if (_psSessionData->isPassTheHash)
   {
+    /* Extract NTLM hash from PwDump format */ 
+    /* [PwDump] D42E35E1A1E4C22BD32E2170E4857C20:5E20780DD45857A68402938C7629D3B2::: */
+    p = szPassword;
+    i = 0;
+    while ((*p != '\0') && (i < 1)) {
+      if (*p == ':')
+        i++;
+      p++;
+    }
+
+    if (*p == '\0') {
+      ntlm_hash = szPassword;
+    } else {
+      ntlm_hash = p;
+      memset(ntlm_hash + 32, '\0', 1);
+    }
+
     instance->settings->ConsoleSession = TRUE;
     instance->settings->RestrictedAdminModeRequired = TRUE;
-    instance->settings->PasswordHash = szPassword;
+    instance->settings->PasswordHash = ntlm_hash;
   }
   else
     instance->settings->Password = szPassword;

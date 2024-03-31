@@ -2,7 +2,7 @@
 
 **Medusa Parallel Network Login Auditor**
 
-Copyright (C) 2016 Joe Mondloch<br />
+Copyright (C) 2024 Joe Mondloch<br />
 JoMo-Kun / jmk@foofus.net
 
 Medusa is a speedy, parallel, and modular, login brute-forcer. The goal is to support as many services which allow remote authentication as possible. The author considers following items as some of the key features of this application:
@@ -13,49 +13,6 @@ Flexible user input. Target information (host/user/password) can be specified in
 
 Modular design. Each service module exists as an independent .mod file. This means that no modifications are necessary to the core application in order to extend the supported list of services for brute-forcing.
 
-Multiple protocols supported. Many services are currently supported (e.g. SMB, HTTP, MS-SQL, POP3, RDP, SSHv2, among others).
+Multiple protocols supported. Many services are currently supported (e.g. SMB (SMBv1-3 w/ SMB signing), HTTP, MS-SQL, POP3, RDP, SSHv2, among others).
 
-See doc/medusa.html for Medusa documentation. For additional information:
-- http://foofus.net/?page_id=51
-- http://foofus.net/goons/jmk/medusa/medusa.html
-
-## Building on macOS
-
-First download the source code and change to the Medusa directory:
-
-```
-git clone https://github.com/jmk-foofus/medusa
-cd medusa
-```
-
-Also install the needed dependencies using Homebrew:
-
-```
-brew cask install xquartz
-brew install freerdp
-```
-
-Then add the Freerdp path for executing the configuration without issues:
-
-```
-$ export FREERDP2_CFLAGS='-I/usr/local/include'
-$ export FREERDP2_LIBS='-I/usr/local/lib/freerdp'
-```
-
-Then build things:
-
-```
-./configure
-make && make install
-```
-
-Then copy the binary to your binaries folder
-
-```
-sudo cp src/medusa  /usr/local/bin
- ```
-Now you can start using Medusa:
-
-```
-medusa
-```
+Medusa documentation: https://jmk-foofus.github.io/medusa/medusa.html
