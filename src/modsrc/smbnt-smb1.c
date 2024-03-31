@@ -122,7 +122,7 @@ void DesEncrypt(unsigned char *clear, unsigned char *key, unsigned char *cipher)
   Variables:
         lmhash    = the hash created from this function
         pass      = users password
-        challenge = the challenge recieved from the server
+        challenge = the challenge received from the server
 */
 int HashLM(_SMBNT_DATA *_psSessionData, unsigned char **lmhash, unsigned char *pass, unsigned char *challenge)
 {
@@ -342,7 +342,7 @@ int MakeNTLM(_SMBNT_DATA *_psSessionData, unsigned char *ntlmhash, unsigned char
   Variables:
         ntlmhash  = the hash created from this function
         pass      = users password
-        challenge = the challenge recieved from the server
+        challenge = the challenge received from the server
 */
 int HashNTLM(_SMBNT_DATA *_psSessionData, unsigned char **ntlmhash, unsigned char *pass, unsigned char *challenge)
 {

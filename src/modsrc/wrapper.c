@@ -407,7 +407,7 @@ int initProcess(_MODULE_DATA* _psSessionData)
     }
     
     if (fork_result == (pid_t)0) {
-      writeError(ERR_DEBUG_MODULE, "Child process sucessfully forked");            
+      writeError(ERR_DEBUG_MODULE, "Child process successfully forked");
   
       /* connect parent pipes */
       close(_psSessionData->PARENT_WRITE);
@@ -468,7 +468,7 @@ int initProcess(_MODULE_DATA* _psSessionData)
       exit(0);
     }
     else {
-      writeError(ERR_DEBUG_MODULE, "Parent process sucessfully forked");            
+      writeError(ERR_DEBUG_MODULE, "Parent process successfully forked");
       
       /* connect child pipes */
       close(_psSessionData->CHILD_WRITE);

@@ -1,6 +1,6 @@
-AC_INIT([medusa],[2.3_devel])
+AC_INIT([medusa],[2.3])
 AC_CONFIG_SRCDIR([src/medusa.c])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -10,16 +10,6 @@ AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
-
-m4_warn([obsolete],
-[The preprocessor macro `STDC_HEADERS' is obsolete.
-  Except in unusual embedded environments, you can safely include all
-  ISO C90 headers unconditionally.])dnl
-# Autoupdate added the next two lines to ensure that your configure
-# script's behavior did not change.  They are probably safe to remove.
-AC_CHECK_INCLUDES_DEFAULT
-AC_PROG_EGREP
-
 
 AC_CHECK_SIZEOF(int,cross)
 AC_CHECK_SIZEOF(long,cross)
@@ -547,13 +537,13 @@ fi
 dnl ********** SMBNT Medusa Module (SMBv2 Support) ********** 
 check_module_smbnt_smb2="false"
 
-PKG_CHECK_MODULES(LIBSMB2, libsmb2,,[AC_MSG_WARN([*** libsmb2 pkg-config check failed ***])])
-CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
+AC_ARG_WITH(libsmb2, AS_HELP_STRING([--with-libsmb2=prefix],[Prefix for libsmb2 include directory (default = /usr)]), [libsmb2_prefix="$withval"], [libsmb2_prefix="/usr"])
+CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
 
 AS_MESSAGE([checking for libsmb2 Library and Header files...])
 AC_CHECK_HEADER([smb2/libsmb2.h],
   [AC_CHECK_LIB(smb2, main,
-    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS $LIBSMB2_LIBS" check_module_smbnt_smb2="true"],
+    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"],
     [AC_MSG_WARN([ *** libsmb2 library required for SMBNT module SMBv2 support. ***
 
        https://github.com/sahlberg/libsmb2

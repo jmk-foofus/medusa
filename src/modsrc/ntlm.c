@@ -1309,7 +1309,7 @@ void dumpAuthChallenge(tSmbNtlmAuthChallenge *challenge)
   fprintf(stderr, "     Domain = %s\n", GetUnicodeString(challenge,uDomain));
   fprintf(stderr, "      Flags = %08x\n", IVAL(&challenge->flags,0));
   fprintf(stderr, "  Challenge = "); dumpRaw(stderr, challenge->challengeData,8);
-  fprintf(stderr, "  Uncomplete!! parse optional parameters\n");
+  fprintf(stderr, "  Incomplete!! parse optional parameters\n");
 }
 
 void dumpAuthResponse(tSmbNtlmAuthResponse *response)

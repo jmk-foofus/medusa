@@ -275,7 +275,7 @@ h2u3u4h3.
   <LI><A HREF="medusa-rdp.html">RDP</A>
   <LI><A HREF="medusa-rlogin.html">RLOGIN</A>
   <LI><A HREF="medusa-rsh.html">RSH</A>
-  <LI><A HREF="medusa-smbnt.html">SMBNT</A>
+  <LI><A HREF="medusa-smbnt.html">SMBNT (SMBv1-3, SMB signing)</A>
   <LI><A HREF="medusa-smtp.html">SMTP-AUTH</A>
   <LI><A HREF="medusa-smtp-vrfy.html">SMTP-VRFY</A>
   <LI><A HREF="medusa-snmp.html">SNMP</A>
@@ -291,7 +291,6 @@ h2u3u4h3.
 <H2><A NAME="where">Where?</A></H2>
 
 <A HREF="https://github.com/jmk-foofus/medusa">GitHub</A><BR>
-<A HREF="http://www.foofus.net/jmk/tools/medusa-2.3.tar.gz">medusa-2.3.tar.gz</A><BR>
 <A HREF="https://github.com/Tak31337/medusa-gui">Medusa-gui</A> (Java-based GUI developed by tak and bigmoneyhat)<BR>
 
 <H3>Install Instructions:</H3>
@@ -328,6 +327,11 @@ module.
     <TD>HTTP, MSSQL, SMBNT, SSL-based connections</TD>
     <TD></TD>
   </TR>
+  <TR>
+    <TD>LibSMB2</TD>
+    <TD><A HREF="https://github.com/sahlberg/libsmb2">https://github.com/sahlberg/libsmb2</A></TD>
+    <TD>SMBNT (SMBv2 Support)</TD>
+    <TD>SMBNT module natively supports SMBv1. If libsmb2 is present, it also supports SMBv2/3 and SMB signing.</TD>
   <TR>
     <TD>LibSSH2</TD>
     <TD><A HREF="http://www.libssh2.org">http://www.libssh2.org</A></TD>
@@ -411,6 +415,38 @@ The following tables includes some notes from these tests.
 
 <BR><BR>
 
+<H5>Medusa v2.3</H5>
+
+<TABLE BORDER=1 CELLPADDING=2>
+  <TR>
+    <TD><B>Operating System</B></TD>
+    <TD><B>Distro/Version</B></TD>
+    <TD><B>Notes</B></TD>
+  </TR>
+  <TR>
+    <TD>BackBox 8.1</TD>
+    <TD>Installed: automake, libssl-dev, libpq5, libpq-dev, libsmb2, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp2-dev</TD>
+  </TR>
+  <TR>
+    <TD>Debian Sid (64-bit)</TD>
+    <TD>Installed: build-essential, automake, libssl-dev, libpq5, libpq-dev, libsmb2, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp2-dev</TD> 
+  </TR>
+  <TR>
+    <TD>Fedora 23</TD>
+    <TD>Installed: "Development Tools", automake, afpfs-ng-devel, libssh2-devel, libpq-devel, subversion-devel, freerdp-devel</TD>
+  </TR>
+  <TR>
+    <TD>Kali 2024.1 (64-bit)</TD>
+    <TD>Installed: automake, libssl-dev, libpq5, libpq-dev, libsmb2, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp2-dev</TD>
+  </TR>
+  <TR>
+    <TD>Ubuntu 22.04 [64-bit, WSL]</TD>
+    <TD>Installed: build-essential, automake, libssl-dev, libpq5, libpq-dev, libsmb2, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp2-dev</TD>
+  </TR>
+</TABLE>
+
+<H5>Medusa v2.2 and earlier</H5>
+
 <TABLE BORDER=1 CELLPADDING=2>
   <TR>
     <TD><B>Operating System</B></TD>
@@ -423,9 +459,8 @@ The following tables includes some notes from these tests.
     <TD>Installed: "Development Tools", openssl-devel, libssh2-devel, postgresql-devel, subversion-devel, freerdp-devel</TD>
   </TR>
   <TR>
-    <TD>Debian Stretch (64-bit)</TD>
-    <TD>Installed: build-essential, libgnutls28-dev, libssl-dev, libpq5, libpq-dev, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp, libfreerdp-dev</TD>
-  </TR>
+    <TD>Debian 8.0.0 (64-bit)</TD>
+    <TD>Installed: build-essential, libssl-dev, libpq5, libpq-dev, libssh2-1, libssh2-1-dev, libsvn-dev, freerdp, libfreerdp-dev, libncp, libncp-dev</TD>
   <TR>
     <TD>Fedora 21</TD>
     <TD>Installed: "Development Tools", afpfs-ng-devel, openssl-devel, libssh2-devel, postgresql-devel, subversion-devel, freerdp-devel</TD>
@@ -497,7 +532,7 @@ Foofus.net</A> goons a beer at the next DefCon.
 Joe
 
 <BR><BR>
-<FONT SIZE=1><B>&copy Copyright 2016, Foofus Advanced Security Services</B></FONT><BR>
+<FONT SIZE=1><B>&copy Copyright 2024, Foofus Advanced Security Services</B></FONT><BR>
 <FONT SIZE=1><I>any time. any fucknut.</I></FONT><BR>
 </BODY>
 <HTML>
