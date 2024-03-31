@@ -407,6 +407,50 @@ Some basic Portage Overlay instructions:<BR>
     </CODE>
 </UL>
 
+<H4>MacOS</H4>
+
+<P>
+First download the source code and change to the Medusa directory:
+
+<PRE>
+git clone https://github.com/jmk-foofus/medusa
+cd medusa
+</PRE>
+
+Also install the needed dependencies using Homebrew:
+
+<PRE>
+brew cask install xquartz
+brew install freerdp
+</PRE>
+
+Then add the Freerdp path for executing the configuration without issues:
+
+<PRE>
+$ export FREERDP2_CFLAGS='-I/usr/local/include'
+$ export FREERDP2_LIBS='-I/usr/local/lib/freerdp'
+</PRE>
+
+Then build things:
+
+<PRE>
+./configure
+make && make install
+</PRE>
+
+Then copy the binary to your binaries folder
+
+<PRE>
+sudo cp src/medusa  /usr/local/bin
+</PRE>
+
+Now you can start using Medusa:
+
+<PRE>
+medusa
+</PRE>
+
+
 <H4>Other Systems</H4>
 
 <P>
