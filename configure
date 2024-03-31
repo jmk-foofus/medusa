@@ -676,11 +676,6 @@ BUILD_MODULE_SMTP_FALSE
 BUILD_MODULE_SMTP_TRUE
 BUILD_MODULE_SMBNT_SMB2_FALSE
 BUILD_MODULE_SMBNT_SMB2_TRUE
-LIBSMB2_LIBS
-LIBSMB2_CFLAGS
-PKG_CONFIG_LIBDIR
-PKG_CONFIG_PATH
-PKG_CONFIG
 BUILD_MODULE_SMBNT_FALSE
 BUILD_MODULE_SMBNT_TRUE
 BUILD_MODULE_RSH_FALSE
@@ -829,6 +824,7 @@ enable_module_rexec
 enable_module_rlogin
 enable_module_rsh
 enable_module_smbnt
+with_libsmb2
 enable_module_smbnt_smb2
 enable_module_smtp
 enable_module_smtp_vrfy
@@ -849,12 +845,7 @@ CC
 CFLAGS
 LDFLAGS
 LIBS
-CPPFLAGS
-PKG_CONFIG
-PKG_CONFIG_PATH
-PKG_CONFIG_LIBDIR
-LIBSMB2_CFLAGS
-LIBSMB2_LIBS'
+CPPFLAGS'
 
 
 # Initialize some variables set by options.
@@ -1526,6 +1517,8 @@ Optional Packages:
   --with-ssl=prefix       Prefix for OpenSSL libraries
   --with-freerdp=prefix   Prefix for FreeRDP include directory (default =
                           /usr)
+  --with-libsmb2=prefix   Prefix for libsmb2 include directory (default =
+                          /usr)
   --with-default-mod-path=path
                           Location of medusa module files (default =
                           /usr/local/lib/medusa/modules)
@@ -1538,15 +1531,6 @@ Some influential environment variables:
   LIBS        libraries to pass to the linker, e.g. -l<library>
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
-  PKG_CONFIG  path to pkg-config utility
-  PKG_CONFIG_PATH
-              directories to add to pkg-config's search path
-  PKG_CONFIG_LIBDIR
-              path overriding pkg-config's built-in search path
-  LIBSMB2_CFLAGS
-              C compiler flags for LIBSMB2, overriding pkg-config
-  LIBSMB2_LIBS
-              linker flags for LIBSMB2, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -6095,217 +6079,15 @@ fi
 check_module_smbnt_smb2="false"
 
 
-
-
-
-
-
-
-if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
-	if test -n "$ac_tool_prefix"; then
-  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
-set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_PKG_CONFIG+y}
+# Check whether --with-libsmb2 was given.
+if test ${with_libsmb2+y}
 then :
-  printf %s "(cached) " >&6
+  withval=$with_libsmb2; libsmb2_prefix="$withval"
 else $as_nop
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-printf "%s\n" "$PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
+  libsmb2_prefix="/usr"
 fi
 
-
-fi
-if test -z "$ac_cv_path_PKG_CONFIG"; then
-  ac_pt_PKG_CONFIG=$PKG_CONFIG
-  # Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $ac_pt_PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
-if test -n "$ac_pt_PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
-printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-  if test "x$ac_pt_PKG_CONFIG" = x; then
-    PKG_CONFIG=""
-  else
-    case $cross_compiling:$ac_tool_warned in
-yes:)
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
-ac_tool_warned=yes ;;
-esac
-    PKG_CONFIG=$ac_pt_PKG_CONFIG
-  fi
-else
-  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
-fi
-
-fi
-if test -n "$PKG_CONFIG"; then
-	_pkg_min_version=0.9.0
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
-printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
-	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-	else
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-		PKG_CONFIG=""
-	fi
-fi
-if test "x$PKG_CONFIG" = "x"
-then :
-
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: *** pkg-config is required to configure libsmb2 support. ***" >&5
-printf "%s\n" "$as_me: WARNING: *** pkg-config is required to configure libsmb2 support. ***" >&2;}
-
-fi
-
-
-pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for libsmb2" >&5
-printf %s "checking for libsmb2... " >&6; }
-
-if test -n "$LIBSMB2_CFLAGS"; then
-    pkg_cv_LIBSMB2_CFLAGS="$LIBSMB2_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libsmb2\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libsmb2") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_LIBSMB2_CFLAGS=`$PKG_CONFIG --cflags "libsmb2" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$LIBSMB2_LIBS"; then
-    pkg_cv_LIBSMB2_LIBS="$LIBSMB2_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libsmb2\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "libsmb2") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_LIBSMB2_LIBS=`$PKG_CONFIG --libs "libsmb2" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-                LIBSMB2_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "libsmb2" 2>&1`
-        else
-                LIBSMB2_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "libsmb2" 2>&1`
-        fi
-        # Put the nasty error message in config.log where it belongs
-        echo "$LIBSMB2_PKG_ERRORS" >&5
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: *** libsmb2 pkg-config check failed ***" >&5
-printf "%s\n" "$as_me: WARNING: *** libsmb2 pkg-config check failed ***" >&2;}
-elif test $pkg_failed = untried; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: *** libsmb2 pkg-config check failed ***" >&5
-printf "%s\n" "$as_me: WARNING: *** libsmb2 pkg-config check failed ***" >&2;}
-else
-        LIBSMB2_CFLAGS=$pkg_cv_LIBSMB2_CFLAGS
-        LIBSMB2_LIBS=$pkg_cv_LIBSMB2_LIBS
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-
-fi
-CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
+CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for libsmb2 Library and Header files..." >&5
 printf "%s\n" "$as_me: checking for libsmb2 Library and Header files..." >&6;}
@@ -6348,7 +6130,7 @@ if test "x$ac_cv_lib_smb2_main" = xyes
 then :
 
 printf "%s\n" "#define HAVE_LIBSMB2 1" >>confdefs.h
- MODULE_LIBS="$MODULE_LIBS $LIBSMB2_LIBS" check_module_smbnt_smb2="true"
+ MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"
 else $as_nop
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING:  *** libsmb2 library required for SMBNT module SMBv2 support. ***
 

@@ -537,18 +537,13 @@ fi
 dnl ********** SMBNT Medusa Module (SMBv2 Support) ********** 
 check_module_smbnt_smb2="false"
 
-PKG_PROG_PKG_CONFIG
-AS_IF([test "x$PKG_CONFIG" = "x"], [
-  AC_MSG_WARN([*** pkg-config is required to configure libsmb2 support. ***])
-])
-
-PKG_CHECK_MODULES(LIBSMB2, libsmb2,,[AC_MSG_WARN([*** libsmb2 pkg-config check failed ***])])
-CPPFLAGS="$CPPFLAGS $LIBSMB2_CFLAGS"
+AC_ARG_WITH(libsmb2, AS_HELP_STRING([--with-libsmb2=prefix],[Prefix for libsmb2 include directory (default = /usr)]), [libsmb2_prefix="$withval"], [libsmb2_prefix="/usr"])
+CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
 
 AS_MESSAGE([checking for libsmb2 Library and Header files...])
 AC_CHECK_HEADER([smb2/libsmb2.h],
   [AC_CHECK_LIB(smb2, main,
-    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS $LIBSMB2_LIBS" check_module_smbnt_smb2="true"],
+    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"],
     [AC_MSG_WARN([ *** libsmb2 library required for SMBNT module SMBv2 support. ***
 
        https://github.com/sahlberg/libsmb2
