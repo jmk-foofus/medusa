@@ -407,7 +407,7 @@ Some basic Portage Overlay instructions:<BR>
     </CODE>
 </UL>
 
-<H4>MacOS</H4>
+<H4>Mac OS X</H4>
 
 <P>
 First download the source code and change to the Medusa directory:
@@ -433,8 +433,10 @@ $ export FREERDP2_LIBS='-I/usr/local/lib/freerdp'
 
 Then build things:
 
+Note: Update OpenSSL include based on system configuration.
+
 <PRE>
-./configure
+./configure --with-ssl=/usr/local/homebrew/Cellar/openssl@3/3.2.1/
 make && make install
 </PRE>
 
