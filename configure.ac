@@ -67,7 +67,7 @@ check_libssl="false"
 AS_MESSAGE([checking for OpenSSL Library and Header files...])
 
 check_ssl_dir() { :
-  AC_MSG_CHECKING([$1/include/openssl/ssh.h])
+  AC_MSG_CHECKING([$1/include/openssl/ssl.h])
   if test -f "$1/include/openssl/ssl.h"
   then
     AC_MSG_RESULT([found])
