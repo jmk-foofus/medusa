@@ -876,7 +876,11 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       break;
 
     // In this case we have to redo the request, this time requesting the page
-    // that is specified in the Location header
+    // that is specified in the Location header.
+    //  - For 301 Moved Permanently and 302 Found we are allowed to change the
+    //    request method from POST to GET
+    //  - For 307 Temporary Redirect and 308 Permanent Redirect the method SHOUD
+    //    remain unaltered.
     case HTTP_MOVED_PERMANENTLY:
     case HTTP_FOUND:
     case HTTP_TEMPORARY_REDIRECT:
@@ -886,6 +890,14 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       // Get the value of the location header and set the directory to that
       // location, then perform the request again.
       getLocationHeaderValue(pReceiveBuffer, &_moduleData->resourcePath);
+
+      // Change the request method to GET for 301 and 302
+      if (_moduleData->formType == FORM_POST &&
+        (statusCode == HTTP_MOVED_PERMANENTLY || statusCode == HTTP_FOUND)) {
+        writeError(ERR_DEBUG_MODULE, "[%s] Changing request method to GET for redirect", MODULE_NAME);
+        _moduleData->formType = FORM_GET;
+      }
+
       _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
 
       if (requestState == MSTATE_EXITING)
