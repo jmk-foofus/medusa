@@ -14,7 +14,6 @@
  *   08/24/2007 - Minor modification by JoMo-Kun                           *
  *   03/05/2024 - Added support for custom HTTP response codes by Martijn  *
  *                Fleuren. Also spent a few days as janitor to this code   *
- *                up the code                                              *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License version 2,       *
@@ -64,7 +63,7 @@
 #define MODULE_DEFAULT_FORM_TYPE_STR GET_STR
 #endif
 
-// Macro definitions which should improve code readability
+// Macro definitions which improve code readability
 
 // Inclusive range condition check: lo <= x <= hi
 #define BETWEEN(LO,X,HI) ((LO) <= (X) && (X) <= (HI))
@@ -98,21 +97,7 @@ typedef struct ModuleData {
 } ModuleDataT;
 
 ModuleDataT * newModuleData() {
-
-  ModuleDataT * m = (ModuleDataT *) calloc(1, sizeof(ModuleDataT));
-
-  m->resourcePath    = NULL;
-  m->hostHeader      = NULL;
-  m->userAgentHeader = NULL;
-  m->denySignal      = NULL;
-  m->formData        = NULL;
-  m->formRest        = NULL;
-  m->formUserKey     = NULL;
-  m->formPassKey     = NULL;
-  m->customHeaders   = NULL;
-  m->nCustomHeaders  = 0;
-
-  return m;
+  return (ModuleDataT *) calloc(1, sizeof(ModuleDataT));
 }
 
 void freeModuleData(ModuleDataT * moduleData) {
@@ -196,11 +181,13 @@ static HttpStatusCodeT parseHttpStatusCode(char * buf) {
     switch (tmp) {
       // group 2xx
       case HTTP_OK:
+        break;
 
       // group 3xx
       case HTTP_FOUND:
       case HTTP_TEMPORARY_REDIRECT:
       case HTTP_PERMANENT_REDIRECT:
+        break;
 
       //group 4xx
       case HTTP_BAD_REQUEST:
@@ -245,14 +232,6 @@ static void _getHeaderValue(const char * header, char * src, char ** dst) {
   // Copy the string to the destination, add the '\0' terminator at the end
   memcpy(*dst, locationPtr, crPtr - locationPtr + 1);
   (*dst)[crPtr - locationPtr] = '\0';
-}
-
-/**
- * Specific version of the _getHeaderValue for Location headers. Mind the
- * included space in the header field.
- */
-static void getLocationHeaderValue(char * src, char ** dst) {
-  _getHeaderValue("Location: ", src, dst);
 }
 
 // Forward declarations (mini .h file)
@@ -332,11 +311,6 @@ int go(sLogin* logins, int argc, char * argv[]) {
 
   ModuleDataT * moduleData = newModuleData();
 
-  if (!BETWEEN(0, argc, 5)) {
-    writeError(ERR_ERROR, "%s: Incorrect number of parameters passed to module (%d). Use \"-q\" option to display module usage.", MODULE_NAME, argc);
-    return FAILURE;
-  }
-
   writeError(ERR_DEBUG_MODULE, "OMG teh %s module has been called!!", MODULE_NAME); // Funny artifact
 
   /**
@@ -382,7 +356,7 @@ int go(sLogin* logins, int argc, char * argv[]) {
       option = strtok_r(NULL, "\0", &strtokPtr);
       writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", option);
 
-      if (option) {
+      if (option != NULL) {
         if (moduleData->nCustomHeaders == 0) {
           // The first custom header
           moduleData->customHeaders = charcalloc(strlen(option) + 1);
@@ -425,7 +399,10 @@ int go(sLogin* logins, int argc, char * argv[]) {
 
 /**
  * Helper macro for setting default string value key-value pairs if command
- * line arguments have not been set.
+ * line arguments have not been set. Note that these should only be used on
+ * ModuleDataT, because the freeModuleData() on the struct will also free the
+ * content. If this is ussed anywhere else, then the programmer is responsible
+ * for freeing the memory.
  */
 
 #define _setDefaultOption(dst, value)  \
@@ -679,7 +656,7 @@ char * urlencodeup(char * szStr) {
  *  5. %s, A custom header
  */
 #define GET_REQUEST_FMT_STR \
-  "GET %s?%s%s HTTP/1.1\r\n" \
+  "GET %s?%s HTTP/1.1\r\n" \
   "Host: %s\r\n" \
   "User-Agent: %s\r\n" \
   "%s" \
@@ -855,6 +832,32 @@ static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** l
   }
 }
 
+/**
+ * Test whether the returned Location header value is an absolute path. This is
+ * a flaky method of testing but for the first version it'll do.
+ */
+static uint8_t _isAbsolutePath(char * path) {
+	return path[0] == '/';
+}
+#define _isRelativePath(x) (!_isAbsolutePath(x))
+
+/**
+ * 
+ */
+static void _resolveLocationPath(char * old, char ** new) {
+  
+	// Yes, strings are hard. whatever.
+	char buf[4096];
+
+	// If the new location happens to be relative, concatenate the strings and let
+	// the server figure out the path resolution
+  if (_isRelativePath(*new)) {
+    strcpy(old, buf);
+		strcat(buf, "/");
+		strcat(buf, *new); // shlemiel the painter
+  }
+}
+
 int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogin, char* szPassword)
 {
   unsigned char * pReceiveBuffer = NULL;
@@ -863,7 +866,7 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
 
   // Perform the request, error out when request failed
   ModuleStateT requestState;
-	requestState = _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
+  requestState = _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
   if (requestState == MSTATE_EXITING) return requestState;
 
   HttpStatusCodeT statusCode = parseHttpStatusCode(pReceiveBuffer);
@@ -879,7 +882,7 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
     // that is specified in the Location header.
     //  - For 301 Moved Permanently and 302 Found we are allowed to change the
     //    request method from POST to GET
-    //  - For 307 Temporary Redirect and 308 Permanent Redirect the method SHOUD
+    //  - For 307 Temporary Redirect and 308 Permanent Redirect the method SHOULD
     //    remain unaltered.
     case HTTP_MOVED_PERMANENTLY:
     case HTTP_FOUND:
@@ -888,8 +891,13 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       writeError(ERR_DEBUG_MODULE, "[%s] Following redirect.", MODULE_NAME);
 
       // Get the value of the location header and set the directory to that
-      // location, then perform the request again.
-      getLocationHeaderValue(pReceiveBuffer, &_moduleData->resourcePath);
+      // location, then perform the request again. If the Location header
+      // returns a relative path, then we must resolve the path relative to the
+      // old path. If the path is absolute, we can simply overwrite the path.
+      char * oldResourcePath = strdup(_moduleData->resourcePath);
+      _getHeaderValue("Location: ", pReceiveBuffer, &_moduleData->resourcePath);
+      _resolveLocationPath(oldResourcePath, &_moduleData->resourcePath);
+      free(oldResourcePath);
 
       // Change the request method to GET for 301 and 302
       if (_moduleData->formType == FORM_POST &&
