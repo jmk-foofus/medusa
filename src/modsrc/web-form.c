@@ -33,6 +33,8 @@
 
 #include "module.h"
 
+#include <sys/socket.h>
+
 #define MODULE_NAME                 "web-form.mod"
 #define MODULE_AUTHOR               "Luciano Bello <luciano@linux.org.ar>"
 #define MODULE_SUMMARY_USAGE        "Brute force module for web forms"
@@ -94,6 +96,8 @@ typedef struct ModuleData {
   char * formPassKey;      // String for the password key value of the form
   char * customHeaders;    // Custom headers
   int nCustomHeaders;      // Number of custom headers
+  int changedRequestType;
+  int initialised;
 } ModuleDataT;
 
 ModuleDataT * newModuleData() {
@@ -101,7 +105,7 @@ ModuleDataT * newModuleData() {
 }
 
 void freeModuleData(ModuleDataT * moduleData) {
-  if (moduleData == NULL) return;
+  if (!moduleData) return;
 
   free(moduleData->resourcePath);
   free(moduleData->hostHeader);
@@ -140,7 +144,7 @@ typedef enum HttpStatusCode {
 
   // Group 4xx
   , HTTP_BAD_REQUEST        = 400
-  , HTTP_UNAUTHORIZE        = 401
+  , HTTP_UNAUTHORIZED       = 401
   , HTTP_FORBIDDEN          = 403
   , HTTP_NOT_FOUND          = 404
 
@@ -160,30 +164,28 @@ typedef enum HttpStatusCode {
  * therefore we avoid it.
  */
 static HttpStatusCodeT parseHttpStatusCode(char * buf) {
-  HttpStatusCodeT tmp = HTTP_STATUS_PARSE_ERR; // default is to error
+  HttpStatusCodeT ret = HTTP_STATUS_PARSE_ERR; // default is to error
 
-  char * ptr = buf;
+  if (buf) {
 
-  if (buf != NULL) {
+    char * ptr = buf;
 
     // Find the first space and error out if the space was not found. Convert
     // the found ptr to a status code.
     ptr = strchr(buf, ' ');
+    if (!ptr) return ret;
 
-    if (!ptr) {
-      return tmp;
-    }
-
-    tmp = (HttpStatusCodeT) strtol(ptr, NULL, 10);
+    ret = (HttpStatusCodeT) strtol(ptr, NULL, 10);
 
     // Basically a switch to either implement custom code per status code AND to
     // check whether we have actually defined the status code.
-    switch (tmp) {
+    switch (ret) {
       // group 2xx
       case HTTP_OK:
         break;
 
       // group 3xx
+      case HTTP_MOVED_PERMANENTLY:
       case HTTP_FOUND:
       case HTTP_TEMPORARY_REDIRECT:
       case HTTP_PERMANENT_REDIRECT:
@@ -191,19 +193,19 @@ static HttpStatusCodeT parseHttpStatusCode(char * buf) {
 
       //group 4xx
       case HTTP_BAD_REQUEST:
-      case HTTP_UNAUTHORIZE:
+      case HTTP_UNAUTHORIZED:
       case HTTP_FORBIDDEN:
       case HTTP_NOT_FOUND:
         break;
 
       // The last one for if we have not implemented the status code.
       default:
-        tmp = HTTP_STATUS_NOT_IMPL;
+        ret = HTTP_STATUS_NOT_IMPL;
         break;
     }
   }
 
-  return tmp;
+  return ret;
 }
 
 /**
@@ -213,25 +215,42 @@ static HttpStatusCodeT parseHttpStatusCode(char * buf) {
  * Assumes that the header format is: "header-name: header-value\r\n" with
  * exactly one space.
  *
+ * TODO: This is way stricter than specified in
+ * https://www.rfc-editor.org/rfc/rfc2616#section-4.2
+ *
  * NOTE: this is not really parsing, this is linear searching. Implement a
- * proper parser if you're going to use this often.
+ * proper parser if you're going to use this often. Shlemiel the painter
  */
-static void _getHeaderValue(const char * header, char * src, char ** dst) {
+static char * _findHeaderValue(const char * header, char * src) {
 
-  // Find the header position in src, determine its length and skip over the
-  // header to the value which is then copied up to the newline.
-  //
-  // TODO: strlen should be bounded, but by how much?
-  // Location: /some/location\r\n
-  // ^         ^             ^
-  // x         x+strlen      y
-  // length = y - (x + strlen) + 1
-  char * locationPtr = (char *) ((long) strstr(src, header) + strlen(header));
-  char * crPtr     = strchr(locationPtr, '\r');
+  char * ret = NULL;
 
-  // Copy the string to the destination, add the '\0' terminator at the end
-  memcpy(*dst, locationPtr, crPtr - locationPtr + 1);
-  (*dst)[crPtr - locationPtr] = '\0';
+  if (src) {
+    char * locationPtr = (char *) ((long) strcasestr(src, header) + strlen(header));
+    char * valuePtr    = NULL;
+
+    if (locationPtr) {
+      // skip linear whitespace
+      for ( ; isspace(*locationPtr); ++locationPtr);
+
+      // consume non-whitespace characters
+      for ( valuePtr = locationPtr; !isspace(*valuePtr); ++valuePtr);
+
+      // NOTE: we don't have to check valueptr since it is set to locationPtr
+      // (checked before to be nonzero) and only incremented afterwards.
+
+      size_t size = valuePtr - locationPtr + 1;
+      ret = charcalloc(size);
+      memcpy(ret, locationPtr, size);
+      ret[valuePtr - locationPtr] = '\0';
+    }
+  }
+
+  return ret;
+}
+
+static char * findLocationHeaderValue(char * src) {
+  return _findHeaderValue("\r\nLocation:", src);
 }
 
 // Forward declarations (mini .h file)
@@ -267,9 +286,6 @@ void showUsage() {
                         "                 -m FORM-DATA:\"post?user=&pass=&submit=True\" -m CUSTOM-HEADER:\"Cookie: name=value\"\n");
 }
 
-// Hides the strtokPtr argument, easier to read
-#define setOption(X, MSG) _setOption(&strtokPtr, X, MSG)
-
 /**
  * Set module command line options. This sets the values passed to the program
  * with the -m option. These are one of
@@ -284,12 +300,11 @@ void showUsage() {
  *
  *  CUSTOM-HEADER is allowed to be specified multiple times
  */
-static void _setOption(char ** strtokPtr, char ** dst, char * option) {
+static void setOption(char ** saveptr1, char ** dst, char * option) {
 
-  char * optarg = strtok_r(NULL, "\0", strtokPtr);
+  char * optarg = strtok_r(NULL, "\0", saveptr1);
   writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", optarg);
 
-  // TODO: This string duplication should be bounded, but by how much?
   if (optarg) {
     *dst = strdup(optarg);
   } else {
@@ -302,8 +317,6 @@ static void _setOption(char ** strtokPtr, char ** dst, char * option) {
  * do the work
  */
 int go(sLogin* logins, int argc, char * argv[]) {
-  int i;
-
   char * strtokPtr = NULL
      , * option    = NULL
      , * pOptTmp   = NULL
@@ -321,7 +334,7 @@ int go(sLogin* logins, int argc, char * argv[]) {
    * the original arguments? ... figure out strtok
    */
 
-  for (i = 0; i < argc; ++i) {
+  for (size_t i = 0; i < argc; ++i) {
     pOptTmp = strdup(argv[i]);
     writeError(ERR_DEBUG_MODULE, "Processing complete option: %s", pOptTmp);
 
@@ -330,22 +343,22 @@ int go(sLogin* logins, int argc, char * argv[]) {
 
     // FORM:<resource path>
     if (EQ_TO_STR_CONST(option, "FORM")) {
-      setOption(&moduleData->resourcePath, "FORM");
+      setOption(&strtokPtr, &moduleData->resourcePath, "FORM");
     }
 
     // DENY-SIGNAL:<string to test for invalid logins>
     else if (EQ_TO_STR_CONST(option, "DENY-SIGNAL")) {
-      setOption(&moduleData->denySignal, "DENY-SIGNAL");
+      setOption(&strtokPtr, &moduleData->denySignal, "DENY-SIGNAL");
     }
 
     // FORM-DATA:<method>?<username_key>=&<password_key>=&<form_rest>
     else if (EQ_TO_STR_CONST(option, "FORM-DATA")) {
-      setOption(&moduleData->formData, "FORM-DATA");
+      setOption(&strtokPtr, &moduleData->formData, "FORM-DATA");
     }
 
     // USER-AGENT:<user agent string>
     else if (EQ_TO_STR_CONST(option, "USER-AGENT")) {
-      setOption(&moduleData->userAgentHeader, "USER-AGENT");
+      setOption(&strtokPtr, &moduleData->userAgentHeader, "USER-AGENT");
     }
 
     // CUSTOM-HEADER:<custom header>
@@ -374,6 +387,8 @@ int go(sLogin* logins, int argc, char * argv[]) {
                                  , sizeof(char));
 
           sprintf(moduleData->customHeaders, "%s%s\r\n", tmp, option);
+
+          free(tmp);
         }
 
         ++moduleData->nCustomHeaders;
@@ -385,7 +400,6 @@ int go(sLogin* logins, int argc, char * argv[]) {
     } else {
       writeError(ERR_WARNING, "Invalid method: %s.", option);
     }
-
     free(pOptTmp);
   }
 
@@ -407,7 +421,7 @@ int go(sLogin* logins, int argc, char * argv[]) {
 
 #define _setDefaultOption(dst, value)  \
   *dst = charcalloc(sizeof(value)); \
-  snprintf(*dst, sizeof(value), "%s", value)
+  snprintf(*dst, sizeof(value) / sizeof(*value), "%s", value)
 
 int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
 
@@ -427,7 +441,6 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
   sCredentialSet * psCredSet = NULL;
   psCredSet = (sCredentialSet *) calloc(1, sizeof(sCredentialSet));
 
-  //
   if (getNextCredSet(_psLogin, psCredSet) == FAILURE) {
     writeError(ERR_ERROR, "[%s] Error retrieving next credential set to test.", MODULE_NAME);
     nState = MSTATE_COMPLETE;
@@ -457,6 +470,13 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
         if (hSocket > 0)
           medusaDisconnect(hSocket);
 
+        // Reset from GET to POST if we had to follow a redirect on the previous
+        // cycle
+        if (_moduleData->changedRequestType) {
+          _moduleData->changedRequestType = 0;
+          _moduleData->formType = FORM_POST;
+        }
+
         if (_psLogin->psServer->psHost->iUseSSL > 0)
           hSocket = medusaConnectSSL(&params);
         else
@@ -469,99 +489,100 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
           return FAILURE;
         }
 
-        /* Set request parameters */
-        if (!_moduleData->resourcePath) {
-          _setDefaultOption(&_moduleData->resourcePath, "/");
-        }
+        if (!_moduleData->initialised) {
 
-        if (!_moduleData->hostHeader) {
-          nBufLength = strlen(_psLogin->psServer->psHost->pHost) + 1 + log(params.nPort) + 1;
-          _moduleData->hostHeader = charcalloc(nBufLength + 1);
-          sprintf(_moduleData->hostHeader, "%s:%d", _psLogin->psServer->psHost->pHost, params.nPort);
-        }
-
-        // Set parameters to their defaults if they have not been provided on
-        // the command line. String contsants for default username and password
-        // keys are MODULE_DEFAULT_USERNAME_KEY and MODULE_DEFAULT_PASSWORD_KEY
-        // respectively.
-        if (!_moduleData->formData) {
-          _setDefaultOption(&_moduleData->formRest, "");
-          _setDefaultOption(&_moduleData->formUserKey, MODULE_DEFAULT_USERNAME_KEY);
-          _setDefaultOption(&_moduleData->formPassKey, MODULE_DEFAULT_PASSWORD_KEY);
-          _moduleData->formType = FORM_POST;
-
-        // Otherwise, set the values to the user specified values.
-        } else {
-
-          /* Only set user-supplied form data on first pass */
-          if (_moduleData->formUserKey == NULL) {
-            pTemp = strtok_r(_moduleData->formData, "?", &pStrtokSavePtr);
-            writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Action Method: %s", MODULE_NAME, pTemp);
-
-            _moduleData->formType = FORM_UNKNOWN;
-
-            if (!strncasecmp(pTemp, POST_STR, sizeof(POST_STR)))
-              _moduleData->formType = FORM_POST;
-
-            if (!strncasecmp(pTemp, GET_STR, sizeof(GET_STR)))
-              _moduleData->formType = FORM_GET;
-
-            pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
-            if (pTemp != NULL)
-            {
-              _moduleData->formUserKey = strdup(pTemp);
-            }
-
-            pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
-            if (pTemp != NULL)
-            {
-              _moduleData->formPassKey = strdup(pTemp);
-            }
-
-            pTemp = strtok_r(NULL, "", &pStrtokSavePtr);
-            if (pTemp != NULL)
-            {
-              _moduleData->formRest = strdup(pTemp);
-            }
+          /* Set request parameters */
+          if (!_moduleData->resourcePath) {
+            _setDefaultOption(&_moduleData->resourcePath, "/");
           }
 
-          writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form User Field: %s", MODULE_NAME, _moduleData->formUserKey);
-          writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Pass Field: %s", MODULE_NAME, _moduleData->formPassKey);
-          writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Rest Field: %s", MODULE_NAME, _moduleData->formRest);
+          if (!_moduleData->hostHeader) {
+            nBufLength = strlen(_psLogin->psServer->psHost->pHost) + 1 + log(params.nPort) + 1;
+            _moduleData->hostHeader = charcalloc(nBufLength + 1);
+            sprintf(_moduleData->hostHeader, "%s:%d", _psLogin->psServer->psHost->pHost, params.nPort);
+          }
 
-          if ((_moduleData->formType == FORM_UNKNOWN) || (_moduleData->formUserKey == NULL) || (_moduleData->formPassKey == NULL))
-          {
-            writeError(ERR_WARNING, "Invalid FORM-DATA format. Using default format: \"" MODULE_DEFAULT_FORM_TYPE_STR "?" MODULE_DEFAULT_USERNAME_KEY "&" MODULE_DEFAULT_PASSWORD_KEY "\"");
-            _moduleData->formRest    = charcalloc(1);
-            _moduleData->formRest[0] = '\0';
-
-            _moduleData->formUserKey = charcalloc(sizeof(MODULE_DEFAULT_USERNAME_KEY));
-            snprintf(_moduleData->formUserKey, sizeof(MODULE_DEFAULT_USERNAME_KEY), MODULE_DEFAULT_USERNAME_KEY);
-
-            _moduleData->formPassKey = charcalloc(sizeof(MODULE_DEFAULT_PASSWORD_KEY));
-            snprintf(_moduleData->formPassKey, sizeof(MODULE_DEFAULT_PASSWORD_KEY), MODULE_DEFAULT_PASSWORD_KEY);
-
+          // Set parameters to their defaults if they have not been provided on
+          // the command line. String contsants for default username and password
+          // keys are MODULE_DEFAULT_USERNAME_KEY and MODULE_DEFAULT_PASSWORD_KEY
+          // respectively.
+          if (!_moduleData->formData) {
+            _setDefaultOption(&_moduleData->formRest, "");
+            _setDefaultOption(&_moduleData->formUserKey, MODULE_DEFAULT_USERNAME_KEY);
+            _setDefaultOption(&_moduleData->formPassKey, MODULE_DEFAULT_PASSWORD_KEY);
             _moduleData->formType = FORM_POST;
+
+          // Otherwise, set the values to the user specified values.
+          } else {
+
+            /* Only set user-supplied form data on first pass */
+            if (!_moduleData->formUserKey) {
+              pTemp = strtok_r(_moduleData->formData, "?", &pStrtokSavePtr);
+              writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Action Method: %s", MODULE_NAME, pTemp);
+
+              if (!strncasecmp(pTemp, POST_STR, sizeof(POST_STR)))
+                _moduleData->formType = FORM_POST;
+              else if (!strncasecmp(pTemp, GET_STR, sizeof(GET_STR)))
+                _moduleData->formType = FORM_GET;
+              else
+                _moduleData->formType = FORM_UNKNOWN;
+
+              pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
+              if (pTemp) {
+                _moduleData->formUserKey = strdup(pTemp);
+              }
+
+              pTemp = strtok_r(NULL, "&", &pStrtokSavePtr);
+              if (pTemp) {
+                _moduleData->formPassKey = strdup(pTemp);
+              }
+
+              pTemp = strtok_r(NULL, "", &pStrtokSavePtr);
+              if (pTemp) {
+                _moduleData->formRest = strdup(pTemp);
+              }
+            }
+
+            writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form User Field: %s", MODULE_NAME, _moduleData->formUserKey);
+            writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Pass Field: %s", MODULE_NAME, _moduleData->formPassKey);
+            writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Rest Field: %s", MODULE_NAME, _moduleData->formRest);
+
+            if ((_moduleData->formType == FORM_UNKNOWN) || (_moduleData->formUserKey == NULL) || (_moduleData->formPassKey == NULL))
+            {
+              writeError(ERR_WARNING, "Invalid FORM-DATA format. Using default format: \"" MODULE_DEFAULT_FORM_TYPE_STR "?" MODULE_DEFAULT_USERNAME_KEY "&" MODULE_DEFAULT_PASSWORD_KEY "\"");
+              _moduleData->formRest    = charcalloc(1);
+
+              _moduleData->formUserKey = charcalloc(sizeof(MODULE_DEFAULT_USERNAME_KEY));
+              snprintf(_moduleData->formUserKey, sizeof(MODULE_DEFAULT_USERNAME_KEY), MODULE_DEFAULT_USERNAME_KEY);
+
+              _moduleData->formPassKey = charcalloc(sizeof(MODULE_DEFAULT_PASSWORD_KEY));
+              snprintf(_moduleData->formPassKey, sizeof(MODULE_DEFAULT_PASSWORD_KEY), MODULE_DEFAULT_PASSWORD_KEY);
+
+              _moduleData->formType = FORM_POST;
+            }
           }
-        }
 
-        if (!_moduleData->userAgentHeader)
-          _setDefaultOption(&_moduleData->userAgentHeader, MODULE_DEFAULT_USER_AGENT);
+          if (!_moduleData->userAgentHeader) {
+            _setDefaultOption(&_moduleData->userAgentHeader, MODULE_DEFAULT_USER_AGENT);
+          }
 
-        if (!_moduleData->denySignal) {
-          _moduleData->denySignal = charcalloc(sizeof(MODULE_DEFAULT_DENY_SIGNAL));
-          snprintf(_moduleData->denySignal, sizeof(MODULE_DEFAULT_DENY_SIGNAL), MODULE_DEFAULT_DENY_SIGNAL);
-        }
+          if (!_moduleData->denySignal) {
+            _moduleData->denySignal = charcalloc(sizeof(MODULE_DEFAULT_DENY_SIGNAL));
+            snprintf(_moduleData->denySignal, sizeof(MODULE_DEFAULT_DENY_SIGNAL), MODULE_DEFAULT_DENY_SIGNAL);
+          }
 
-        if (!_moduleData->customHeaders) {
-          _moduleData->customHeaders = charcalloc(1);
-          _moduleData->customHeaders[0] = '\0';
+          if (!_moduleData->customHeaders) {
+            _moduleData->customHeaders = charcalloc(1);
+          }
+
+          _moduleData->initialised = 1;
         }
 
         nState = MSTATE_RUNNING;
         break;
 
       case MSTATE_RUNNING:
+
         nState = tryLogin(hSocket, _moduleData, &_psLogin, psCredSet->psUser->pUser, psCredSet->pPass);
 
         if (_psLogin->iResult != LOGIN_RESULT_UNKNOWN)
@@ -615,6 +636,8 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
  * URL-encode a string. Returns a heap-allocated buffer containing the encoded
  * string. The caller is responsible for freeing that buffer when it's no longer
  * needed.
+ *
+ * NOTE: Only works for ascii, unicode is not yet supported.
  */
 #define URL_ENCODE_BYTE_FMT "%%%02x"
 char * urlencodeup(char * szStr) {
@@ -636,7 +659,7 @@ char * urlencodeup(char * szStr) {
       szRet[j] = c;
       j += 1;
     } else {
-      snprintf(szRet+j, sizeof(URL_ENCODE_BYTE_FMT), URL_ENCODE_BYTE_FMT, (unsigned long) c);
+      snprintf(szRet+j, sizeof(URL_ENCODE_BYTE_FMT), URL_ENCODE_BYTE_FMT, (unsigned int) c);
       j += 3;
     }
   }
@@ -659,8 +682,8 @@ char * urlencodeup(char * szStr) {
   "GET %s?%s HTTP/1.1\r\n" \
   "Host: %s\r\n" \
   "User-Agent: %s\r\n" \
-  "%s" \
   "Connection: close\r\n" \
+  "%s" \
   "\r\n"
 
 /**
@@ -677,8 +700,8 @@ char * urlencodeup(char * szStr) {
   "POST %s HTTP/1.1\r\n" \
   "Host: %s\r\n" \
   "User-Agent: %s\r\n" \
-  "%s" \
   "Connection: close\r\n" \
+  "%s" \
   "Content-Type: application/x-www-form-urlencoded\r\n" \
   "Content-Length: %i\r\n" \
   "\r\n" \
@@ -699,10 +722,8 @@ int prepareRequestParamString(char ** dst, ModuleDataT * _moduleData, char * szL
   // parameter string. If there are none then `formRest' expands to the empty
   // string.
   char * formRest = "";
-  if (_moduleData->formRest != NULL) {
-    if (_moduleData->formRest[0] != 0) {
-      formRest = _moduleData->formRest;
-    }
+  if (_moduleData->formRest && *_moduleData->formRest) {
+    formRest = _moduleData->formRest;
   }
 
   ret = asprintf(dst, "%s%s&%s%s&%s", _moduleData->formUserKey   // username
@@ -775,11 +796,13 @@ static int _sendRequest(int hSocket, ModuleDataT* _moduleData, char* szLogin, ch
     , requestSize = 0
     ;
 
+  // Allocated in prepareRequestString by asprintf, we are responsible for
+  // freeing it here.
   char * request = NULL;
 
   requestSize = prepareRequestString(&request, _moduleData, szLogin, szPassword);
 
-  if (medusaSend(hSocket, request, requestSize, 0) < 0) {
+  if (medusaSend(hSocket, (unsigned char *) request, requestSize, 0) < 0) {
     writeError(ERR_ERROR, "%s failed: medusaSend was not successful", MODULE_NAME);
     nRet = FAILURE;
   }
@@ -790,12 +813,17 @@ static int _sendRequest(int hSocket, ModuleDataT* _moduleData, char* szLogin, ch
   return nRet;
 }
 
+static inline void _setPasswordHelper(sLogin ** login, char * password, int result) {
+  (*login)->iResult = result;
+  setPassResult(*login, password);
+}
+
 /**
  *
  */
-static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, unsigned char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
+static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
 
-  int nRet = FAILURE;
+  ModuleStateT ret = MSTATE_RUNNING;
 
   switch (_moduleData->formType) {
     case FORM_GET:
@@ -811,65 +839,116 @@ static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** l
       break;
   }
 
-  nRet = _sendRequest(hSocket, _moduleData, szLogin, szPassword);
-
-  if (nRet == FAILURE) {
+  if(FAILURE == _sendRequest(hSocket, _moduleData, szLogin, szPassword)) {
     writeError(ERR_ERROR, "[%s] Failed during sending of authentication data.", MODULE_NAME);
-    (*login)->iResult = LOGIN_RESULT_UNKNOWN;
-    setPassResult(*login, szPassword);
+    _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
     return MSTATE_EXITING;
   }
 
   writeError(ERR_DEBUG_MODULE, "[%s] Retrieving server response.", MODULE_NAME);
-  *pReceiveBuffer = medusaReceiveLine(hSocket, nReceiveBufferSize);
 
-  if ((*pReceiveBuffer == NULL) || (*pReceiveBuffer[0] == '\0'))
-  {
+  *pReceiveBuffer = (char *) medusaReceiveLine(hSocket, nReceiveBufferSize);
+
+  if (!*pReceiveBuffer) {
     writeError(ERR_ERROR, "[%s] No data received", MODULE_NAME);
-    (*login)->iResult = LOGIN_RESULT_UNKNOWN;
-    setPassResult(*login, szPassword);
-    return MSTATE_EXITING;
+    _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
+    ret = MSTATE_EXITING;
   }
+
+  return ret;
 }
 
 /**
- * Test whether the returned Location header value is an absolute path. This is
+ * Test whether the returned Location header value is a relative path. This is
  * a flaky method of testing but for the first version it'll do.
  */
-static uint8_t _isAbsolutePath(char * path) {
-	return path[0] == '/';
+static uint8_t _isRelativePath(char * path) {
+
+  // Absolute paths based on the website root:
+  // starting with /
+  // URI's
+
+  return path[0] == '/';
 }
-#define _isRelativePath(x) (!_isAbsolutePath(x))
 
 /**
- * 
+ * Resolve the path from the Location header with the old path and strip
+ * request parameters.
  */
-static void _resolveLocationPath(char * old, char ** new) {
-  
-	// Yes, strings are hard. whatever.
-	char buf[4096];
+static void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
 
-	// If the new location happens to be relative, concatenate the strings and let
-	// the server figure out the path resolution
-  if (_isRelativePath(*new)) {
-    strcpy(old, buf);
-		strcat(buf, "/");
-		strcat(buf, *new); // shlemiel the painter
+  char * hasParameters = strchr(newLocation, '?');
+
+  // If there are parameters, we set shorten the string by converting the ? into
+  // a \0.
+  if (hasParameters)
+    *hasParameters = '\0';
+
+  // we have to rewrite the Host header if the location specifies a URI, just in
+  // case. Also works for https.
+  char * isURI = NULL;
+  char tmp;
+
+  int overwrite = 0;
+
+  // Check if the value starts with 'http', case insensitive. to do this we
+  // first check that the length of the string is at least 5 and then we
+  // temporarily shorten the string to 4 characters and perform the test.
+  if (strlen(newLocation) > 4) {
+    tmp = newLocation[4];
+    newLocation[4] = '\0';
+    isURI = strcasestr(newLocation, "http");
+    newLocation[4] = tmp;
+
+    if (isURI) {
+      free(_moduleData->hostHeader);
+      _moduleData->hostHeader = strdup(newLocation);
+
+      overwrite = 1;
+    }
+  }
+
+  if (_isRelativePath(newLocation)) {
+    // Yes, strings are hard. whatever.
+    char * buf = charcalloc(2 * (strlen(newLocation) + strlen(_moduleData->resourcePath)));
+    char * end;
+
+    // concatenate the strings and let the server figure out the path
+    // resolution
+    end = stpcpy(buf, _moduleData->resourcePath);
+    *(end++) = '/';
+    strcpy(end, newLocation);
+
+    free(_moduleData->resourcePath);
+    _moduleData->resourcePath = buf;
+  } else {
+    overwrite = 1;
+  }
+
+  // for URI and absolute paths, we just overwrite
+  if (overwrite) {
+     free(_moduleData->resourcePath);
+    _moduleData->resourcePath = strdup(newLocation);
   }
 }
 
-int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogin, char* szPassword)
-{
-  unsigned char * pReceiveBuffer = NULL;
-  int nReceiveBufferSize;
-  int nRet = FAILURE;
+int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogin, char* szPassword) {
+  char * pReceiveBuffer = NULL;
+  int nReceiveBufferSize = 0;
 
   // Perform the request, error out when request failed
   ModuleStateT requestState;
   requestState = _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
+
   if (requestState == MSTATE_EXITING) return requestState;
 
+  // Attempt to parse the status code. Exit on error.
   HttpStatusCodeT statusCode = parseHttpStatusCode(pReceiveBuffer);
+  if (statusCode == HTTP_STATUS_PARSE_ERR) {
+    writeError(ERR_ERROR, "[%s] Error while parsing HTTP status code.", MODULE_NAME);
+    return MSTATE_EXITING;
+  }
+
   writeError(ERR_DEBUG_MODULE, "[%s] HTTP Response code was %3d.", MODULE_NAME, statusCode);
 
   switch (statusCode) {
@@ -890,65 +969,72 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
     case HTTP_PERMANENT_REDIRECT:
       writeError(ERR_DEBUG_MODULE, "[%s] Following redirect.", MODULE_NAME);
 
-      // Get the value of the location header and set the directory to that
-      // location, then perform the request again. If the Location header
-      // returns a relative path, then we must resolve the path relative to the
-      // old path. If the path is absolute, we can simply overwrite the path.
-      char * oldResourcePath = strdup(_moduleData->resourcePath);
-      _getHeaderValue("Location: ", pReceiveBuffer, &_moduleData->resourcePath);
-      _resolveLocationPath(oldResourcePath, &_moduleData->resourcePath);
-      free(oldResourcePath);
+      // NOTE: findLocationHeaderValue allocates a string on the heap for
+      // newLocation, we have to free it
+      //
+      // NOTE: This action will change the location permanently. The assumption
+      // is that there will be only one redirect i.e. after resolving the
+      // redirection, that path is used for all requests that follow it.
+      char * newLocation = findLocationHeaderValue(pReceiveBuffer);
+
+      // We cannot proceed if we have not found a Location header
+      if (!newLocation) {
+        writeError(ERR_ERROR, "Redirect could not be followed because the location header could not be found");
+        _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
+        return MSTATE_EXITING;
+      }
+      _resolveLocationPath(newLocation, _moduleData);
+      free(newLocation);
 
       // Change the request method to GET for 301 and 302
+      // NOTE: we have to reset it to POST on following requests
       if (_moduleData->formType == FORM_POST &&
         (statusCode == HTTP_MOVED_PERMANENTLY || statusCode == HTTP_FOUND)) {
+        _moduleData->changedRequestType = 1;
         writeError(ERR_DEBUG_MODULE, "[%s] Changing request method to GET for redirect", MODULE_NAME);
         _moduleData->formType = FORM_GET;
       }
 
-      _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
-
-      if (requestState == MSTATE_EXITING)
-        return requestState;
-
+      return MSTATE_NEW;
       break;
 
+    case HTTP_BAD_REQUEST:
+    case HTTP_UNAUTHORIZED:
+    case HTTP_FORBIDDEN:
+    case HTTP_NOT_FOUND:
+      writeError(ERR_ERROR, "Received HTTP status code: %d, cannot proceed.", statusCode);
+      _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
+      return MSTATE_EXITING;
+      break;
+  
     // The default error case from the old code
     default:
-        writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying: user: \"%s\", pass: \"%s\", HTTP status code: %3d", szLogin, szPassword, statusCode);
-        (*login)->iResult = LOGIN_RESULT_UNKNOWN;
-        setPassResult(*login, szPassword);
-        return MSTATE_EXITING;
+      writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying: user: \"%s\", pass: \"%s\", HTTP status code: %3d", szLogin, szPassword, statusCode);
+      _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
+      return MSTATE_EXITING;
       break;
   }
 
-  // Keep receiving lines while line buffer is nonemty and does not contain the
-  // deny-signal pattern
-  while (  pReceiveBuffer    != NULL
-        && pReceiveBuffer[0] != '\0'
-        && (strcasestr((char *) pReceiveBuffer, _moduleData->denySignal) == NULL)
-        ) {
+  uint8_t denySignalFound = 0;
+
+  while (pReceiveBuffer && *pReceiveBuffer) {
+    if (strcasestr(pReceiveBuffer, _moduleData->denySignal)) {
+      denySignalFound = 1;
+      break;
+    }
 
     free(pReceiveBuffer);
-    pReceiveBuffer = medusaReceiveLine(hSocket, &nReceiveBufferSize);
+    pReceiveBuffer = (char *) medusaReceiveLine(hSocket, &nReceiveBufferSize);
   }
 
-  // Did we exit because the buffer became empty?
-  // yes -> next password
-  if (  pReceiveBuffer != NULL
-     && strcasestr((char *) pReceiveBuffer, _moduleData->denySignal) != NULL
-     ) {
-
+  if (denySignalFound) {
     (*login)->iResult = LOGIN_RESULT_FAIL;
-    setPassResult(*login, szPassword);
-    return MSTATE_NEW;
+  } else {
+    (*login)->iResult = LOGIN_RESULT_SUCCESS;
+    writeError(ERR_DEBUG_MODULE, "Login Successful");
   }
 
-  // no -> Then we've found the pattern, login successful
-  writeError(ERR_DEBUG_MODULE, "Login Successful");
-  (*login)->iResult = LOGIN_RESULT_SUCCESS;
   setPassResult(*login, szPassword);
-
   return MSTATE_NEW;
 }
 
@@ -993,10 +1079,11 @@ int go(/*@unused@*/ sLogin* logins, /*@unused@*/ int argc, /*@unused@*/ char *ar
 void summaryUsage(char ** ppszSummary) {
 
   // Sentinel
-  if (*ppszSummary != NULL)
+  if (*ppszSummary) {
     writeError(ERR_ERROR, "%s reports an error in summaryUsage() : ppszSummary must be NULL when called", MODULE_NAME);
-
-  // this is a bounded `asprintf'
-  *ppszSummary = charcalloc(ILENGTH);
-  snprintf(*ppszSummary, ILENGTH, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
+  } else {
+    // this is a bounded `asprintf'
+    *ppszSummary = charcalloc(ILENGTH);
+    snprintf(*ppszSummary, ILENGTH, MODULE_SUMMARY_FORMAT, MODULE_SUMMARY_USAGE, MODULE_VERSION, OPENSSL_WARNING);
+  }
 }
