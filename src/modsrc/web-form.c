@@ -33,8 +33,6 @@
 
 #include "module.h"
 
-#include <sys/socket.h>
-
 #define MODULE_NAME                 "web-form.mod"
 #define MODULE_AUTHOR               "Luciano Bello <luciano@linux.org.ar>"
 #define MODULE_SUMMARY_USAGE        "Brute force module for web forms"
@@ -97,7 +95,6 @@ typedef struct ModuleData {
   char * customHeaders;    // Custom headers
   int nCustomHeaders;      // Number of custom headers
   int changedRequestType;
-  int initialised;
 } ModuleDataT;
 
 ModuleDataT * newModuleData() {
@@ -122,6 +119,7 @@ void freeModuleData(ModuleDataT * moduleData) {
 
 // Tells us whether we are to continue processing or not
 typedef enum ModuleState {
+  MSTATE_INITIALIZE,
   MSTATE_NEW,
   MSTATE_RUNNING,
   MSTATE_EXITING,
@@ -433,7 +431,7 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
      , * pTemp          = NULL
      ;
 
-  ModuleStateT nState = MSTATE_NEW;
+  ModuleStateT nState = MSTATE_INITIALIZE;
 
   sConnectParams params;
   memset(&params, 0, sizeof(sConnectParams));
@@ -461,35 +459,18 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
 
   initConnectionParams(_psLogin, &params);
 
+  // Choose which connect function to use based SSL/plain.
+  int (*_connect)(sConnectParams *) =
+    (_psLogin->psServer->psHost->iUseSSL > 0)
+      ? &medusaConnectSSL : &medusaConnect;
+
   while (nState != MSTATE_COMPLETE) {
 
     switch (nState) {
 
-      case MSTATE_NEW:
-        // Already have an open socket - close it
-        if (hSocket > 0)
-          medusaDisconnect(hSocket);
-
-        // Reset from GET to POST if we had to follow a redirect on the previous
-        // cycle
-        if (_moduleData->changedRequestType) {
-          _moduleData->changedRequestType = 0;
-          _moduleData->formType = FORM_POST;
-        }
-
-        if (_psLogin->psServer->psHost->iUseSSL > 0)
-          hSocket = medusaConnectSSL(&params);
-        else
-          hSocket = medusaConnect(&params);
-
-        if (hSocket < 0) {
-          writeError(ERR_NOTICE, "%s: failed to connect, port %d was not open on %s", MODULE_NAME, params.nPort, _psLogin->psServer->pHostIP);
-          _psLogin->iResult = LOGIN_RESULT_UNKNOWN;
-          setPassResult(_psLogin, psCredSet->pPass);
-          return FAILURE;
-        }
-
-        if (!_moduleData->initialised) {
+      // Initialise _moduleData with user provided arguments, or with their
+      // defaults.
+      case MSTATE_INITIALIZE:
 
           /* Set request parameters */
           if (!_moduleData->resourcePath) {
@@ -515,7 +496,6 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
           // Otherwise, set the values to the user specified values.
           } else {
 
-            /* Only set user-supplied form data on first pass */
             if (!_moduleData->formUserKey) {
               pTemp = strtok_r(_moduleData->formData, "?", &pStrtokSavePtr);
               writeError(ERR_DEBUG_MODULE, "[%s] User-supplied Form Action Method: %s", MODULE_NAME, pTemp);
@@ -575,7 +555,30 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
             _moduleData->customHeaders = charcalloc(1);
           }
 
-          _moduleData->initialised = 1;
+        nState = MSTATE_NEW;
+        break;
+
+      // Create a new connection and close the old one if there is still one
+      // open.
+      case MSTATE_NEW:
+
+        if (hSocket > 0)
+          medusaDisconnect(hSocket);
+
+        // Reset from GET to POST if we had to follow a redirect on the previous
+        // cycle
+        if (_moduleData->changedRequestType) {
+          _moduleData->changedRequestType = 0;
+          _moduleData->formType = FORM_POST;
+        }
+
+        hSocket = _connect(&params);
+
+        if (hSocket < 0) {
+          writeError(ERR_NOTICE, "%s: failed to connect, port %d was not open on %s", MODULE_NAME, params.nPort, _psLogin->psServer->pHostIP);
+          _psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+          setPassResult(_psLogin, psCredSet->pPass);
+          return FAILURE;
         }
 
         nState = MSTATE_RUNNING;
@@ -620,6 +623,7 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
       default:
         writeError(ERR_CRITICAL, "Unknown HTTP module state (%d). Exiting...", nState);
         _psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+        nState = MSTATE_EXITING;
         break;
     }
   }
@@ -859,23 +863,62 @@ static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** l
 }
 
 /**
- * Test whether the returned Location header value is a relative path. This is
- * a flaky method of testing but for the first version it'll do.
+ * Collection of values that reflect the different kinds of path we can deal
+ * with.
  */
-static uint8_t _isRelativePath(char * path) {
+typedef enum PathType {
+  PATHTYPE_UNKNOWN,
+  PATHTYPE_URI,
+  PATHTYPE_RELATIVE,
+  PATHTYPE_ABSOLUTE
+} PathTypeT;
 
-  // Absolute paths based on the website root:
-  // starting with /
-  // URI's
+/**
+ * Guess the path type of the Location header value. If it starts with 'http',
+ * case insensitive, then it is a URI. If it is not a URI, and it starts with a
+ * '/', then it is absolute. In all other cases it is assumed to be relative.
+ */
+static PathTypeT _pathType(char * path) {
 
-  return path[0] == '/';
+  PathTypeT ret = PATHTYPE_UNKNOWN;
+
+  char tmp;
+  char * isURI;
+
+  if (path) {
+
+    if (strlen(path) > 4) {
+      tmp = path[4];
+      path[4] = '\0';
+      isURI = strcasestr(path, "http");
+      path[4] = tmp;
+
+      if (isURI) return PATHTYPE_URI;
+    }
+
+    // Definitely not a URI at this point, either ABS or REL
+    switch (*path) {
+
+      // absolute paths start with '/'
+      case '/':
+        ret = PATHTYPE_ABSOLUTE;
+        break;
+
+      // relative by default
+      default:
+        ret = PATHTYPE_RELATIVE;
+        break;
+    }
+  }
+
+  return ret;
 }
 
 /**
  * Resolve the path from the Location header with the old path and strip
  * request parameters.
  */
-static void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
+void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
 
   char * hasParameters = strchr(newLocation, '?');
 
@@ -884,51 +927,38 @@ static void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) 
   if (hasParameters)
     *hasParameters = '\0';
 
-  // we have to rewrite the Host header if the location specifies a URI, just in
-  // case. Also works for https.
-  char * isURI = NULL;
-  char tmp;
+  char * buf = NULL
+     , * end = NULL
+     ;
 
-  int overwrite = 0;
+  switch(_pathType(newLocation)) {
+    case PATHTYPE_RELATIVE:
+      // Yes, strings are hard. whatever.
+      buf = charcalloc(2 * (strlen(newLocation) + strlen(_moduleData->resourcePath)));
 
-  // Check if the value starts with 'http', case insensitive. to do this we
-  // first check that the length of the string is at least 5 and then we
-  // temporarily shorten the string to 4 characters and perform the test.
-  if (strlen(newLocation) > 4) {
-    tmp = newLocation[4];
-    newLocation[4] = '\0';
-    isURI = strcasestr(newLocation, "http");
-    newLocation[4] = tmp;
+      // concatenate the strings and let the server figure out the path
+      // resolution
+      end = stpcpy(buf, _moduleData->resourcePath);
+      *(end++) = '/';
+      strcpy(end, newLocation);
 
-    if (isURI) {
+      free(_moduleData->resourcePath);
+      _moduleData->resourcePath = buf;
+      break;
+
+    // break omitted on purpose!
+    case PATHTYPE_URI:
       free(_moduleData->hostHeader);
       _moduleData->hostHeader = strdup(newLocation);
-
-      overwrite = 1;
-    }
-  }
-
-  if (_isRelativePath(newLocation)) {
-    // Yes, strings are hard. whatever.
-    char * buf = charcalloc(2 * (strlen(newLocation) + strlen(_moduleData->resourcePath)));
-    char * end;
-
-    // concatenate the strings and let the server figure out the path
-    // resolution
-    end = stpcpy(buf, _moduleData->resourcePath);
-    *(end++) = '/';
-    strcpy(end, newLocation);
-
-    free(_moduleData->resourcePath);
-    _moduleData->resourcePath = buf;
-  } else {
-    overwrite = 1;
-  }
-
-  // for URI and absolute paths, we just overwrite
-  if (overwrite) {
-     free(_moduleData->resourcePath);
-    _moduleData->resourcePath = strdup(newLocation);
+    case PATHTYPE_ABSOLUTE:
+      free(_moduleData->resourcePath);
+      _moduleData->resourcePath = strdup(newLocation);
+      break;
+     
+    case PATHTYPE_UNKNOWN:
+    default:
+      writeError(ERR_ERROR, "[%s] Path type of \"%s\" is unknown", MODULE_NAME, newLocation);
+      break;
   }
 }
 
@@ -995,6 +1025,9 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
         _moduleData->formType = FORM_GET;
       }
 
+      // The redirect has now been resolved, we simply do not update the
+      // username:password pair so that in the next iteration the combination
+      // will be automatically tried again.
       return MSTATE_NEW;
       break;
 
@@ -1006,7 +1039,7 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
       return MSTATE_EXITING;
       break;
-  
+
     // The default error case from the old code
     default:
       writeError(ERR_ERROR, "The answer was NOT successfully received, understood, and accepted while trying: user: \"%s\", pass: \"%s\", HTTP status code: %3d", szLogin, szPassword, statusCode);
@@ -1015,6 +1048,7 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       break;
   }
 
+  // Search for the deny signal.
   uint8_t denySignalFound = 0;
 
   while (pReceiveBuffer && *pReceiveBuffer) {
