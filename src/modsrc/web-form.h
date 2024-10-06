@@ -189,17 +189,17 @@ int go(sLogin* logins, int argc, char * argv[]);
 int initModule(ModuleDataT * _moduleData, sLogin * _psLogin);
 
 #define URL_ENCODE_BYTE_FMT "%%%02x"
-static char * urlencodeup(char * szStr) {
+static char * urlencodeup(char * szStr);
 
-int prepareRequestParamString(char ** dst, ModuleDataT * _moduleData, char * szLogin, char * szPassword) {
-int prepareRequestString(char ** dst, ModuleDataT * _moduleData, char * szLogin, char * szPassword) {
-//static int _sendRequest(int hSocket, ModuleDataT* _moduleData, char* szLogin, char* szPassword) {
-//static inline void _setPasswordHelper(sLogin ** login, char * password, int result) {
-//static int _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
-//static PathTypeT _pathType(char * path) {
-void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
-void _setCookiesFromResponse(ModuleDataT * _moduleData, char * response) {
-int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogin, char* szPassword) {
+int prepareRequestParamString(char ** dst, ModuleDataT * _moduleData, char * szLogin, char * szPassword);
+int prepareRequestString(char ** dst, ModuleDataT * _moduleData, char * szLogin, char * szPassword);
+//static int _sendRequest(int hSocket, ModuleDataT* _moduleData, char* szLogin, char* szPassword);
+//static inline void _setPasswordHelper(sLogin ** login, char * password, int result);
+//static int _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword);
+//static PathTypeT _pathType(char * path);
+void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData);
+void _setCookiesFromResponse(ModuleDataT * _moduleData, char * response);
+int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogin, char* szPassword);
 
 
 #else // HAVE_LIBSSL
