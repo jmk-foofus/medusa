@@ -32,70 +32,9 @@
  ***************************************************************************/
 
 #include "module.h"
-
-#define MODULE_NAME                 "web-form.mod"
-#define MODULE_AUTHOR               "Luciano Bello <luciano@linux.org.ar>"
-#define MODULE_SUMMARY_USAGE        "Brute force module for web forms"
-#define MODULE_VERSION              "3.0"
-#define MODULE_SUMMARY_FORMAT       "%s : version %s%s"
+#include "web-form.h"
 
 #ifdef HAVE_LIBSSL
-#define OPENSSL_WARNING             ""
-#else
-#define OPENSSL_WARNING             " (No usable OPENSSL. Module disabled.)"
-#endif
-
-#define HTTP_PORT   80
-#define HTTPS_PORT 443
-
-#define MODULE_DEFAULT_USER_AGENT   "I'm not Mozilla, I'm Ming Mong"
-#define MODULE_DEFAULT_DENY_SIGNAL  "Login incorrect."
-#define MODULE_DEFAULT_USERNAME_KEY "username="
-#define MODULE_DEFAULT_PASSWORD_KEY "password="
-#define MODULE_DEFAULT_FORM_TYPE    FORM_POST
-
-#define GET_STR  "GET"
-#define POST_STR "POST"
-
-#if MODULE_DEFAULT_FORM_TYPE == FORM_POST
-#define MODULE_DEFAULT_FORM_TYPE_STR POST_STR
-#else
-#define MODULE_DEFAULT_FORM_TYPE_STR GET_STR
-#endif
-
-// Macro definitions which improve code readability
-
-// Inclusive range condition check: lo <= x <= hi
-#define BETWEEN(LO,X,HI) ((LO) <= (X) && (X) <= (HI))
-
-// Allocating char buffers of a certain length, this is common
-#define charcalloc(n) (char *) calloc(n, sizeof(char))
-
-// Bounded comparison of a string X to a constant string Y
-#define EQ_TO_STR_CONST(X,Y) !strncmp((X), (Y), sizeof(Y))
-
-#ifdef HAVE_LIBSSL
-
-typedef enum FormType {
-    FORM_UNKNOWN
-  , FORM_GET
-  , FORM_POST
-} FormTypeT;
-
-typedef struct ModuleData {
-  FormTypeT formType;
-  char * resourcePath;     // The path to the resource to which we send the login request
-  char * hostHeader;       // Host: header value
-  char * userAgentHeader;  // User-Agent: header value
-  char * denySignal;       // String on which to _fail_ a login
-  char * formData;         //
-  char * formRest;         // Other form parameters irrelevant for brute force login
-  char * formUserKey;      // String for the username key value of the form
-  char * formPassKey;      // String for the password key value of the form
-  char * customHeaders;    // Custom headers
-  int nCustomHeaders;      // Number of custom headers
-  int changedRequestType;
-} ModuleDataT;
 
 ModuleDataT * newModuleData() {
   return (ModuleDataT *) calloc(1, sizeof(ModuleDataT));
@@ -105,6 +44,7 @@ void freeModuleData(ModuleDataT * moduleData) {
   if (!moduleData) return;
 
   free(moduleData->resourcePath);
+  free(moduleData->resourcePathOld);
   free(moduleData->hostHeader);
   free(moduleData->userAgentHeader);
   free(moduleData->denySignal);
@@ -113,40 +53,10 @@ void freeModuleData(ModuleDataT * moduleData) {
   free(moduleData->formUserKey);
   free(moduleData->formPassKey);
   free(moduleData->customHeaders);
+  free(moduleData->cookieJar);
 
   free(moduleData);
 }
-
-// Tells us whether we are to continue processing or not
-typedef enum ModuleState {
-  MSTATE_INITIALIZE,
-  MSTATE_NEW,
-  MSTATE_RUNNING,
-  MSTATE_EXITING,
-  MSTATE_COMPLETE
-} ModuleStateT;
-
-// Incomplete list of HTTP status codes
-typedef enum HttpStatusCode {
-    HTTP_STATUS_PARSE_ERR   = -1  // This is not elegant but it works
-  , HTTP_STATUS_NOT_IMPL    = -2  // This is not elegant but it works
-
-  // Group 2xx
-  , HTTP_OK                 = 200
-
-  // Group 3xx
-  , HTTP_MOVED_PERMANENTLY  = 301
-  , HTTP_FOUND              = 302
-  , HTTP_TEMPORARY_REDIRECT = 307
-  , HTTP_PERMANENT_REDIRECT = 308
-
-  // Group 4xx
-  , HTTP_BAD_REQUEST        = 400
-  , HTTP_UNAUTHORIZED       = 401
-  , HTTP_FORBIDDEN          = 403
-  , HTTP_NOT_FOUND          = 404
-
-} HttpStatusCodeT;
 
 /**
  * Given a string, attempt to parse the Http reponse code from it. We assume
@@ -157,9 +67,6 @@ typedef enum HttpStatusCode {
  * Or
  *
  * HTTP/<version> <statuscode> <statusname>
- *
- * NOTE: We can also use strtok() to perform parsing but it is MT-Unsafe so
- * therefore we avoid it.
  */
 static HttpStatusCodeT parseHttpStatusCode(char * buf) {
   HttpStatusCodeT ret = HTTP_STATUS_PARSE_ERR; // default is to error
@@ -207,40 +114,35 @@ static HttpStatusCodeT parseHttpStatusCode(char * buf) {
 }
 
 /**
- * Attempt to parse the value of a header field from a string, contained at any
- * position.
- *
- * Assumes that the header format is: "header-name: header-value\r\n" with
- * exactly one space.
- *
- * TODO: This is way stricter than specified in
- * https://www.rfc-editor.org/rfc/rfc2616#section-4.2
- *
- * NOTE: this is not really parsing, this is linear searching. Implement a
- * proper parser if you're going to use this often. Shlemiel the painter
+ * Attempt to find the value of a header in a source string.
  */
-static char * _findHeaderValue(const char * header, char * src) {
+static char * _findHeaderValue(const char * header, char * src, char ** prevPos) {
 
   char * ret = NULL;
 
   if (src) {
-    char * locationPtr = (char *) ((long) strcasestr(src, header) + strlen(header));
-    char * valuePtr    = NULL;
+    char * locationPtr = strcasestr(src, header);
+    char * eolPtr      = NULL;
 
     if (locationPtr) {
+      locationPtr += strlen(header);
+
       // skip linear whitespace
       for ( ; isspace(*locationPtr); ++locationPtr);
 
-      // consume non-whitespace characters
-      for ( valuePtr = locationPtr; !isspace(*valuePtr); ++valuePtr);
+      // skip to the end of line
+      for ( eolPtr = locationPtr; !(*eolPtr == '\r' || *eolPtr == '\n'); ++eolPtr);
+
+      if (prevPos)
+        *prevPos = eolPtr;
 
       // NOTE: we don't have to check valueptr since it is set to locationPtr
       // (checked before to be nonzero) and only incremented afterwards.
 
-      size_t size = valuePtr - locationPtr + 1;
+      size_t size = eolPtr - locationPtr + 1;
       ret = charcalloc(size);
       memcpy(ret, locationPtr, size);
-      ret[valuePtr - locationPtr] = '\0';
+      ret[eolPtr - locationPtr] = '\0';
     }
   }
 
@@ -248,12 +150,8 @@ static char * _findHeaderValue(const char * header, char * src) {
 }
 
 static char * findLocationHeaderValue(char * src) {
-  return _findHeaderValue("\r\nLocation:", src);
+  return _findHeaderValue("\r\nLocation:", src, NULL);
 }
-
-// Forward declarations (mini .h file)
-int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin ** login, char * szLogin, char * szPassword);
-int initModule(ModuleDataT * _moduleData, sLogin * login);
 
 /**
  * Tell medusa how many parameters this module allows, which is 0.
@@ -367,26 +265,22 @@ int go(sLogin* logins, int argc, char * argv[]) {
       option = strtok_r(NULL, "\0", &strtokPtr);
       writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", option);
 
-      if (option != NULL) {
+      if (option) {
         if (moduleData->nCustomHeaders == 0) {
           // The first custom header
-          moduleData->customHeaders = charcalloc(strlen(option) + 1);
-          sprintf(moduleData->customHeaders, "%s\r\n", option);
+          asprintf(&moduleData->customHeaders, "%s\r\n", option);
 
         } else {
-          // successive custom headers: Copy the old string, enlarge the
-          // buffer and then reformat. man sprintf explicitly forbids reading
-          // and writing to the same buffer, so we have to copy.
-          char * tmp = strdup(moduleData->customHeaders);
+          // successive custom headers: Reallocate the size of the buffer that
+          // holds the header data and concatenate the new header content
+          size_t length = strlen(moduleData->customHeaders);
 
           moduleData->customHeaders =
             (char *) reallocarray( moduleData->customHeaders
-                                 , strlen(tmp) + strlen(option) + 3
+                                 , length + strlen(option) + 3
                                  , sizeof(char));
 
-          sprintf(moduleData->customHeaders, "%s%s\r\n", tmp, option);
-
-          free(tmp);
+          sprintf(moduleData->customHeaders + length, "%s\r\n", option);
         }
 
         ++moduleData->nCustomHeaders;
@@ -408,18 +302,6 @@ int go(sLogin* logins, int argc, char * argv[]) {
 
   return SUCCESS;
 }
-
-/**
- * Helper macro for setting default string value key-value pairs if command
- * line arguments have not been set. Note that these should only be used on
- * ModuleDataT, because the freeModuleData() on the struct will also free the
- * content. If this is ussed anywhere else, then the programmer is responsible
- * for freeing the memory.
- */
-
-#define _setDefaultOption(dst, value)  \
-  *dst = charcalloc(sizeof(value)); \
-  snprintf(*dst, sizeof(value) / sizeof(*value), "%s", value)
 
 int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
 
@@ -555,6 +437,10 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
             _moduleData->customHeaders = charcalloc(1);
           }
 
+          if (!_moduleData->cookieJar) {
+            _moduleData->cookieJar = charcalloc(1);
+          }
+
         nState = MSTATE_NEW;
         break;
 
@@ -564,13 +450,6 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
 
         if (hSocket > 0)
           medusaDisconnect(hSocket);
-
-        // Reset from GET to POST if we had to follow a redirect on the previous
-        // cycle
-        if (_moduleData->changedRequestType) {
-          _moduleData->changedRequestType = 0;
-          _moduleData->formType = FORM_POST;
-        }
 
         hSocket = _connect(&params);
 
@@ -643,8 +522,7 @@ int initModule(ModuleDataT * _moduleData, sLogin * _psLogin) {
  *
  * NOTE: Only works for ascii, unicode is not yet supported.
  */
-#define URL_ENCODE_BYTE_FMT "%%%02x"
-char * urlencodeup(char * szStr) {
+static char * urlencodeup(char * szStr) {
   size_t iLen = strlen(szStr);
 
   // Assume the worst case scenario for buffer allocation, which is 3S+1 where S
@@ -674,50 +552,13 @@ char * urlencodeup(char * szStr) {
 }
 
 /**
- * Standard GET request format string. Parameters are:
- *
- *  1. %s, Resource to request
- *  2. %s, Get parameter string
- *  3. %s, Host header
- *  4. %s, User-agent header
- *  5. %s, A custom header
- */
-#define GET_REQUEST_FMT_STR \
-  "GET %s?%s HTTP/1.1\r\n" \
-  "Host: %s\r\n" \
-  "User-Agent: %s\r\n" \
-  "Connection: close\r\n" \
-  "%s" \
-  "\r\n"
-
-/**
- * Standard POST request format string. Parameters are:
- *
- *  1. %s, resource to request
- *  2. %s, host header
- *  3. %s, user-agent header
- *  4. %s, A custom header
- *  5. %s, Content length
- *  6. %s, POST body
- */
-#define POST_REQUEST_FMT_STR \
-  "POST %s HTTP/1.1\r\n" \
-  "Host: %s\r\n" \
-  "User-Agent: %s\r\n" \
-  "Connection: close\r\n" \
-  "%s" \
-  "Content-Type: application/x-www-form-urlencoded\r\n" \
-  "Content-Length: %i\r\n" \
-  "\r\n" \
-  "%s"
-
-/**
  * Prepare the parameter string that will either go in the resource field for
  * get and the body for post. Passwords that are passed to this function will be
  * url-encoded before being added.
  */
 int prepareRequestParamString(char ** dst, ModuleDataT * _moduleData, char * szLogin, char * szPassword) {
   int ret = 0;
+  char * fmt = NULL;
 
   // url-encode the password.
   char * szPasswordEncoded = urlencodeup(szPassword);
@@ -725,19 +566,36 @@ int prepareRequestParamString(char ** dst, ModuleDataT * _moduleData, char * szL
   // Check whether there are any other form parameters to include in the
   // parameter string. If there are none then `formRest' expands to the empty
   // string.
-  char * formRest = "";
+  char * formRest = NULL; 
   if (_moduleData->formRest && *_moduleData->formRest) {
-    formRest = _moduleData->formRest;
+    asprintf(&formRest, "&%s",_moduleData->formRest);
+  } else {
+    formRest = charcalloc(1);
   }
 
-  ret = asprintf(dst, "%s%s&%s%s&%s", _moduleData->formUserKey   // username
-                                    , szLogin
-                                    , _moduleData->formPassKey   // password
-                                    , szPasswordEncoded
-                                    , formRest);                 // the rest
+  switch (_moduleData->formType) {
+    case FORM_GET:
+      fmt = "?%s%s&%s%s%s";
+      break;
+    
+    case FORM_POST:
+      fmt = "%s%s&%s%s%s";
+      break;
+
+    case FORM_UNKNOWN:
+      abort();
+      break;
+  }
+
+  ret = asprintf(dst, fmt, _moduleData->formUserKey   // username
+                         , szLogin
+                         , _moduleData->formPassKey   // password
+                         , szPasswordEncoded
+                         , formRest);                 // the rest
 
   // clean up
   free(szPasswordEncoded);
+  free(formRest);
 
   return ret;
 }
@@ -756,10 +614,14 @@ int prepareRequestString(char ** dst, ModuleDataT * _moduleData, char * szLogin,
 
   char * parameters = NULL;
 
+  if (_moduleData->changedRequestType) {
+    parameters = charcalloc(1);
+  } else {
+    nParameters = prepareRequestParamString(&parameters, _moduleData, szLogin, szPassword);
+  }
+
   // Prepare the parameter string which goes either in the resource for GET or
   // the body for POST.
-  nParameters = prepareRequestParamString(&parameters, _moduleData, szLogin, szPassword);
-
   switch (_moduleData->formType) {
     case FORM_GET:
       ret = asprintf(dst, GET_REQUEST_FMT_STR, _moduleData->resourcePath
@@ -767,6 +629,7 @@ int prepareRequestString(char ** dst, ModuleDataT * _moduleData, char * szLogin,
                                              , _moduleData->hostHeader
                                              , _moduleData->userAgentHeader
                                              , _moduleData->customHeaders
+                                             , _moduleData->cookieJar
                                              );
       break;
 
@@ -775,6 +638,7 @@ int prepareRequestString(char ** dst, ModuleDataT * _moduleData, char * szLogin,
                                               , _moduleData->hostHeader
                                               , _moduleData->userAgentHeader
                                               , _moduleData->customHeaders
+                                              , _moduleData->cookieJar
                                               , nParameters
                                               , parameters
                                               );
@@ -825,9 +689,9 @@ static inline void _setPasswordHelper(sLogin ** login, char * password, int resu
 /**
  *
  */
-static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
+static int _request(int hSocket, ModuleDataT * _moduleData, sLogin ** login, char * szLogin, char ** pReceiveBuffer, int * nReceiveBufferSize, char * szPassword) {
 
-  ModuleStateT ret = MSTATE_RUNNING;
+  int ret = 1;
 
   switch (_moduleData->formType) {
     case FORM_GET:
@@ -856,22 +720,11 @@ static ModuleStateT _request(int hSocket, ModuleDataT * _moduleData, sLogin ** l
   if (!*pReceiveBuffer) {
     writeError(ERR_ERROR, "[%s] No data received", MODULE_NAME);
     _setPasswordHelper(login, szPassword, LOGIN_RESULT_UNKNOWN);
-    ret = MSTATE_EXITING;
+    ret = 0;
   }
 
   return ret;
 }
-
-/**
- * Collection of values that reflect the different kinds of path we can deal
- * with.
- */
-typedef enum PathType {
-  PATHTYPE_UNKNOWN,
-  PATHTYPE_URI,
-  PATHTYPE_RELATIVE,
-  PATHTYPE_ABSOLUTE
-} PathTypeT;
 
 /**
  * Guess the path type of the Location header value. If it starts with 'http',
@@ -883,31 +736,27 @@ static PathTypeT _pathType(char * path) {
   PathTypeT ret = PATHTYPE_UNKNOWN;
 
   char tmp;
-  char * isURI;
+  char * isURI = NULL;
 
   if (path) {
 
-    if (strlen(path) > 4) {
-      tmp = path[4];
-      path[4] = '\0';
-      isURI = strcasestr(path, "http");
-      path[4] = tmp;
-
-      if (isURI) return PATHTYPE_URI;
-    }
-
     // Definitely not a URI at this point, either ABS or REL
-    switch (*path) {
+    if (*path == '/') {
+      ret = PATHTYPE_ABSOLUTE;
+    } else {
 
-      // absolute paths start with '/'
-      case '/':
-        ret = PATHTYPE_ABSOLUTE;
-        break;
-
-      // relative by default
-      default:
+      if (strlen(path) > 4) {
+        tmp = path[4];
+        path[4] = '\0';
+        isURI = strcasestr(path, "http");
+        path[4] = tmp;
+      }
+       
+      if (isURI) {
+        ret = PATHTYPE_URI;
+      } else {
         ret = PATHTYPE_RELATIVE;
-        break;
+      }
     }
   }
 
@@ -942,7 +791,7 @@ void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
       *(end++) = '/';
       strcpy(end, newLocation);
 
-      free(_moduleData->resourcePath);
+      _moduleData->resourcePathOld = _moduleData->resourcePath;
       _moduleData->resourcePath = buf;
       break;
 
@@ -954,11 +803,44 @@ void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
       free(_moduleData->resourcePath);
       _moduleData->resourcePath = strdup(newLocation);
       break;
-     
+
     case PATHTYPE_UNKNOWN:
     default:
       writeError(ERR_ERROR, "[%s] Path type of \"%s\" is unknown", MODULE_NAME, newLocation);
       break;
+  }
+}
+
+/**
+ * Scan the response for Set-Cookie headers and add them to the cookie jar.
+ * This function is in no way clever, it just copies the string value of a
+ * cookie. Multiple cookies are supported, but duplicates are not removed.
+ */
+void _setCookiesFromResponse(ModuleDataT * _moduleData, char * response) {
+
+  char * prevPos = response;
+  char * value   = NULL;
+  char * end     = NULL;
+  
+  size_t valueLength  = 0;
+  size_t bufferLength = 0;
+
+  // keep looking and appending
+  while((value = _findHeaderValue("\r\nSet-Cookie:", prevPos, &prevPos))) {
+
+    bufferLength = strlen(_moduleData->cookieJar);
+    valueLength = strlen(value);
+
+    _moduleData->cookieJar = 
+      reallocarray(_moduleData->cookieJar
+                  , bufferLength + 
+                    COOKIE_HEADER_LENGTH + valueLength + CRLF_LENGTH + 1
+                  , sizeof(char));
+
+    end = _moduleData->cookieJar + bufferLength;
+    end = stpncpy(end, COOKIE_HEADER, COOKIE_HEADER_LENGTH);
+    end = stpncpy(end, value, valueLength);
+    end = stpncpy(end, CRLF, CRLF_LENGTH);
   }
 }
 
@@ -967,10 +849,8 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
   int nReceiveBufferSize = 0;
 
   // Perform the request, error out when request failed
-  ModuleStateT requestState;
-  requestState = _request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword);
-
-  if (requestState == MSTATE_EXITING) return requestState;
+  if (!_request(hSocket, _moduleData, login, szLogin, &pReceiveBuffer, &nReceiveBufferSize, szPassword))
+    return MSTATE_EXITING;
 
   // Attempt to parse the status code. Exit on error.
   HttpStatusCodeT statusCode = parseHttpStatusCode(pReceiveBuffer);
@@ -985,6 +865,22 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
     // In this case we can continue as we used to because the 200 OK was
     // expected from the previous code.
     case HTTP_OK:
+
+      // Reset from GET to POST if we had to follow a redirect on the previous
+      // cycle, restore the old resource path and clear the cookie jar.
+      if (_moduleData->changedRequestType) {
+        _moduleData->changedRequestType = 0;
+
+        _moduleData->formType = FORM_POST;
+
+        free(_moduleData->resourcePath);
+        _moduleData->resourcePath = _moduleData->resourcePathOld;
+        _moduleData->resourcePathOld = NULL;
+
+        free(_moduleData->cookieJar);
+        _moduleData->cookieJar = charcalloc(1);
+      }
+
       break;
 
     // In this case we have to redo the request, this time requesting the page
@@ -1001,10 +897,6 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
 
       // NOTE: findLocationHeaderValue allocates a string on the heap for
       // newLocation, we have to free it
-      //
-      // NOTE: This action will change the location permanently. The assumption
-      // is that there will be only one redirect i.e. after resolving the
-      // redirection, that path is used for all requests that follow it.
       char * newLocation = findLocationHeaderValue(pReceiveBuffer);
 
       // We cannot proceed if we have not found a Location header
@@ -1016,8 +908,10 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
       _resolveLocationPath(newLocation, _moduleData);
       free(newLocation);
 
+      // Check if the server has sent any cookies that we must now set.
+      _setCookiesFromResponse(_moduleData, pReceiveBuffer);
+
       // Change the request method to GET for 301 and 302
-      // NOTE: we have to reset it to POST on following requests
       if (_moduleData->formType == FORM_POST &&
         (statusCode == HTTP_MOVED_PERMANENTLY || statusCode == HTTP_FOUND)) {
         _moduleData->changedRequestType = 1;
@@ -1074,10 +968,6 @@ int tryLogin(int hSocket, ModuleDataT* _moduleData, sLogin** login, char* szLogi
 
 #else
 
-/**
- * Memory for ppszSummary will be allocated here - caller is responsible for freeing it
- */
-
 void showUsage() {
   writeVerbose(VB_NONE, "%s (%s) %s :: %s\n", MODULE_NAME, MODULE_VERSION, MODULE_AUTHOR, MODULE_SUMMARY_USAGE);
   writeVerbose(VB_NONE, "** Module was not properly built. Is OPENSSL installed correctly? **");
@@ -1095,21 +985,8 @@ int go(/*@unused@*/ sLogin* logins, /*@unused@*/ int argc, /*@unused@*/ char *ar
 #endif
 
 /**
- * MODULE_SUMMARY_USAGE, MODULE_VERSION and, OPENSSL_WARNING have a statically
- * known length.
- * MODULE_SUMMARY_FORMAT has three unbouded string formatting characters
- *
- * snprintf formats those strings to be the former three
- * so the length is
- *  MODULE_SUMMARY_FORMAT - 3 * 2 (for the %s)
- *    + MODULE_SUMMARY_USAGE
- *    + MODULE_VERSION
- *    + OPENSSL_WARNING
- *    + 1 (for the '\0')
+ * Memory for ppszSummary will be allocated here - caller is responsible for freeing it
  */
-
-#define ILENGTH (size_t) sizeof(MODULE_SUMMARY_FORMAT MODULE_SUMMARY_USAGE MODULE_VERSION OPENSSL_WARNING) - 3 * 2 + 1
-
 void summaryUsage(char ** ppszSummary) {
 
   // Sentinel
