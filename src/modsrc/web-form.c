@@ -33,6 +33,7 @@
 
 #include "module.h"
 #include "web-form.h"
+#include "web-form-resolve-path.h"
 
 #ifdef HAVE_LIBSSL
 
@@ -766,6 +767,8 @@ static PathTypeT _pathType(char * path) {
 /**
  * Resolve the path from the Location header with the old path and strip
  * request parameters.
+ *
+ * https://www.rfc-editor.org/rfc/rfc2616.html#section-5.1.2
  */
 void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
 
@@ -776,23 +779,14 @@ void _resolveLocationPath(char * newLocation, ModuleDataT * _moduleData) {
   if (hasParameters)
     *hasParameters = '\0';
 
-  char * buf = NULL
-     , * end = NULL
-     ;
+  char * tmp = NULL;
 
   switch(_pathType(newLocation)) {
     case PATHTYPE_RELATIVE:
-      // Yes, strings are hard. whatever.
-      buf = charcalloc(2 * (strlen(newLocation) + strlen(_moduleData->resourcePath)));
-
-      // concatenate the strings and let the server figure out the path
-      // resolution
-      end = stpcpy(buf, _moduleData->resourcePath);
-      *(end++) = '/';
-      strcpy(end, newLocation);
-
+      tmp = resolvePath(_moduleData->resourcePath, newLocation);
+      free(_moduleData->resourcePathOld);
       _moduleData->resourcePathOld = _moduleData->resourcePath;
-      _moduleData->resourcePath = buf;
+      _moduleData->resourcePath = tmp;
       break;
 
     // break omitted on purpose!
