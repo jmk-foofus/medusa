@@ -3,7 +3,7 @@
 #ifndef _HTTP_DIGEST_H_
 #define _HTTP_DIGEST_H_
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 #define HASHLEN 16
 typedef unsigned char HASH[HASHLEN];

@@ -19,8 +19,10 @@ jobs:
       run: ./configure
     - name: make
       run: make
-    - name: install dependencies (full build) 
-      run: sudo apt install libpq5 libpq-dev libssh2-1 libssh2-1-dev libgnutls28-dev libsvn-dev freerdp2-dev
+    - name: install dependencies (full build)
+      run: |
+        sudo apt update
+        sudo apt install libpq5 libpq-dev libssh2-1 libssh2-1-dev libgnutls28-dev libsvn-dev freerdp2-dev
     - name: configure
       run: ./configure
     - name: make

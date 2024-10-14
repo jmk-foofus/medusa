@@ -1201,9 +1201,7 @@ void buildAuthResponse(tSmbNtlmAuthChallenge *challenge, tSmbNtlmAuthResponse *r
   
   /* The NTLM2 client nonce is typically a random 8-byte value. Ours is less random. */
   uint8 clientNonce[8] = { 0x2E, 0x46, 0x4F, 0x4F, 0x46, 0x55, 0x53, 0x2E };
-  uint8 sessionNonce[16];
   uint8 sessionHash[8];
-  MD5_CTX Md5Ctx;
 
   char *u = strdup(user);
   char *p = strchr(u,'@');
@@ -1239,11 +1237,25 @@ void buildAuthResponse(tSmbNtlmAuthChallenge *challenge, tSmbNtlmAuthResponse *r
     have an effect on the response calculations 
   */
   if (challenge->flags & 0x00080000) {
-    MD5_Init(&Md5Ctx);
-    MD5_Update(&Md5Ctx, challenge->challengeData, 8);
-    MD5_Update(&Md5Ctx, clientNonce, 8);
-    MD5_Final(sessionNonce, &Md5Ctx);
-    memcpy(sessionHash, sessionNonce, 8);
+    EVP_MD_CTX *Md5Ctx;
+    unsigned char *md5_digest;
+    unsigned int md5_digest_len = 16;
+    
+    /* MD5_Init */
+    Md5Ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
+
+    /* MD5_Update */
+    EVP_DigestUpdate(Md5Ctx, challenge->challengeData, 8);
+    EVP_DigestUpdate(Md5Ctx, clientNonce, 8);
+
+    /* MD5_Final */
+    md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+    EVP_DigestFinal_ex(Md5Ctx, md5_digest, &md5_digest_len);
+    EVP_MD_CTX_free(Md5Ctx);
+
+    /* session nonce (md5_digest) is truncated to 8 bytes to form the NTLM2 session hash */
+    memcpy(sessionHash, md5_digest, 8);
 
     memcpy(lmRespData, clientNonce, 8);
     SMBNTencrypt((unsigned char*)password, sessionHash, ntRespData);
@@ -1297,7 +1309,7 @@ void dumpAuthChallenge(tSmbNtlmAuthChallenge *challenge)
   fprintf(stderr, "     Domain = %s\n", GetUnicodeString(challenge,uDomain));
   fprintf(stderr, "      Flags = %08x\n", IVAL(&challenge->flags,0));
   fprintf(stderr, "  Challenge = "); dumpRaw(stderr, challenge->challengeData,8);
-  fprintf(stderr, "  Uncomplete!! parse optional parameters\n");
+  fprintf(stderr, "  Incomplete!! parse optional parameters\n");
 }
 
 void dumpAuthResponse(tSmbNtlmAuthResponse *response)

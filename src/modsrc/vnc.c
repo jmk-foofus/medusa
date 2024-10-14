@@ -40,7 +40,7 @@
 #define MODULE_NAME    "vnc.mod"
 #define MODULE_AUTHOR  "JoMo-Kun <jmk@foofus.net>"
 #define MODULE_SUMMARY_USAGE  "Brute force module for VNC sessions"
-#define MODULE_VERSION    "2.1"
+#define MODULE_VERSION    "2.2"
 #define MODULE_VERSION_SVN "$Id: vnc.c 9217 2015-05-07 18:07:03Z jmk $"
 #define MODULE_SUMMARY_FORMAT  "%s : version %s"
 #define MODULE_SUMMARY_FORMAT_WARN  "%s : version %s (%s)"
@@ -781,126 +781,14 @@ int sendAuthVNC(int hSocket, _VNC_DATA* _psSessionData, char* szPassword)
 */
 int sendAuthMSLogin(int hSocket, _VNC_DATA* _psSessionData, char* szLogin, char* szPassword)
 {
-  unsigned char ms_user[256], ms_passwd[64];
-  unsigned char key[8];
-  int i = 0;
-  
-  int client_priv = 31337; /* arbitrary value -- client would typically randomly generate */ 
-  uint64_t g, p, resp;
-  char client_pub[8];
-  BIGNUM* server_pub;
-
-  DH *dh_struct;
-  int dh_error;
-  unsigned char *dh_secret;
-
-  unsigned char *bufSend = NULL;
-
-  writeError(ERR_DEBUG_MODULE, "[%s] VNC Authentication - UltraVNC Microsoft Logon", MODULE_NAME);
-  
-  /* parse server challenge -- g, p (mod) and server public key */
-  g = bytesToInt64(_psSessionData->szChallenge);
-  p = bytesToInt64(_psSessionData->szChallenge + 8);
-  resp = bytesToInt64(_psSessionData->szChallenge + 16);
-
-  writeError(ERR_DEBUG_MODULE, "[%s] Server DH values: g: %d p/mod: %d public key: %d", MODULE_NAME, g, p, resp);
-
-  /* create and populate DH structure */ 
-  dh_struct = DH_new();
-
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
-  DH_set0_pqg(dh_struct, (BIGNUM*) &p, (BIGNUM*) &client_priv, (BIGNUM*) &g);
-#else 
-  dh_struct->g = BN_new();
-  BN_set_word(dh_struct->g, g);
-  
-  dh_struct->p = BN_new();
-  BN_set_word(dh_struct->p, p);
-  
-  dh_struct->priv_key = BN_new();
-  BN_set_word(dh_struct->priv_key, client_priv);
-#endif
-
-  if (DH_generate_key(dh_struct) == 0)
-    writeError(ERR_ERROR, "[%s] Failed to generate key", MODULE_NAME);
-  
-  DH_check(dh_struct, &dh_error);
-  if (dh_error & DH_CHECK_P_NOT_SAFE_PRIME)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_CHECK_P_NOT_SAFE_PRIME", MODULE_NAME);
-  if (dh_error & DH_NOT_SUITABLE_GENERATOR)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_NOT_SUITABLE_GENERATOR", MODULE_NAME);
-  if (dh_error & DH_UNABLE_TO_CHECK_GENERATOR)
-    writeError(ERR_DEBUG_MODULE, "[%s] Failed to create DH structure: DH_UNABLE_TO_CHECK_GENERATOR", MODULE_NAME);
-
-  /* convert client public key into proper format for sending */
-#if OPENSSL_VERSION_NUMBER >= 0x10100005L 
-  DH_set0_key(dh_struct, (BIGNUM*) &client_pub, (BIGNUM*) &client_priv);
-#else
-  int64ToBytes(BN_get_word(dh_struct->pub_key), client_pub);
-#endif
-
-  /* generate shared secret using private DH key and server's public key */
-  server_pub = BN_new();
-  BN_set_word(server_pub, resp);
-  
-  dh_secret = malloc( DH_size(dh_struct) );
-  DH_compute_key(dh_secret, server_pub, dh_struct);
-  
-  /* OpenSSLs DH implementation is compliant with the SSL/TLS requirements that skip
-     leading zeroes on the output. We need our key to be exactly 8 bytes long, so
-     let's prepend it with the necessary number of zeros. */
-  memset(key, 0, 8);
-  if (DH_size(dh_struct) < 8)
-    for (i=0; i < DH_size(dh_struct); i++)
-      key[8 - DH_size(dh_struct) + i] = dh_secret[i];
-  
-  DH_free(dh_struct);
-
-  writeErrorBin(ERR_DEBUG_MODULE, "Shared secret key: ", key, 8);
-
-  memset(ms_user, 0, 256);
-  memset(ms_passwd, 0, 64);
-
-  if ((_psSessionData->szDomain) && ((strlen(_psSessionData->szDomain) + 1 + strlen(szLogin)) < 256))
-  { 
-    strcpy((char *)ms_user, _psSessionData->szDomain);
-    strcat((char *)ms_user, "\\");
-    strcat((char *)ms_user, szLogin);
-  }
-  else
-    strncpy((char *)ms_user, szLogin, 256);
-
-  strncpy((char *)ms_passwd, szPassword, 64);
-
-  writeError(ERR_DEBUG_MODULE, "Username: %s Password: %s", ms_user, ms_passwd);
-  writeErrorBin(ERR_DEBUG_MODULE, "Username: ", ms_user, 256);
-  writeErrorBin(ERR_DEBUG_MODULE, "Password: ", ms_passwd, 64);
-
-  vncEncryptBytes2((unsigned char*) &ms_user, sizeof(ms_user), key);
-  vncEncryptBytes2((unsigned char*) &ms_passwd, sizeof(ms_passwd), key);
-
-  writeErrorBin(ERR_DEBUG_MODULE, "Encrypted username: ", ms_user, 256);
-  writeErrorBin(ERR_DEBUG_MODULE, "Encrypted password: ", ms_passwd, 64);
-
-  /* send client public key, encrypted username, and encrypted password */
-  bufSend = malloc(8 + sizeof(ms_user) + sizeof(ms_passwd) + 1);
-  memset(bufSend, 0, 8 + sizeof(ms_user) + sizeof(ms_passwd) + 1);
-
   /*
-    For extra fun, set client_pub to a value of 0x80000000 or greater. No more server...
-    memset(client_pub, 0x0000000080, 5);
+    2024/03/16
+    - Functions previously used have been deprecated in OpenSSL v3.0.
+    - New EVP_PKEY* function do not appear to support 64-bit modulus used by UltraVNC (too small).
+    - Removing code until someone finds new solution.
   */
-  memcpy(bufSend, client_pub, 8);
-  memcpy(bufSend + 8, ms_user, sizeof(ms_user));
-  memcpy(bufSend + 8 + sizeof(ms_user), ms_passwd, sizeof(ms_passwd));
 
-  if (medusaSend(hSocket, bufSend, 8 + sizeof(ms_user) + sizeof(ms_passwd), 0) < 0)
-  {
-    writeError(ERR_ERROR, "[%s] failed: medusaSend was not successful", MODULE_NAME);
-    return FAILURE;
-  }
-
-  return SUCCESS;
+  writeError(ERR_FATAL, "[%s] UltraVNC MS-Logon I/II support removed (OpenSSL functions deprecated).", MODULE_NAME);
 }
 
 int sendExit(int hSocket)

@@ -1,12 +1,23 @@
 ================================================================
-Version 2.3
+Version 2.3 (2024/04)
 ================================================================
 
 Medusa Core Updates:
   - General code clean-up and compiler warning squashing 
+  - Updated OpenSSL calls from 1.x to 3.x
+  - Log timestamps on password checks
+  - Multiple bugfixes from contributors (see commit log)
 
 Module Updates:
 
+RDP
+  - FreeRDP 2.0 support
+
+SMBNT
+  - SMBv2/3 and SMB signing support (libsmb2)
+
+VNC
+  - Removed UltraVNC MS-Logon I/II support due to OpenSSL updates
 
 ================================================================
 Version 2.2

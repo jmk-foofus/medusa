@@ -14,6 +14,10 @@ against a Windows host. This may be useful for an auditor who has aquired
 a sam._ or pwdump file and would like to quickly determine which are valid 
 entries.
 
+The SMBNT module natively supports the SMBv1 protocol. If built with
+<A HREF="https://github.com/sahlberg/libsmb2">libsmb2</A> support, it
+will automatically also test SMBv2/3 services and handle SMB signing.
+
 <P>
 Several "-m 'METHOD:VALUE'" options can be used with this module. The
 following are valid methods: AUTH, GROUP, GROUP_OTHER, PASS and NETBIOS.

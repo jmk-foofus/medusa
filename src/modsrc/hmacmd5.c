@@ -1,140 +1,92 @@
-/* 
-   Unix SMB/CIFS implementation.
-   HMAC MD5 code for use in NTLMv2
-   Copyright (C) Luke Kenneth Casson Leighton 1996-2000
-   Copyright (C) Andrew Tridgell 1992-2000
-   
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-   
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. 
+/*
+**   ------------------------------------------------------------------------
+**  Copyright (C) 2024 Joe Mondloch
+**  JoMo-Kun / jmk@foofus.net
+**
+**  This program is free software; you can redistribute it and/or modify
+**  it under the terms of the GNU General Public License version 2,
+**  as published by the Free Software Foundation
+**
+**  This program is distributed in the hope that it will be useful,
+**  but WITHOUT ANY WARRANTY; without even the implied warranty of
+**  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**  GNU General Public License for more details.
+**
+**  http://www.gnu.org/licenses/gpl.txt
+**
+**  This program is released under the GPL with the additional exemption
+**  that compiling, linking, and/or using OpenSSL is allowed.
+**
+**   ------------------------------------------------------------------------
+**
+**
+** Based on: https://wiki.openssl.org/index.php/EVP_Signing_and_Verifying
+**
 */
 
-/* taken direct from rfc2104 implementation and modified for suitable use
- * for ntlmv2.
- */
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include "module.h"
 
-#include <string.h>
-
-#include <openssl/md5.h>
-#include "hmacmd5.h"
-
-#define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
-
-/***********************************************************************
- the rfc 2104 version of hmac_md5 initialisation.
-***********************************************************************/
-
-void hmac_md5_init_rfc2104(const unsigned char *key, int key_len, HMACMD5Context *ctx)
+int hmac_md5(const unsigned char *msg, size_t mlen, unsigned char **val, size_t *vlen, unsigned char *key, size_t key_len)
 {
-        int i;
-	unsigned char tk[16];
+  int result = 0;
+  EVP_MD_CTX* ctx = NULL;
+  size_t req = 0;
+  int rc;
 
-        /* if key is longer than 64 bytes reset it to key=MD5(key) */
-        if (key_len > 64) {
-                MD5_CTX tctx;
+  EVP_PKEY *pkey = EVP_PKEY_new_raw_private_key(EVP_PKEY_HMAC, NULL, key, key_len);
 
-                MD5_Init(&tctx);
-                MD5_Update(&tctx, (void *)key, key_len);
-                MD5_Final(tk, &tctx);
+  if(!msg || !mlen || !val || !pkey)
+    return 0;
 
-                key = tk;
-                key_len = 16;
-        }
+  *val = NULL;
+  *vlen = 0;
 
-        /* start out by storing key in pads */
-        ZERO_STRUCT(ctx->k_ipad);
-        ZERO_STRUCT(ctx->k_opad);
-        memcpy( ctx->k_ipad, key, key_len);
-        memcpy( ctx->k_opad, key, key_len);
+  ctx = EVP_MD_CTX_new();
+  if (ctx == NULL) {
+    writeError(ERR_ERROR, "[HMAC-MD5] EVP_MD_CTX_create failed, error 0x%lx", ERR_get_error());
+    goto err;
+  }
 
-        /* XOR key with ipad and opad values */
-        for (i=0; i<64; i++) {
-                ctx->k_ipad[i] ^= 0x36;
-                ctx->k_opad[i] ^= 0x5c;
-        }
+  rc = EVP_DigestSignInit(ctx, NULL, EVP_md5(), NULL, pkey);
+  if (rc != 1) {
+    writeError(ERR_ERROR, "[HMAC-MD5] EVP_DigestSignInit failed, error 0x%lx", ERR_get_error());
+    goto err;
+  }
 
-        MD5_Init(&ctx->ctx);
-        MD5_Update(&ctx->ctx, ctx->k_ipad, 64);  
+  rc = EVP_DigestSignUpdate(ctx, msg, mlen);
+  if (rc != 1) {
+    writeError(ERR_ERROR, "[HMAC-MD5] EVP_DigestSignUpdate failed, error 0x%lx", ERR_get_error());
+    goto err;
+  }
+
+  rc = EVP_DigestSignFinal(ctx, NULL, &req);
+  if (rc != 1) {
+    writeError(ERR_ERROR, "[HMAC-MD5] EVP_DigestSignFinal failed (1), error 0x%lx", ERR_get_error());
+    goto err;
+  }
+
+  *val = OPENSSL_malloc(req);
+  if (*val == NULL) {
+    writeError(ERR_ERROR, "[HMAC-MD5] OPENSSL_malloc failed, error 0x%lx", ERR_get_error());
+    goto err;
+  }
+
+  *vlen = req;
+  rc = EVP_DigestSignFinal(ctx, *val, vlen);
+  if (rc != 1) {
+    writeError(ERR_ERROR, "[HMAC-MD5] EVP_DigestSignFinal failed (3), return code %d, error 0x%lx", ERR_get_error());
+    goto err;
+  }
+
+  result = 1;
+
+ err:
+  EVP_MD_CTX_free(ctx);
+  if (!result) {
+    OPENSSL_free(*val);
+    *val = NULL;
+  }
+  return result;
 }
-
-/***********************************************************************
- the microsoft version of hmac_md5 initialisation.
-***********************************************************************/
-
-void hmac_md5_init_limK_to_64(const unsigned char* key, int key_len,
-			HMACMD5Context *ctx)
-{
-        int i;
-
-        /* if key is longer than 64 bytes truncate it */
-        if (key_len > 64) {
-                key_len = 64;
-        }
-
-        /* start out by storing key in pads */
-        ZERO_STRUCT(ctx->k_ipad);
-        ZERO_STRUCT(ctx->k_opad);
-        memcpy( ctx->k_ipad, key, key_len);
-        memcpy( ctx->k_opad, key, key_len);
-
-        /* XOR key with ipad and opad values */
-        for (i=0; i<64; i++) {
-                ctx->k_ipad[i] ^= 0x36;
-                ctx->k_opad[i] ^= 0x5c;
-        }
-
-        MD5_Init(&ctx->ctx);
-        MD5_Update(&ctx->ctx, ctx->k_ipad, 64);  
-}
-
-/***********************************************************************
- update hmac_md5 "inner" buffer
-***********************************************************************/
-
-void hmac_md5_update(const unsigned char *text, int text_len, HMACMD5Context *ctx)
-{
-        MD5_Update(&ctx->ctx, (void *)text, text_len); /* then text of datagram */
-}
-
-/***********************************************************************
- finish off hmac_md5 "inner" buffer and generate outer one.
-***********************************************************************/
-void hmac_md5_final(unsigned char *digest, HMACMD5Context *ctx)
-
-{
-        MD5_CTX ctx_o;
-
-        MD5_Final(digest, &ctx->ctx);          
-
-        MD5_Init(&ctx_o);
-        MD5_Update(&ctx_o, ctx->k_opad, 64);   
-        MD5_Update(&ctx_o, digest, 16); 
-        MD5_Final(digest, &ctx_o);
-}
-
-/***********************************************************
- single function to calculate an HMAC MD5 digest from data.
- use the microsoft hmacmd5 init method because the key is 16 bytes.
-************************************************************/
-
-void hmac_md5( unsigned char key[16], unsigned char *data, int data_len, unsigned char *digest)
-{
-	HMACMD5Context ctx;
-	hmac_md5_init_limK_to_64(key, 16, &ctx);
-	if (data_len != 0)
-	{
-		hmac_md5_update(data, data_len, &ctx);
-	}
-	hmac_md5_final(digest, &ctx);
-}
-

@@ -1,6 +1,6 @@
-AC_INIT([medusa], [2.3_devel])
+AC_INIT([medusa],[2.3_rc1])
 AC_CONFIG_SRCDIR([src/medusa.c])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl Detect the canonical host and target build environment
 AC_CANONICAL_HOST
@@ -10,8 +10,6 @@ AM_INIT_AUTOMAKE([subdir-objects no-dependencies])
 
 AC_LANG([C])
 AC_PROG_CC
-
-AC_HEADER_STDC
 
 AC_CHECK_SIZEOF(int,cross)
 AC_CHECK_SIZEOF(long,cross)
@@ -69,7 +67,7 @@ check_libssl="false"
 AS_MESSAGE([checking for OpenSSL Library and Header files...])
 
 check_ssl_dir() { :
-  AC_MSG_CHECKING([$1/include/openssl/ssh.h])
+  AC_MSG_CHECKING([$1/include/openssl/ssl.h])
   if test -f "$1/include/openssl/ssl.h"
   then
     AC_MSG_RESULT([found])
@@ -536,6 +534,47 @@ else
   AC_MSG_RESULT(no)
 fi
 
+dnl ********** SMBNT Medusa Module (SMBv2 Support) ********** 
+check_module_smbnt_smb2="false"
+
+AC_ARG_WITH(libsmb2, AS_HELP_STRING([--with-libsmb2=prefix],[Prefix for libsmb2 include directory (default = /usr)]), [libsmb2_prefix="$withval"], [libsmb2_prefix="/usr"])
+CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
+
+AS_MESSAGE([checking for libsmb2 Library and Header files...])
+AC_CHECK_HEADER([smb2/libsmb2.h],
+  [AC_CHECK_LIB(smb2, main,
+    [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"],
+    [AC_MSG_WARN([ *** libsmb2 library required for SMBNT module SMBv2 support. ***
+
+       https://github.com/sahlberg/libsmb2
+
+    ])]
+  )],
+  [AC_MSG_WARN([ *** libsmb2 header files required for SMBNT module SMBv2 support. ***
+
+      https://github.com/sahlberg/libsmb2
+
+  ])]
+)
+
+AC_MSG_CHECKING(whether to enable SMBNT module SMBv2 support)
+AC_ARG_ENABLE(module-smbnt-smb2,
+              [  --enable-module-smbnt-smb2=[no/yes]          Enable SMBNT module [SMBv2 support] (default=yes)],
+              [case "${enableval}" in
+                yes) enable_module_smbnt_smb2=true ;;
+                no)  enable_module_smbnt_smb2=false ;;
+                *)   AC_MSG_ERROR([bad value ${enableval} for --enable-module-smbnt-smb2]) ;;
+              esac],
+              [enable_module_smbnt_smb2=$check_module_smbnt_smb2])
+
+AM_CONDITIONAL(BUILD_MODULE_SMBNT_SMB2, test x"$enable_module_smbnt_smb2" = "xtrue")
+if test x"$enable_module_smbnt_smb2" = "xtrue"; then
+  AC_DEFINE(SMBNT_SMB2_SUPPORT_ENABLED, 1, [SMBNT SMBv2 Support Enabled])
+  AC_MSG_RESULT(yes)
+else
+  AC_MSG_RESULT(no)
+fi
+
 dnl ********** SMTP Medusa Module ********** 
 AC_MSG_CHECKING(whether to enable SMTP module)
 AC_ARG_ENABLE(module-smtp, 
@@ -901,6 +940,7 @@ show_build_status "${enable_module_rexec}"      "    REXEC          "
 show_build_status "${enable_module_rlogin}"     "    RLOGIN         "
 show_build_status "${enable_module_rsh}"        "    RSH            "
 show_build_status "${enable_module_smbnt}"      "    SMBNT          "
+show_build_status "${enable_module_smbnt_smb2}" "    SMBNT (SMBv2)  "
 show_build_status "${enable_module_smtp}"       "    SMTP           "
 show_build_status "${enable_module_smtp_vrfy}"  "    SMTP-VRFY      "
 show_build_status "${enable_module_snmp}"       "    SNMP           "

@@ -18,23 +18,6 @@ pass-the-hash option is also only available if FreeRDP version 1.2 or
 greater is installed.
 
 <P>
-Pre-built binaries of the FreeRDP master branch are available at <A HREF="https://ci.freerdp.com">https://ci.freerdp.com</A>.
-Builds are available for Ubuntu, Debian, Fedora, and OpenSUSE. The nightly 
-builds are installed into /opt/freerdp-nightly and can be installed in parallel 
-with the distribution's regular freerdp package. If Medusa detected this version
-during its build process, it should have built against it over any other installed
-version of FreeRDP.
-
-<P>
-For example, the following worked for Kali 2.0 on 2015/11/04:<BR>
-- Visit: <A HREF="https://ci.freerdp.com/job/freerdp-nightly-binaries/architecture=amd64,distribution=jessie,label=pkg-deb/">https://ci.freerdp.com/job/freerdp-nightly-binaries/architecture=amd64,distribution=jessie,label=pkg-deb/</A><BR>
-- Download: freerdp-nightly_1.2.1+0~20151104024829.185~1.gbpb83356_amd64.deb<BR>
-- Download: freerdp-nightly-dev_1.2.1+0~20151104024829.185~1.gbpb83356_amd64.deb<BR>
-- Install: dpkg -i freerdp-nightly*<BR>
-- Update run time path: echo /opt/freerdp-nightly/lib/ >> /etc/ld.so.conf; ldconfig 
-- Build Medusa: ./configure;make
-
-<P>
 The following examples demonstrate several uses of the RDP module:
 
 <UL>
