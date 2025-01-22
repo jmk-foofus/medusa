@@ -418,26 +418,26 @@ check_module_rdp="false"
 module_rdp_headers="false"
 
 AC_ARG_WITH(freerdp, AS_HELP_STRING([--with-freerdp=prefix],[Prefix for FreeRDP include directory (default = /usr)]), [freerdp_prefix="$withval"], [freerdp_prefix="/usr"])
-CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp2 -I${freerdp_prefix}/include/winpr2"
+CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp3 -I${freerdp_prefix}/include/winpr3"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
 AC_CHECK_HEADER([freerdp/freerdp.h],
-  [AC_CHECK_LIB(freerdp2, main,
-    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS -lfreerdp2" check_module_rdp="true"],
-    [AC_MSG_WARN([ *** FreeRDP2 library required for RDP module. ***
+  [AC_CHECK_LIB(freerdp3, main,
+    [AC_DEFINE(HAVE_LIBFREERDP3, 1, [Found FreeRDP3 Library]) MODULE_LIBS="$MODULE_LIBS -lfreerdp3 -lfreerdp-client3" check_module_rdp="true"],
+    [AC_MSG_WARN([ *** FreeRDP3 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
       includes both the library and header files. Your distribution may offer
-      packages such as freerdp2-dev/libfreerdp2, which will provide these 
+      packages such as freerdp3-dev/libfreerdp3, which will provide these 
       files.
 
     ])]
   )],
-  [AC_MSG_WARN([ *** FreeRDP2 header files required for RDP module. ***
+  [AC_MSG_WARN([ *** FreeRDP3 header files required for RDP module. ***
 
     The FreeRDP package must be installed for RDP module to function. This
     includes both the library and header files. Your distribution may offer
-    packages such as freerdp2-dev/libwinpr2-dev, which will provide these 
+    packages such as freerdp3-dev/libwinpr3-dev, which will provide these 
     files.
 
   ])]
