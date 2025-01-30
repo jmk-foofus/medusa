@@ -436,10 +436,8 @@ int tryLogin(_SSH2_DATA* _psSessionData, LIBSSH2_SESSION *session, sLogin** psLo
 {
   char *pErrorMsg = NULL;
   int iErrorMsg, iAuthMode, iRet;
-  void (*pResponseCallback) ();
   char *strtok_ptr = NULL;
   char *pAuth = NULL;
-  pResponseCallback = response_callback;
 
   /*
     Password authentication failure delay: 2
@@ -492,7 +490,7 @@ int tryLogin(_SSH2_DATA* _psSessionData, LIBSSH2_SESSION *session, sLogin** psLo
   switch (iAuthMode)
   {
     case SSH_AUTH_KBDINT:
-      if (libssh2_userauth_keyboard_interactive(session, szLogin, pResponseCallback) ) 
+      if (libssh2_userauth_keyboard_interactive(session, szLogin, &response_callback) ) 
       {
         writeError(ERR_DEBUG_MODULE, "Keyboard-Interactive authentication failed: Host: %s User: %s Pass: %s", (*psLogin)->psServer->pHostIP, szLogin, szPassword);
         (*psLogin)->iResult = LOGIN_RESULT_FAIL;
