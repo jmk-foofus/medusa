@@ -267,7 +267,9 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
         //instance->VerifyCertificateEx = NULL; 
         //instance->VerifyChangedCertificateEx = NULL; 
         //freerdp_settings_set_bool(context->settings, FreeRDP_ExternalCertificateManagement, TRUE);
-
+        if (!freerdp_settings_set_bool(context->settings, FreeRDP_IgnoreCertificate, TRUE)) {
+          writeError(ERR_ERROR, "FOOBAR");
+        }
 
         //instance->settings->AuthenticationOnly = TRUE;
         if (!freerdp_settings_set_bool(context->settings, FreeRDP_AuthenticationOnly, TRUE)) {
@@ -343,7 +345,8 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
       case MSTATE_EXITING:
         //freerdp_free(instance);
         //freerdp_client_stop(context); ????
-        freerdp_client_context_free(context);
+
+        //freerdp_client_context_free(context);
         nState = MSTATE_COMPLETE;
         break;
       default:
@@ -867,6 +870,18 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     //instance->settings->PasswordHash = ntlm_hash;
     //(!freerdp_settings_set_bool(settings, FreeRDP_ConsoleSession, TRUE))
     //!freerdp_settings_set_bool(settings, FreeRDP_RestrictedAdminModeRequired, FALSE) ||
+
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE)) {
+      writeError(ERR_ERROR, "FOOBAR");
+    }
+    
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE)) {
+      writeError(ERR_ERROR, "FOOBAR");
+    }
+    
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, ntlm_hash)) {
+      writeError(ERR_ERROR, "FOOBAR");
+    }
   }
   else
     //instance->settings->Password = szPassword;
