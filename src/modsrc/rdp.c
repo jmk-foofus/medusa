@@ -87,8 +87,6 @@ typedef struct
 //static BOOL tf_end_paint(rdpContext* context);
 //int tf_pre_connect(freerdp* instance);
 //int tf_post_connect(freerdp* instance);
-//BOOL certificate_verify_callback(freerdp* instance, const char* subject, const char* issuer, const char* fingerprint, BOOL host_mismatch);
-DWORD client_verify_certificate_ex(freerdp* instance, const char* host, UINT16 port, const char* common_name, const char* subject, const char* issuer, const char* fingerprint, DWORD flags);
 
 //struct tf_context
 //{
@@ -261,12 +259,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
         //freerdp_context_new(instance);
 
-        //instance->settings->IgnoreCertificate = TRUE;
-        //instance->context->settings->ClientX509Certificate = certificate_verify_callback;
-        //instance->VerifyCertificateEx = client_verify_certificate_ex; 
-        //instance->VerifyCertificateEx = NULL; 
-        //instance->VerifyChangedCertificateEx = NULL; 
-        //freerdp_settings_set_bool(context->settings, FreeRDP_ExternalCertificateManagement, TRUE);
+        // cert cached in ~/.config/freerdp/known_hosts2
         if (!freerdp_settings_set_bool(context->settings, FreeRDP_IgnoreCertificate, TRUE)) {
           writeError(ERR_ERROR, "FOOBAR");
         }
@@ -332,13 +325,15 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
             nState = MSTATE_NEW;
           }
           else
+          {
             writeError(ERR_DEBUG_MODULE, "[%s] Next credential set - user: %s password: %s", MODULE_NAME, psCredSet->psUser->pUser, psCredSet->pPass);
 
-            /* FreeRDP session needs to be reset following blank password logon attempt. */ 
-            if (_psSessionData->isBlankPassword) {
+            /* FreeRDP session needs to be reset following pass-the-hash logon attempt. */ 
+            if ((_psSessionData->isPassTheHash) || (_psSessionData->isBlankPassword)) {
               _psSessionData->isBlankPassword = FALSE;
               nState = MSTATE_NEW;
             }
+          }
         }
 
         break;
@@ -347,6 +342,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
         //freerdp_client_stop(context); ????
 
         //freerdp_client_context_free(context);
+        //freerdp_disconnect(instance);
         nState = MSTATE_COMPLETE;
         break;
       default:
@@ -366,72 +362,6 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 }
 
 /* Module Specific Functions */
-
-/* RDP main loop.
- * Connects RDP, loops while running and handles event and dispatch, cleans up
- * after the connection ends. */
-static DWORD WINAPI tf_client_thread_proc(LPVOID arg)
-{
-  freerdp* instance = (freerdp*)arg;
-  DWORD nCount = 0;
-  DWORD status = 0;
-  DWORD result = 0;
-  HANDLE handles[MAXIMUM_WAIT_OBJECTS] = { 0 }; 
-  BOOL rc = freerdp_connect(instance);
-  
-  WINPR_ASSERT(instance->context);
-  WINPR_ASSERT(instance->context->settings);
-  if (freerdp_settings_get_bool(instance->context->settings, FreeRDP_AuthenticationOnly))
-  { 
-    result = freerdp_get_last_error(instance->context);
-    freerdp_abort_connect_context(instance->context);
-    //WLog_ERR(TAG, "Authentication only, exit status 0x%08" PRIx32 "", result);
-    writeError(ERR_ERROR, "Authentication only, exit status");
-    goto disconnect;
-  }
-    
-  if (!rc)                                                 
-  { 
-    result = freerdp_get_last_error(instance->context);
-    //WLog_ERR(TAG, "connection failure 0x%08" PRIx32, result);
-    writeError(ERR_ERROR, "connection failure");
-    return result;
-  } 
-
-  while (!freerdp_shall_disconnect_context(instance->context))
-  { 
-    nCount = freerdp_get_event_handles(instance->context, handles, ARRAYSIZE(handles));
-  
-    if (nCount == 0)
-    {
-      //WLog_ERR(TAG, "freerdp_get_event_handles failed");
-      writeError(ERR_ERROR, "freerdp_get_event_handles failed");
-      break;
-    }
-
-    status = WaitForMultipleObjects(nCount, handles, FALSE, 100);
-  
-    if (status == WAIT_FAILED)
-    {
-      //WLog_ERR(TAG, "WaitForMultipleObjects failed with %" PRIu32 "", status);
-      writeError(ERR_ERROR, "WaitForMultipleObjects failed");
-      break;
-    }
-
-    if (!freerdp_check_event_handles(instance->context))
-    {
-      if (freerdp_get_last_error(instance->context) == FREERDP_ERROR_SUCCESS)
-        //WLog_ERR(TAG, "Failed to check FreeRDP event handles");
-        writeError(ERR_ERROR, "Failed to check FreeRDP event handles");
-      
-      break;
-    }
-  }
-
-disconnect:
-  freerdp_disconnect(instance);
-  return result;
-}
 
 /* Optional global initializer.
  * Here we just register a signal handler to print out stack traces
@@ -735,31 +665,6 @@ static void tf_post_disconnect(freerdp* instance)
   WINPR_UNUSED(context);
 }
 
-// ChatGPT
-// cert cached in ~/.config/freerdp/known_hosts2
-/*
-BOOL certificate_verify_callback(freerdp* instance, const char* subject, const char* issuer, const char* fingerprint, BOOL host_mismatch) {
-    (void)subject;
-    (void)issuer;
-    (void)fingerprint;
-    (void)host_mismatch;
-
-    return TRUE;
-}*/
-
-DWORD client_verify_certificate_ex(freerdp* instance, const char* host, UINT16 port,
-                                       const char* common_name, const char* subject,
-                                       const char* issuer, const char* fingerprint, DWORD flags)
-{
-  //printf("Certificate details for %s:%" PRIu16 " (%s):\n", host, port, type);
-  //printf("\tCommon Name: %s\n", common_name);
-  //printf("\tSubject:     %s\n", subject);
-  //printf("\tIssuer:      %s\n", issuer);
-
-  // 1 trusted, 2 temporary trusted, 0 otherwise
-  return 2; 
-}
-
 int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, char* szLogin, char* szPassword)
 {
   int SMBerr;
@@ -770,7 +675,8 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   int old_stderr;
   int old_stdout;
   unsigned char *p = NULL;
-  unsigned char *ntlm_hash = NULL;
+  //unsigned char *ntlm_hash = NULL;
+  unsigned char ntlm_hash[33];
 
   /* Nessus Plugins: smb_header.inc */
   /* Note: we are currently only examining the lower 2 bytes of data */
@@ -829,20 +735,17 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     "STATUS_ACCESS_DENIED",
     "STATUS_BAD_NETWORK_NAME",
     "ERRCONNECT_CONNECT_CONNECT_CANCELLED",
-    "ERRCONNECT_CONNECT_TRANSPORT_FAILED"
+    "ERRCONNECT_CONNECT_TRANSPORT_FAILED (Access Denied)"
   };
 
-  //instance->settings->Username = szLogin;
   if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Username, szLogin)) {
-    writeError(ERR_ERROR, "FOOBAR");
+    writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Username", MODULE_NAME);
   }
 
   /* If the domain is not defined, local accounts are targeted */
-  //if (_psSessionData->szDomain)
-  //  instance->settings->Domain = _psSessionData->szDomain;
   if (_psSessionData->szDomain)
     if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Domain, _psSessionData->szDomain)) {
-      writeError(ERR_ERROR, "FOOBAR");
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Domain", MODULE_NAME);
     }
 
   /* Pass-the-hash support added to FreeRDP 1.2.x development tree */
@@ -858,36 +761,31 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
       p++;
     }
 
-    if (*p == '\0') {
-      ntlm_hash = szPassword;
-    } else {
-      ntlm_hash = p;
-      memset(ntlm_hash + 32, '\0', 1);
-    }
+    //if (*p == '\0') {
+    //  ntlm_hash = szPassword;
+    //} else {
+    //  ntlm_hash = p;
+    //  memset(ntlm_hash + 32, '\0', 1);
+    //}
+    memset(ntlm_hash, 0, 32 + 1);
 
-    //instance->settings->ConsoleSession = TRUE;
-    //instance->settings->RestrictedAdminModeRequired = TRUE;
-    //instance->settings->PasswordHash = ntlm_hash;
-    //(!freerdp_settings_set_bool(settings, FreeRDP_ConsoleSession, TRUE))
-    //!freerdp_settings_set_bool(settings, FreeRDP_RestrictedAdminModeRequired, FALSE) ||
+    if (*p == '\0')
+      strncpy(ntlm_hash, szPassword, 32); 
+    else
+      strncpy(ntlm_hash, p, 32);
 
-    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE)) {
-      writeError(ERR_ERROR, "FOOBAR");
-    }
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
     
-    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE)) {
-      writeError(ERR_ERROR, "FOOBAR");
-    }
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
     
-    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, ntlm_hash)) {
-      writeError(ERR_ERROR, "FOOBAR");
-    }
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, ntlm_hash))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
   }
   else
-    //instance->settings->Password = szPassword;
-    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Password, szPassword)) {
-      writeError(ERR_ERROR, "FOOBAR");
-    }
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Password, szPassword))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Password", MODULE_NAME);
 
   /* Blank password support
      FreeRDP does not support blank passwords. It attempts to pull credentials from a local
@@ -897,23 +795,28 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   if (strlen(szPassword) == 0)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Using pass-the-hash to test blank password.", MODULE_NAME);
-    //instance->settings->ConsoleSession = TRUE;
-    //instance->settings->RestrictedAdminModeRequired = TRUE;
-    //instance->settings->PasswordHash = NTLM_HASH_BLANK;
+    
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
+    
+    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
+    
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, NTLM_HASH_BLANK))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
+    
     _psSessionData->isBlankPassword = TRUE;
   }
 
-  //nRet = freerdp_connect(instance);
   nRet = freerdp_client_start(instance->context);
-  writeError(ERR_DEBUG_MODULE, "[%s] freerdp_client_start exit code: %d", MODULE_NAME, nRet);
-
-  const DWORD res = tf_client_thread_proc(instance);
-  writeError(ERR_DEBUG_MODULE, "[%s] tf_client_thread_proc exit code: %d", MODULE_NAME, (int)res);
-
-  if (freerdp_client_stop(instance->context) != 0)
-    writeError(ERR_DEBUG_MODULE, "[%s] freerdp_client_stop exit code: %d", MODULE_NAME, nRet);
-
-  if (nRet == 1)
+  if (nRet != 0)
+    writeError(ERR_FATAL, "[%s] freerdp_client_start exit code: %d", MODULE_NAME, nRet);
+  
+  if (freerdp_connect(instance))
+    writeError(ERR_FATAL, "[%s] freerdp_connect failed.", MODULE_NAME);
+  
+  SMBerr = freerdp_get_last_error(instance->context);
+  if (SMBerr == 0x00000000)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Login attempt successful.", MODULE_NAME);
     (*psLogin)->iResult = LOGIN_RESULT_SUCCESS;
@@ -921,8 +824,6 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   }
   else
   {
-    SMBerr = freerdp_get_last_error(instance->context);
-
     /* Locate appropriate SMB code message */
     pErrorMsg = smbErrorMsg[0]; /* UNKNOWN_ERROR_CODE */
     for (i = 0; i < sizeof(smbErrorCode)/4; i++) {
