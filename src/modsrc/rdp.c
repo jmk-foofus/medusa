@@ -2,7 +2,7 @@
 **   RDP Password Checking Medusa Module
 **
 **   ------------------------------------------------------------------------
-**    Copyright (C) 2015 Joe Mondloch
+**    Copyright (C) 2025 Joe Mondloch
 **    JoMo-Kun / jmk@foofus.net
 **
 **    This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,8 @@
  * FreeRDP: A Remote Desktop Protocol Implementation
  * FreeRDP Test UI
  * Copyright 2011 Marc-Andre Moreau <marcandre.moreau@gmail.com>
+ * Copyright 2016,2018 Armin Novak <armin.novak@thincast.com>
+ * Copyright 2016,2018 Thincast Technologies GmbH
 **
 */
 
@@ -68,7 +70,6 @@ enum MODULE_STATE
 int tryLogin(_MODULE_DATA* _psSessionData, sLogin** login, freerdp* instance, char* szLogin, char* szPassword);
 int initModule(sLogin* login, _MODULE_DATA *_psSessionData);
 
-// JOE NEW
 static int RdpClientEntry(RDP_CLIENT_ENTRY_POINTS* pEntryPoints);
 static BOOL tf_pre_connect(freerdp* instance);
 static BOOL tf_post_connect(freerdp* instance);
@@ -79,24 +80,6 @@ typedef struct
   rdpClientContext common;
   /* Channels */
 } tfContext;
-
-//void initWLog();
-//static BOOL tf_context_new(freerdp* instance, rdpContext* context);
-//static void tf_context_free(freerdp* instance, rdpContext* context);
-//static BOOL tf_begin_paint(rdpContext* context);
-//static BOOL tf_end_paint(rdpContext* context);
-//int tf_pre_connect(freerdp* instance);
-//int tf_post_connect(freerdp* instance);
-
-//struct tf_context
-//{
-//  rdpContext _p;
-//};
-
-//typedef struct tf_context tfContext;
-
-//extern FREERDP_API int freerdp_channels_global_init(void);
-//extern FREERDP_API int freerdp_channels_global_uninit(void);
 
 // Tell medusa how many parameters this module allows
 int getParamNumber()
@@ -246,59 +229,34 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
         RdpClientEntry(&clientEntryPoints);
         context = freerdp_client_context_new(&clientEntryPoints);
-        if (!context) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
+        if (!context)
+          writeError(ERR_FATAL, "[%s] freerdp_client_context_new failed.", MODULE_NAME);
 
-        //instance = freerdp_new();
-        //instance->PreConnect = (signed int (*)(struct rdp_freerdp *))tf_pre_connect;
-        //instance->PostConnect = (signed int (*)(struct rdp_freerdp *))tf_post_connect;
-        //instance->ContextSize = sizeof(tfContext);
-        //instance->ContextNew = tf_context_new;
-        //instance->ContextFree = tf_context_free;
+        /* FreeRDP caches certificates in ~/.config/freerdp */
+        if (!freerdp_settings_set_bool(context->settings, FreeRDP_IgnoreCertificate, TRUE))
+          writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_IgnoreCertificate", MODULE_NAME);
 
-        //freerdp_context_new(instance);
+        if (!freerdp_settings_set_bool(context->settings, FreeRDP_AuthenticationOnly, TRUE))
+          writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_AuthenticationOnly", MODULE_NAME);
 
-        // cert cached in ~/.config/freerdp/known_hosts2
-        if (!freerdp_settings_set_bool(context->settings, FreeRDP_IgnoreCertificate, TRUE)) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
+        if (!freerdp_settings_set_uint32(context->settings, FreeRDP_AuthenticationLevel, 2))
+          writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_AuthenticationLevel", MODULE_NAME);
 
-        //instance->settings->AuthenticationOnly = TRUE;
-        if (!freerdp_settings_set_bool(context->settings, FreeRDP_AuthenticationOnly, TRUE)) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
+        if (!freerdp_settings_set_bool(context->settings, FreeRDP_NegotiateSecurityLayer, TRUE))
+          writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_NegotiateSecurityLayer", MODULE_NAME);
 
-        if (!freerdp_settings_set_uint32(context->settings, FreeRDP_AuthenticationLevel, 2)) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
-
-        if (!freerdp_settings_set_bool(context->settings, FreeRDP_NegotiateSecurityLayer, TRUE)) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
-
-
-        //instance->settings->ServerHostname = psLogin->psServer->pHostIP;
-        if (!freerdp_settings_set_string(context->settings, FreeRDP_ServerHostname, psLogin->psServer->pHostIP)) {
-          writeError(ERR_ERROR, "FOOBAR");
-        }
-
-        //if (psLogin->psServer->psAudit->iPortOverride > 0)
-        //  instance->settings->ServerPort = psLogin->psServer->psAudit->iPortOverride;
-        //else
-        //  instance->settings->ServerPort = PORT_RDP;
+        if (!freerdp_settings_set_string(context->settings, FreeRDP_ServerHostname, psLogin->psServer->pHostIP))
+          writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ServerHostname", MODULE_NAME);
 
         if (psLogin->psServer->psAudit->iPortOverride > 0)
         {
-          if (!freerdp_settings_set_uint32(context->settings, FreeRDP_ServerPort, psLogin->psServer->psAudit->iPortOverride)) {
-            writeError(ERR_ERROR, "FOOBAR");
-          }
+          if (!freerdp_settings_set_uint32(context->settings, FreeRDP_ServerPort, psLogin->psServer->psAudit->iPortOverride))
+            writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ServerPort", MODULE_NAME);
         }
         else
         {
-          if (!freerdp_settings_set_uint32(context->settings, FreeRDP_ServerPort, PORT_RDP)) {
-            writeError(ERR_ERROR, "FOOBAR");
-          }
+          if (!freerdp_settings_set_uint32(context->settings, FreeRDP_ServerPort, PORT_RDP))
+            writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ServerPort", MODULE_NAME);
         }
 
         writeError(ERR_DEBUG_MODULE, "Id: %d initialized FreeRDP instance.", psLogin->iId);
@@ -338,19 +296,13 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
         break;
       case MSTATE_EXITING:
-        //freerdp_free(instance);
-        //freerdp_client_stop(context); ????
-
-        //freerdp_client_context_free(context);
-        //freerdp_disconnect(instance);
         nState = MSTATE_COMPLETE;
         break;
       default:
         writeError(ERR_CRITICAL, "Unknown %s module state %d", MODULE_NAME, nState);
 
-        //freerdp_free(instance);
-        //freerdp_client_stop(context); ????
         freerdp_client_context_free(context);
+
         psLogin->iResult = LOGIN_RESULT_UNKNOWN;
 
         return FAILURE;
@@ -363,18 +315,13 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
 /* Module Specific Functions */
 
-/* Optional global initializer.
- * Here we just register a signal handler to print out stack traces
- * if available. */
+/* Optional: global initializer */ 
 static BOOL tf_client_global_init(void)
 {
-  //if (freerdp_handle_signals() != 0)
-  //  return FALSE;
-
   return TRUE;
 }
 
-/* Optional global tear down */
+/* Optional: global tear down */
 static void tf_client_global_uninit(void)
 {
 }
@@ -389,9 +336,9 @@ static int tf_logon_error_info(freerdp* instance, UINT32 data, UINT32 type)
     return -1;
 
   tf = (tfContext*)instance->context;
-  //WLog_INFO(TAG, "Logon Error Info %s [%s]", str_data, str_type);
+  writeError(ERR_DEBUG_MODULE, "[%s] RDP logon error info: %s [%s]", MODULE_NAME, str_data, str_type);
   WINPR_UNUSED(tf);
-  
+
   return 1;
 }
 
@@ -406,7 +353,7 @@ static BOOL tf_client_new(freerdp* instance, rdpContext* context)
   instance->PostConnect = tf_post_connect;
   instance->PostDisconnect = tf_post_disconnect;
   instance->LogonErrorInfo = tf_logon_error_info;
-  /* TODO: Client display set up */
+
   WINPR_UNUSED(tf);
   return TRUE;
 }
@@ -418,20 +365,17 @@ static void tf_client_free(freerdp* instance, rdpContext* context)
   if (!context)
     return;
 
-  /* TODO: Client display tear down */
   WINPR_UNUSED(tf);
 }
 
 static int tf_client_start(rdpContext* context)
 {
-  /* TODO: Start client related stuff */
   WINPR_UNUSED(context);
   return 0;
 }
 
 static int tf_client_stop(rdpContext* context)
 {
-  /* TODO: Stop client related stuff */
   WINPR_UNUSED(context);
   return 0;
 }
@@ -453,16 +397,6 @@ static int RdpClientEntry(RDP_CLIENT_ENTRY_POINTS* pEntryPoints)
   return 0;
 }
 
-/*
-static BOOL tf_context_new(freerdp* instance, rdpContext* context)
-{
-  return TRUE;
-}
-
-static void tf_context_free(freerdp* instance, rdpContext* context)
-{
-}
-
 /* This function is called whenever a new frame starts.
  * It can be used to reset invalidated areas. */
 static BOOL tf_begin_paint(rdpContext* context)
@@ -480,15 +414,6 @@ static BOOL tf_begin_paint(rdpContext* context)
   gdi->primary->hdc->hwnd->invalid->null = TRUE;
   return TRUE;
 }
-
-/*
-static BOOL tf_begin_paint(rdpContext* context)
-{
-  rdpGdi* gdi = context->gdi;
-  gdi->primary->hdc->hwnd->invalid->null = TRUE;
-  return TRUE;
-}
-*/
 
 /* This function is called when the library completed composing a new
  * frame. Read out the changed areas and blit them to your output device.
@@ -513,24 +438,12 @@ static BOOL tf_end_paint(rdpContext* context)
   return TRUE;
 }
 
-/*
-static BOOL tf_end_paint(rdpContext* context)
-{
-  rdpGdi* gdi = context->gdi;
-
-  if (gdi->primary->hdc->hwnd->invalid->null)
-    return TRUE;
-
-  return TRUE;
-}
-*/
-
 /* Called before a connection is established.
  * Set all configuration options to support and load channels here. */
 static BOOL tf_pre_connect(freerdp* instance)
 {   
   rdpSettings* settings = NULL;
-  
+
   WINPR_ASSERT(instance);
   WINPR_ASSERT(instance->context);
 
@@ -541,58 +454,15 @@ static BOOL tf_pre_connect(freerdp* instance)
    * only the certificate fingerprint is available. */
   if (!freerdp_settings_set_bool(settings, FreeRDP_CertificateCallbackPreferPEM, TRUE))
     return FALSE; 
-  
+
   /* Optional OS identifier sent to server */
   if (!freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_UNIX))
     return FALSE;
   if (!freerdp_settings_set_uint32(settings, FreeRDP_OsMinorType, OSMINORTYPE_NATIVE_XSERVER))
     return FALSE;                                          
-  /* OrderSupport is initialized at this point.
-   * Only override it if you plan to implement custom order
-   * callbacks or deactivate certain features. */
-  /* Register the channel listeners.
-   * They are required to set up / tear down channels if they are loaded. */
-  //PubSub_SubscribeChannelConnected(instance->context->pubSub, tf_OnChannelConnectedEventHandler);
-  //PubSub_SubscribeChannelDisconnected(instance->context->pubSub,
-  //                                    tf_OnChannelDisconnectedEventHandler);
 
-  /* TODO: Any code your client requires */
   return TRUE;
 } 
-
-/*
-int tf_pre_connect(freerdp* instance)
-{
-  rdpSettings* settings;
-  settings = instance->settings;
-  
-  settings->OrderSupport[NEG_DSTBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_PATBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_SCRBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_OPAQUE_RECT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_DRAWNINEGRID_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MULTIDSTBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MULTIPATBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MULTISCRBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MULTIOPAQUERECT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MULTI_DRAWNINEGRID_INDEX] = TRUE;
-  settings->OrderSupport[NEG_LINETO_INDEX] = TRUE;
-  settings->OrderSupport[NEG_POLYLINE_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MEMBLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_MEM3BLT_INDEX] = TRUE;
-  settings->OrderSupport[NEG_SAVEBITMAP_INDEX] = TRUE;
-  settings->OrderSupport[NEG_GLYPH_INDEX_INDEX] = TRUE;
-  settings->OrderSupport[NEG_FAST_INDEX_INDEX] = TRUE;
-  settings->OrderSupport[NEG_FAST_GLYPH_INDEX] = TRUE;
-  settings->OrderSupport[NEG_POLYGON_SC_INDEX] = TRUE;
-  settings->OrderSupport[NEG_POLYGON_CB_INDEX] = TRUE;
-  settings->OrderSupport[NEG_ELLIPSE_SC_INDEX] = TRUE;
-  settings->OrderSupport[NEG_ELLIPSE_CB_INDEX] = TRUE;
-  
-  return TRUE;
-}
-*/
-
 
 /* Called after a RDP connection was successfully established.
  * Settings might have changed during negotiation of client / server feature
@@ -622,25 +492,8 @@ static BOOL tf_post_connect(freerdp* instance)
 
   context->update->BeginPaint = tf_begin_paint;
   context->update->EndPaint = tf_end_paint;
-  //context->update->PlaySound = tf_play_sound;
-  //context->update->DesktopResize = tf_desktop_resize;
-  //context->update->SetKeyboardIndicators = tf_keyboard_set_indicators;
-  //context->update->SetKeyboardImeStatus = tf_keyboard_set_ime_status;
   return TRUE;
 }
-
-/*
-int tf_post_connect(freerdp* instance)
-{
-  if (!gdi_init(instance, PIXEL_FORMAT_XRGB32))
-    return FALSE;
-
-  instance->update->BeginPaint = tf_begin_paint;
-  instance->update->EndPaint = tf_end_paint;
-
-  return TRUE;
-}
-*/
 
 /* This function is called whether a session ends by failure or success.
  * Clean up everything allocated by pre_connect and post_connect.
@@ -656,12 +509,8 @@ static void tf_post_disconnect(freerdp* instance)
     return;
 
   context = (tfContext*)instance->context;
-  //PubSub_UnsubscribeChannelConnected(instance->context->pubSub,
-  //                                   tf_OnChannelConnectedEventHandler);
-  //PubSub_UnsubscribeChannelDisconnected(instance->context->pubSub,
-  //                                      tf_OnChannelDisconnectedEventHandler);
+
   gdi_free(instance);
-  /* TODO : Clean up custom stuff */
   WINPR_UNUSED(context);
 }
 
@@ -761,12 +610,6 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
       p++;
     }
 
-    //if (*p == '\0') {
-    //  ntlm_hash = szPassword;
-    //} else {
-    //  ntlm_hash = p;
-    //  memset(ntlm_hash + 32, '\0', 1);
-    //}
     memset(ntlm_hash, 0, 32 + 1);
 
     if (*p == '\0')
@@ -776,10 +619,10 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
 
     if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
-    
+
     if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
-    
+
     if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, ntlm_hash))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
   }
@@ -795,26 +638,26 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
   if (strlen(szPassword) == 0)
   {
     writeError(ERR_DEBUG_MODULE, "[%s] Using pass-the-hash to test blank password.", MODULE_NAME);
-    
+
     if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
-    
+
     if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
-    
+
     if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, NTLM_HASH_BLANK))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
-    
+
     _psSessionData->isBlankPassword = TRUE;
   }
 
   nRet = freerdp_client_start(instance->context);
   if (nRet != 0)
     writeError(ERR_FATAL, "[%s] freerdp_client_start exit code: %d", MODULE_NAME, nRet);
-  
+
   if (freerdp_connect(instance))
     writeError(ERR_FATAL, "[%s] freerdp_connect failed.", MODULE_NAME);
-  
+
   SMBerr = freerdp_get_last_error(instance->context);
   if (SMBerr == 0x00000000)
   {
