@@ -280,6 +280,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
           else if (psCredSet->iStatus == CREDENTIAL_NEW_USER)
           {
             writeError(ERR_DEBUG_MODULE, "[%s] Starting testing for new user: %s.", MODULE_NAME, psCredSet->psUser->pUser);
+            freerdp_client_context_free(context);
             nState = MSTATE_NEW;
           }
           else
@@ -289,6 +290,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
             /* FreeRDP session needs to be reset following pass-the-hash logon attempt. */
             if ((_psSessionData->isPassTheHash) || (_psSessionData->isBlankPassword)) {
               _psSessionData->isBlankPassword = FALSE;
+              freerdp_client_context_free(context);
               nState = MSTATE_NEW;
             }
           }
@@ -297,14 +299,12 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
         break;
       case MSTATE_EXITING:
         nState = MSTATE_COMPLETE;
+        freerdp_client_context_free(context);
         break;
       default:
         writeError(ERR_CRITICAL, "Unknown %s module state %d", MODULE_NAME, nState);
-
         freerdp_client_context_free(context);
-
         psLogin->iResult = LOGIN_RESULT_UNKNOWN;
-
         return FAILURE;
     }
   }
