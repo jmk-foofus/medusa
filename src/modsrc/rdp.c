@@ -193,7 +193,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
   sCredentialSet *psCredSet = NULL;
   freerdp* instance;
   RDP_CLIENT_ENTRY_POINTS clientEntryPoints = { 0 };
-  rdpContext* context; 
+  rdpContext* context;
   wLog *root;
 
   /* Retrieve next available credential set to test */
@@ -286,7 +286,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
           {
             writeError(ERR_DEBUG_MODULE, "[%s] Next credential set - user: %s password: %s", MODULE_NAME, psCredSet->psUser->pUser, psCredSet->pPass);
 
-            /* FreeRDP session needs to be reset following pass-the-hash logon attempt. */ 
+            /* FreeRDP session needs to be reset following pass-the-hash logon attempt. */
             if ((_psSessionData->isPassTheHash) || (_psSessionData->isBlankPassword)) {
               _psSessionData->isBlankPassword = FALSE;
               nState = MSTATE_NEW;
@@ -315,7 +315,7 @@ int initModule(sLogin* psLogin, _MODULE_DATA *_psSessionData)
 
 /* Module Specific Functions */
 
-/* Optional: global initializer */ 
+/* Optional: global initializer */
 static BOOL tf_client_global_init(void)
 {
   return TRUE;
@@ -441,7 +441,7 @@ static BOOL tf_end_paint(rdpContext* context)
 /* Called before a connection is established.
  * Set all configuration options to support and load channels here. */
 static BOOL tf_pre_connect(freerdp* instance)
-{   
+{
   rdpSettings* settings = NULL;
 
   WINPR_ASSERT(instance);
@@ -453,16 +453,16 @@ static BOOL tf_pre_connect(freerdp* instance)
   /* If the callbacks provide the PEM all certificate options can be extracted, otherwise
    * only the certificate fingerprint is available. */
   if (!freerdp_settings_set_bool(settings, FreeRDP_CertificateCallbackPreferPEM, TRUE))
-    return FALSE; 
+    return FALSE;
 
   /* Optional OS identifier sent to server */
   if (!freerdp_settings_set_uint32(settings, FreeRDP_OsMajorType, OSMAJORTYPE_UNIX))
     return FALSE;
   if (!freerdp_settings_set_uint32(settings, FreeRDP_OsMinorType, OSMINORTYPE_NATIVE_XSERVER))
-    return FALSE;                                          
+    return FALSE;
 
   return TRUE;
-} 
+}
 
 /* Called after a RDP connection was successfully established.
  * Settings might have changed during negotiation of client / server feature
@@ -591,31 +591,39 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
     writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Username", MODULE_NAME);
   }
 
-  /* If the domain is not defined, local accounts are targeted */
-  if (_psSessionData->szDomain)
-    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Domain, _psSessionData->szDomain)) {
+  if (_psSessionData->szDomain) {
+    writeError(ERR_DEBUG_MODULE, "[%s] Testing domain (%s) account.", MODULE_NAME, _psSessionData->szDomain);
+
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Domain, _psSessionData->szDomain))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Domain", MODULE_NAME);
-    }
+  }
+  else {
+    writeError(ERR_DEBUG_MODULE, "[%s] Testing local account.", MODULE_NAME);
+
+    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Domain, "."))
+      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Domain", MODULE_NAME);
+  }
 
   /* Pass-the-hash support added to FreeRDP 1.2.x development tree */
   if (_psSessionData->isPassTheHash)
   {
-    /* Extract NTLM hash from PwDump format */ 
-    /* [PwDump] D42E35E1A1E4C22BD32E2170E4857C20:5E20780DD45857A68402938C7629D3B2::: */
-    p = szPassword;
-    i = 0;
-    while ((*p != '\0') && (i < 1)) {
-      if (*p == ':')
-        i++;
-      p++;
-    }
-
+    /* [PwDump File] D42E35E1A1E4C22BD32E2170E4857C20:5E20780DD45857A68402938C7629D3B2::: */
+    /* [NTLM-only] 5E20780DD45857A68402938C7629D3B2 */
     memset(ntlm_hash, 0, 32 + 1);
 
-    if (*p == '\0')
-      strncpy(ntlm_hash, szPassword, 32); 
+    if (strlen(szPassword) == 32)
+    {
+      strncpy(ntlm_hash, szPassword, 32);
+    }
+    else if (strlen(szPassword) == 68)
+    {
+      strncpy(ntlm_hash, szPassword + 32 + 1, 32);
+    }
     else
-      strncpy(ntlm_hash, p, 32);
+    {
+      writeError(ERR_ERROR, "[%s] Invalid NTLM hash: %s", MODULE_NAME, szPassword);
+      return FAILURE;
+    }
 
     if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
@@ -627,28 +635,33 @@ int tryLogin(_MODULE_DATA* _psSessionData, sLogin** psLogin, freerdp* instance, 
       writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
   }
   else
-    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Password, szPassword))
-      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Password", MODULE_NAME);
-
-  /* Blank password support
-     FreeRDP does not support blank passwords. It attempts to pull credentials from a local
-     SAM file if a password of length 0 is supplied. We're using pass-the-hash to get
-     around this issue.
-  */
-  if (strlen(szPassword) == 0)
   {
-    writeError(ERR_DEBUG_MODULE, "[%s] Using pass-the-hash to test blank password.", MODULE_NAME);
+    /* Blank password support
+       FreeRDP does not support blank passwords. It attempts to pull credentials from a local
+       SAM file if a password of length 0 is supplied. We're using pass-the-hash to get
+       around this issue.
+    */
+    if (strlen(szPassword) == 0)
+    {
+      writeError(ERR_DEBUG_MODULE, "[%s] Using pass-the-hash to test blank password.", MODULE_NAME);
 
-    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
-      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
+      if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_ConsoleSession, TRUE))
+        writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_ConsoleSession", MODULE_NAME);
 
-    if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
-      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
+      if (!freerdp_settings_set_bool(instance->context->settings, FreeRDP_RestrictedAdminModeRequired, TRUE))
+        writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_RestrictedAdminModeRequired", MODULE_NAME);
 
-    if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, NTLM_HASH_BLANK))
-      writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
+      if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_PasswordHash, NTLM_HASH_BLANK))
+        writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_PasswordHash", MODULE_NAME);
 
-    _psSessionData->isBlankPassword = TRUE;
+      _psSessionData->isBlankPassword = TRUE;
+    }
+    /* Standard password */
+    else
+    {
+      if (!freerdp_settings_set_string(instance->context->settings, FreeRDP_Password, szPassword))
+        writeError(ERR_ERROR, "[%s] Failed to set: FreeeRDP_Password", MODULE_NAME);
+    }
   }
 
   nRet = freerdp_client_start(instance->context);
