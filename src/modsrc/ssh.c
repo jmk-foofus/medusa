@@ -258,7 +258,7 @@ int initModule(sLogin* psLogin, _SSH2_DATA *_psSessionData)
         }
         
         writeError(ERR_DEBUG_MODULE, "Attempting to set banner: %s", _psSessionData->szBannerMsg);
-        if ( libssh2_banner_set(session, _psSessionData->szBannerMsg) ) {
+        if ( libssh2_session_banner_set(session, _psSessionData->szBannerMsg) ) {
            writeError(ERR_DEBUG_MODULE, "Failed to set libssh banner.");
         }
        
@@ -284,7 +284,7 @@ int initModule(sLogin* psLogin, _SSH2_DATA *_psSessionData)
             return FAILURE;
           }
           
-          if (libssh2_session_startup(session, hSocket)) {
+          if (libssh2_session_handshake(session, hSocket)) {
             writeError(ERR_ERROR, "%s: Failed establishing SSH session (%d/%d): Host: %s User: %s Pass: %s", MODULE_NAME, i, psLogin->psServer->psHost->iRetries + 1, psLogin->psServer->pHostIP, psCredSet->psUser->pUser, psCredSet->pPass);
           
             libssh2_session_last_error(session, &pErrorMsg, &iErrorMsg, 1);
