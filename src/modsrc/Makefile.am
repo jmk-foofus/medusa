@@ -5,7 +5,9 @@ EXTRA_PROGRAMS = afp.mod cvs.mod ftp.mod http.mod imap.mod mssql.mod mysql.mod n
                  pop3.mod postgres.mod rdp.mod rexec.mod rlogin.mod rsh.mod smbnt.mod smtp.mod smtp-vrfy.mod \
                  snmp.mod ssh.mod svn.mod telnet.mod vmauthd.mod vnc.mod web-form.mod wrapper.mod
 
-modules_PROGRAMS =
+AM_CFLAGS = -Wall -Wpedantic
+
+modules_PROGRAMS = 
 if BUILD_MODULE_AFP
   modules_PROGRAMS += afp.mod
 endif
@@ -139,7 +141,7 @@ svn_mod_SOURCES = svn.c ../medusa-trace.c
 telnet_mod_SOURCES = telnet.c ../medusa-trace.c
 vmauthd_mod_SOURCES = vmauthd.c ../medusa-trace.c
 vnc_mod_SOURCES = vnc.c d3des.c ../medusa-trace.c
-web_form_mod_SOURCES = web-form.c ../medusa-trace.c
+web_form_mod_SOURCES = web-form.c web-form-resolve-path.c ../medusa-trace.c
 wrapper_mod_SOURCES = wrapper.c ../medusa-trace.c
 
 AM_CPPFLAGS = -I$(top_srcdir)/src $(all_includes)
