@@ -30,7 +30,7 @@
 **   which are valid entries.
 **
 **   Several "-m 'METHOD:VALUE'" options can be used with this module. The
-**   following are valid methods: GROUP, GROUP_OTHER, PASS, AUTH and NETBIOS.
+**   following are valid methods: GROUP, GROUP_OTHER, PASS, AUTH and MODE.
 **   The following values are useful for these methods:
 **
 **   GROUP:?
@@ -57,8 +57,10 @@
 **     LMv2    == LMv2 authentication
 **     NTLMv2  == NTLMv2 authentication
 **
-**   NETBIOS
-**     Force NetBIOS Mode (Disable Native Win2000 Mode)
+**   MODE:?
+**     AUTO    == Attempt SMBv1, SMBv2 and NetBIOS connections.
+**     NETBIOS == Force NetBIOS-only mode (pre-Windows 2000 servers).
+**     SMB2    == Force SMBv2-only mode (disable older modes).
 **
 **   Be careful of mass domain account lockout with this. For
 **   example, assume you are checking several accounts against
@@ -134,11 +136,15 @@ void showUsage()
   writeVerbose(VB_NONE, "    NTLM: ");
   writeVerbose(VB_NONE, "    LMv2: ");
   writeVerbose(VB_NONE, "    NTLMv2: ");
-  writeVerbose(VB_NONE, "  NETBIOS");
-  writeVerbose(VB_NONE, "    Force NetBIOS Mode (Disable Native Win2000 Mode). Win2000 mode is the default.");
-  writeVerbose(VB_NONE, "    Default mode is to test TCP/445 using Native Win2000. If this fails, module will");
-  writeVerbose(VB_NONE, "    fall back to TCP/139 using NetBIOS mode. To test only TCP/139, use the following:");
-  writeVerbose(VB_NONE, "    medusa -M smbnt -m NETBIOS -n 139");
+  writeVerbose(VB_NONE, "  MODE:?  (AUTO*, NETBIOS, SMB2)");
+  writeVerbose(VB_NONE, "    NETBIOS: Attempt NetBIOS-only connection (pre-Windows 2000).");
+  writeVerbose(VB_NONE, "    SMB2:    Attempt SMBv2-only connection.");
+  writeVerbose(VB_NONE, "    AUTO:    Attempt SMBv1, SMBv2 and NetBIOS (pre-Windows 2000).");
+  writeVerbose(VB_NONE, "             SMB communications use either port 139 or 445/tcp. Pre-Windows 2000 connections");
+  writeVerbose(VB_NONE, "             ran on top of NetBIOS using 139/tcp. Later versions of SMB use 445/tcp. The");
+  writeVerbose(VB_NONE, "             default behavior for Medusa is to attempt to connect to 445/tcp. If successful,");
+  writeVerbose(VB_NONE, "             Medusa will initiate an SMBv1 connection, followed by SMBv2. If the port is not");
+  writeVerbose(VB_NONE, "             open, Medusa will attempt an SMBv1 connection to the NetBIOS port.");
   writeVerbose(VB_NONE, "\n(*) Default value");
   writeVerbose(VB_NONE, "");
   writeVerbose(VB_NONE, "Usage examples:");
@@ -193,7 +199,7 @@ int go(sLogin* logins, int argc, char *argv[])
     psSessionData->authLevel = AUTH_LMv2;
     psSessionData->accntFlag = LOCAL;
     psSessionData->hashFlag = PASSWORD;
-    psSessionData->protoFlag = WIN2000_NATIVEMODE;
+    psSessionData->protoFlag = MODE_AUTO;
 
     for (i=0; i<argc; i++) {
       pOptTmp = strdup(argv[i]);
@@ -266,9 +272,20 @@ int go(sLogin* logins, int argc, char *argv[])
         else
           writeError(ERR_WARNING, "Invalid value for method AUTH.");
       }
-      else if (strcmp(pOpt, "NETBIOS") == 0)
-      {
-        psSessionData->protoFlag = WIN_NETBIOSMODE;
+      else if (strcmp(pOpt, "MODE") == 0) {
+        pOpt = strtok_r(NULL, "\0", &strtok_ptr);
+        writeError(ERR_DEBUG_MODULE, "Processing option parameter: %s", pOpt);
+
+        if (pOpt == NULL)
+          writeError(ERR_WARNING, "Method MODE requires value to be set.");
+        else if (strcmp(pOpt, "AUTO") == 0)
+          psSessionData->protoFlag = MODE_AUTO;
+        else if (strcmp(pOpt, "NETBIOS") == 0)
+          psSessionData->protoFlag = MODE_NETBIOS;
+        else if (strcmp(pOpt, "SMB2") == 0)
+          psSessionData->protoFlag = MODE_SMB2;
+        else
+          writeError(ERR_WARNING, "Invalid value for method MODE.");
       }
       else
       {
@@ -333,9 +350,9 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         if (params.nPort == PORT_SMBNT) {
           hSocket = medusaConnect(&params);
           if ( hSocket < 0 ) {
-            writeError(ERR_NOTICE, "%s Failed to establish WIN2000_NATIVE mode. Attempting WIN_NETBIOS mode.)", MODULE_NAME);
+            writeError(ERR_NOTICE, "%s Failed to establish WIN2000_NATIVE mode. Attempting NetBIOS mode.)", MODULE_NAME);
             params.nPort = PORT_SMB;
-            _psSessionData->protoFlag = WIN_NETBIOSMODE;
+            _psSessionData->protoFlag = MODE_NETBIOS;
             hSocket = medusaConnect(&params);
           }
         }
@@ -362,30 +379,60 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
           return FAILURE;
         }
 
-        if (SMBNegProt(hSocket, _psSessionData) < 0)
-        {
-          writeError(ERR_DEBUG_MODULE, "[%s] SMBv1 protocol negotiation failed with host: %s. Attempting SMBv2 connection.", MODULE_NAME, psLogin->psServer->pHostIP);
+        switch (_psSessionData->protoFlag)
+	{
+          case MODE_NETBIOS:
+            writeError(ERR_DEBUG_MODULE, "[%s] : Forcing NetBIOS mode: %s", MODULE_NAME, psLogin->psServer->pHostIP);
+            if (SMBNegProt(hSocket, _psSessionData) < 0)
+	    {
+              writeError(ERR_ERROR, "NetBIOS protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
+              psLogin->iResult = LOGIN_RESULT_UNKNOWN;
 
-          if (hSocket > 0)
-            medusaDisconnect(hSocket);
+              if (hSocket > 0)
+                medusaDisconnect(hSocket);
 
-          hSocket = medusaConnect(&params);
+              return FAILURE;
+            }
 
-          if (SMB2NegProt(hSocket, _psSessionData) < 0)
-          {
-            writeError(ERR_ERROR, "SMBv2 protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
-            psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+            break;
+          case MODE_SMB2:
+            writeError(ERR_DEBUG_MODULE, "[%s] : Forcing SMBv2 mode: %s", MODULE_NAME, psLogin->psServer->pHostIP);
+            if (SMB2NegProt(hSocket, _psSessionData) < 0)
+            {
+              writeError(ERR_ERROR, "SMBv2 protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
+              psLogin->iResult = LOGIN_RESULT_UNKNOWN;
 
-            return FAILURE;
-          }
-          else {
-            nState = MSTATE_RUNNING;
-          }
+              if (hSocket > 0)
+                medusaDisconnect(hSocket);
+
+              return FAILURE;
+            }
+
+            break;
+          default:
+            writeError(ERR_DEBUG_MODULE, "[%s] : Attempting automatic mode: %s", MODULE_NAME, psLogin->psServer->pHostIP);
+            if (SMBNegProt(hSocket, _psSessionData) < 0)
+            {
+              writeError(ERR_DEBUG_MODULE, "[%s] SMBv1 protocol negotiation failed with host: %s. Attempting SMBv2 connection.", MODULE_NAME, psLogin->psServer->pHostIP);
+
+              if (hSocket > 0)
+                medusaDisconnect(hSocket);
+
+              hSocket = medusaConnect(&params);
+
+              if (SMB2NegProt(hSocket, _psSessionData) < 0)
+              {
+                writeError(ERR_ERROR, "SMBv2 protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
+                psLogin->iResult = LOGIN_RESULT_UNKNOWN;
+
+                return FAILURE;
+              }
+            }
+
+            break;
         }
-        else {
-          nState = MSTATE_RUNNING;
-        }
 
+        nState = MSTATE_RUNNING;
         break;
       case MSTATE_RUNNING:
         nState = tryLogin(hSocket, &psLogin, _psSessionData, szUser, psCredSet->pPass);

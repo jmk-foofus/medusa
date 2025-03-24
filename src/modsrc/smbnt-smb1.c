@@ -681,7 +681,7 @@ int NBSSessionRequest(int hSocket, _SMBNT_DATA* _psSessionData)
   int i = 0;
 
   /* if we are running in native mode (aka port 445) don't do netbios */
-  if (_psSessionData->protoFlag == WIN2000_NATIVEMODE)
+  if (_psSessionData->protoFlag != MODE_NETBIOS)
     return 0;
 
   /* convert computer name to netbios name -- https://support.microsoft.com/kb/194203 */
@@ -756,7 +756,7 @@ int NBSTATQuery(sLogin *_psLogin,_SMBNT_DATA* _psSessionData)
   int nReceiveBufferSize = 0;
 
   /* if we are running in native mode (aka port 445) don't do netbios */
-  if (_psSessionData->protoFlag == WIN2000_NATIVEMODE)
+  if (_psSessionData->protoFlag != MODE_NETBIOS)
     return 0;
 
   memset(&params, 0, sizeof(sConnectParams));
