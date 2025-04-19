@@ -20,7 +20,7 @@ will automatically also test SMBv2/3 services and handle SMB signing.
 
 <P>
 Several "-m 'METHOD:VALUE'" options can be used with this module. The
-following are valid methods: AUTH, GROUP, GROUP_OTHER, PASS and NETBIOS.
+following are valid methods: AUTH, GROUP, GROUP_OTHER, MODE and PASS.
 The following values are useful for these methods:
 
 <BR><BR>
@@ -119,9 +119,18 @@ The following values are useful for these methods:
   <TD>Use the Machine's NetBIOS name as the password.</TD>
 </TR>
 <TR>
+  <TD VALIGN=TOP ROWSPAN=3><I>MODE</I></TD>
+  <TD VALIGN=TOP><I>AUTO*</I></TD>
+  <TD>If 445/tcp is open, attempt SMBv1, then SMBv2. If only 139/tcp (pre-Windows 2000)
+  is available, use SMBv1 over NetBIOS.</TD>
+</TR>
+<TR>
   <TD VALIGN=TOP><I>NETBIOS</I></TD>
-  <TD VALIGN=TOP><I></I></TD>
-  <TD>Force NetBIOS Mode (Disable Native Win2000 Mode)</TD>
+  <TD>Force NetBIOS-only mode (139/tcp).</TD>
+</TR>
+<TR>
+  <TD VALIGN=TOP><I>SMB2</I></TD>
+  <TD>Force SMBv2-only mode.</TD>
 </TR>
 </TABLE>
 &nbsp&nbsp(*) Default value
@@ -135,7 +144,7 @@ connection fails, NETBIOS mode is checked on TCP/139. The following shows how
 to force the module into NETBIOS module. 
 
 <PRE><CODE>
-% medusa -h 192.168.0.20 -u administrator -e ns -M smbnt -m NETBIOS -n 139 
+% medusa -h 192.168.0.20 -u administrator -e ns -M smbnt -m MODE:NETBIOS -n 139
 Medusa v1.0-rc1 [http://www.foofus.net] (C) JoMo-Kun / Foofus Networks
 
 ACCOUNT CHECK: [smbnt] Host: 192.168.0.20 (1/1) User: administrator (1/1) Password:  (1/2)

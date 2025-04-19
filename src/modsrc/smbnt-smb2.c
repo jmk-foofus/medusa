@@ -2,7 +2,7 @@
 
 #ifdef SMBNT_SMB2_SUPPORT_ENABLED 
 
-#define SMBv2 16
+#define SMBv2 17
 
 /* libsmb2:include/libsmb2-private.h */
 #ifndef SMB2_SEC_NTLMSSP
