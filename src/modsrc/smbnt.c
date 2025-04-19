@@ -380,11 +380,11 @@ int initModule(sLogin* psLogin, _SMBNT_DATA *_psSessionData)
         }
 
         switch (_psSessionData->protoFlag)
-	{
+        {
           case MODE_NETBIOS:
             writeError(ERR_DEBUG_MODULE, "[%s] : Forcing NetBIOS mode: %s", MODULE_NAME, psLogin->psServer->pHostIP);
             if (SMBNegProt(hSocket, _psSessionData) < 0)
-	    {
+            {
               writeError(ERR_ERROR, "NetBIOS protocol negotiation failed with host: %s", psLogin->psServer->pHostIP);
               psLogin->iResult = LOGIN_RESULT_UNKNOWN;
 
