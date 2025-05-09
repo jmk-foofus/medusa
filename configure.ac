@@ -541,7 +541,7 @@ AC_ARG_WITH(libsmb2, AS_HELP_STRING([--with-libsmb2=prefix],[Prefix for libsmb2 
 CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
 
 AS_MESSAGE([checking for libsmb2 Library and Header files...])
-AC_CHECK_HEADER([smb2/libsmb2.h],
+AC_CHECK_HEADER([smb2/smb2.h],
   [AC_CHECK_LIB(smb2, main,
     [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"],
     [AC_MSG_WARN([ *** libsmb2 library required for SMBNT module SMBv2 support. ***
