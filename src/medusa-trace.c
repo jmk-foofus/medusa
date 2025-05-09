@@ -34,8 +34,8 @@
 
 void writeVerbose(int iLevel, char *pMsg, ...) {
   va_list ap;
-  char buf[512];
-  char bufOut[2049]; // 1 character is represented by 4 -- [01]
+  char buf[4096];
+  char bufOut[16384]; // 1 character is represented by 4 -- [01]
   char temp[6];
   unsigned char cTemp;
   unsigned int i = 0;
