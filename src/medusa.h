@@ -46,6 +46,7 @@
 
 #ifdef HAVE_LIBSSL
   #include <openssl/crypto.h>
+  #include <openssl/provider.h>
 #endif
 
 #define PROGRAM   "Medusa"
