@@ -1998,6 +1998,15 @@ int main(int argc, char **argv, char *envp[] __attribute__((unused)))
   if (pthread_mutex_init(&(psAudit->ptmMutex), NULL) != 0)
     writeError(ERR_FATAL, "Audit mutex initialization failed - %s\n", strerror( errno ) );
 
+  /* load openssl - modern and deprecated algorithms */
+#ifdef HAVE_LIBSSL
+  if (OSSL_PROVIDER_load(NULL, "default") == NULL)
+    writeError(ERR_FATAL, "Error loading OpenSSL 'default' provider.");
+
+  if (OSSL_PROVIDER_load(NULL, "legacy") == NULL)
+    writeError(ERR_FATAL, "Error loading OpenSSL 'legacy' provider.");
+#endif
+
   /* parse user-supplied parameters - populate module parameters */
   if (checkOptions(argc, argv, psAudit))
   {

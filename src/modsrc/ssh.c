@@ -258,7 +258,7 @@ int initModule(sLogin* psLogin, _SSH2_DATA *_psSessionData)
         }
         
         writeError(ERR_DEBUG_MODULE, "Attempting to set banner: %s", _psSessionData->szBannerMsg);
-        if ( libssh2_banner_set(session, _psSessionData->szBannerMsg) ) {
+        if ( libssh2_session_banner_set(session, _psSessionData->szBannerMsg) ) {
            writeError(ERR_DEBUG_MODULE, "Failed to set libssh banner.");
         }
        
@@ -284,7 +284,7 @@ int initModule(sLogin* psLogin, _SSH2_DATA *_psSessionData)
             return FAILURE;
           }
           
-          if (libssh2_session_startup(session, hSocket)) {
+          if (libssh2_session_handshake(session, hSocket)) {
             writeError(ERR_ERROR, "%s: Failed establishing SSH session (%d/%d): Host: %s User: %s Pass: %s", MODULE_NAME, i, psLogin->psServer->psHost->iRetries + 1, psLogin->psServer->pHostIP, psCredSet->psUser->pUser, psCredSet->pPass);
           
             libssh2_session_last_error(session, &pErrorMsg, &iErrorMsg, 1);
@@ -436,10 +436,8 @@ int tryLogin(_SSH2_DATA* _psSessionData, LIBSSH2_SESSION *session, sLogin** psLo
 {
   char *pErrorMsg = NULL;
   int iErrorMsg, iAuthMode, iRet;
-  void (*pResponseCallback) ();
   char *strtok_ptr = NULL;
   char *pAuth = NULL;
-  pResponseCallback = response_callback;
 
   /*
     Password authentication failure delay: 2
@@ -492,7 +490,7 @@ int tryLogin(_SSH2_DATA* _psSessionData, LIBSSH2_SESSION *session, sLogin** psLo
   switch (iAuthMode)
   {
     case SSH_AUTH_KBDINT:
-      if (libssh2_userauth_keyboard_interactive(session, szLogin, pResponseCallback) ) 
+      if (libssh2_userauth_keyboard_interactive(session, szLogin, &response_callback) ) 
       {
         writeError(ERR_DEBUG_MODULE, "Keyboard-Interactive authentication failed: Host: %s User: %s Pass: %s", (*psLogin)->psServer->pHostIP, szLogin, szPassword);
         (*psLogin)->iResult = LOGIN_RESULT_FAIL;

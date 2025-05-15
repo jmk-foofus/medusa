@@ -1,5 +1,5 @@
 ================================================================
-Version 2.3 (2024/04)
+Version 2.3 (2025/05)
 ================================================================
 
 Medusa Core Updates:
@@ -11,7 +11,7 @@ Medusa Core Updates:
 Module Updates:
 
 RDP
-  - FreeRDP 2.0 support
+  - FreeRDP 3.0 support
 
 SMBNT
   - SMBv2/3 and SMB signing support (libsmb2)

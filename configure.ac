@@ -67,7 +67,7 @@ check_libssl="false"
 AS_MESSAGE([checking for OpenSSL Library and Header files...])
 
 check_ssl_dir() { :
-  AC_MSG_CHECKING([$1/include/openssl/ssh.h])
+  AC_MSG_CHECKING([$1/include/openssl/ssl.h])
   if test -f "$1/include/openssl/ssl.h"
   then
     AC_MSG_RESULT([found])
@@ -418,26 +418,26 @@ check_module_rdp="false"
 module_rdp_headers="false"
 
 AC_ARG_WITH(freerdp, AS_HELP_STRING([--with-freerdp=prefix],[Prefix for FreeRDP include directory (default = /usr)]), [freerdp_prefix="$withval"], [freerdp_prefix="/usr"])
-CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp2 -I${freerdp_prefix}/include/winpr2"
+CPPFLAGS="$CPPFLAGS -I${freerdp_prefix}/include/freerdp3 -I${freerdp_prefix}/include/winpr3"
 
 AS_MESSAGE([checking for FreeRDP Library and Header files...])
 AC_CHECK_HEADER([freerdp/freerdp.h],
-  [AC_CHECK_LIB(freerdp2, main,
-    [AC_DEFINE(HAVE_LIBFREERDP2, 1, [Found FreeRDP2 Library]) MODULE_LIBS="$MODULE_LIBS -lfreerdp2" check_module_rdp="true"],
-    [AC_MSG_WARN([ *** FreeRDP2 library required for RDP module. ***
+  [AC_CHECK_LIB(freerdp3, main,
+    [AC_DEFINE(HAVE_LIBFREERDP3, 1, [Found FreeRDP3 Library]) MODULE_LIBS="$MODULE_LIBS -lfreerdp3 -lfreerdp-client3" check_module_rdp="true"],
+    [AC_MSG_WARN([ *** FreeRDP3 library required for RDP module. ***
 
       The FreeRDP package must be installed for RDP module to function. This
       includes both the library and header files. Your distribution may offer
-      packages such as freerdp2-dev/libfreerdp2, which will provide these 
+      packages such as freerdp3-dev/libfreerdp3, which will provide these 
       files.
 
     ])]
   )],
-  [AC_MSG_WARN([ *** FreeRDP2 header files required for RDP module. ***
+  [AC_MSG_WARN([ *** FreeRDP3 header files required for RDP module. ***
 
     The FreeRDP package must be installed for RDP module to function. This
     includes both the library and header files. Your distribution may offer
-    packages such as freerdp2-dev/libwinpr2-dev, which will provide these 
+    packages such as freerdp3-dev/libwinpr3-dev, which will provide these 
     files.
 
   ])]
@@ -541,7 +541,7 @@ AC_ARG_WITH(libsmb2, AS_HELP_STRING([--with-libsmb2=prefix],[Prefix for libsmb2 
 CPPFLAGS="$CPPFLAGS -I${libsmb2_prefix}/include/smb2"
 
 AS_MESSAGE([checking for libsmb2 Library and Header files...])
-AC_CHECK_HEADER([smb2/libsmb2.h],
+AC_CHECK_HEADER([smb2/smb2.h],
   [AC_CHECK_LIB(smb2, main,
     [AC_DEFINE(HAVE_LIBSMB2, 1, [Found libsmb2 Library]) MODULE_LIBS="$MODULE_LIBS -lsmb2" check_module_smbnt_smb2="true"],
     [AC_MSG_WARN([ *** libsmb2 library required for SMBNT module SMBv2 support. ***
