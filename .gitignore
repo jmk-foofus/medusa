@@ -1,0 +1,61 @@
+# Build artifacts
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.dll
+*.dylib
+.libs/
+.deps/
+autom4te.cache/
+config.log
+config.status
+libtool
+Makefile
+Makefile.in
+aclocal.m4
+config.h
+config.h.in
+configure
+stamp-h1
+
+# Compiled binaries
+src/medusa
+src/*.mod
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+misc/test_scripts/__pycache__/
+misc/test_scripts/*.pyc
+
+# Dependencies
+/lib/
+/include/
+
+# Debug files
+core
+*.core
+vgcore.*
+
+# Package files
+*.tar.gz
+*.zip
+
+# Temporary files
+*.log
+*.tmp
