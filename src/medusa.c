@@ -662,13 +662,33 @@ int processComboFile(sAudit **_psAudit)
 
 
 /*
+  Parsing <host>:<port> value from file if there are multiple port overrides
+*/
+static int findPortFromHost(char *_pHost) {
+    char *pPort = strchr(_pHost, ':');
+    int port = 0;
+    
+    if (pPort != NULL) {
+        *pPort = '\0';
+        port = atoi(pPort + 1);
+        
+        if (port <= 0 || port > 65535) {
+            writeError(ERR_ERROR, "Invalid port number: %d in host entry", port);
+            port = 0;
+        }
+    }
+    
+    return port;
+}
+
+
+/*
   Return next user-specified host during audit data table building process.
   This host information may be a single global entry, from a file containing
   a list of hosts, or from a combo file.
 */
 char* findNextHost(sAudit *_psAudit, char *_pHost)
 {
-
   if (_psAudit->pGlobalCombo)
   {
     writeError(ERR_DEBUG, "[findNextHost] Process global combo file.");
@@ -752,12 +772,25 @@ char* findNextHost(sAudit *_psAudit, char *_pHost)
   {
     if (*_psAudit->pGlobalHost != '\0')
     {
-      _pHost = _psAudit->pGlobalHost;
+      char* currentPos = _psAudit->pGlobalHost;
 
-      /* advancing host list */
-      while (*_psAudit->pGlobalHost != '\0')
-        _psAudit->pGlobalHost++;
-      _psAudit->pGlobalHost++;
+      // get origin end of string
+      char *endPos = currentPos;
+      while (*endPos != '\0') endPos++;
+
+      // get custom port (if exist)
+      int port = findPortFromHost(currentPos);
+
+      // set host without port (if exist)
+      _pHost = currentPos;
+
+      // Set custom port if exist 
+      if (port != 0) {
+          _psAudit->iPortOverride = port;
+      }
+
+      // Get next target
+      _psAudit->pGlobalHost = endPos + 1;
 
       if (*_psAudit->pGlobalHost != '\0')
       {
